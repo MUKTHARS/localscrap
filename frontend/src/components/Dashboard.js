@@ -99,75 +99,43 @@ const Dashboard = () => {
     setSelectedFile(file);
     setError('');
   };
-const handleBulkUpload = async () => {
-  if (!selectedFile) {
-    setError('Please select a file first');
-    return;
-  }
 
-  setBulkLoading(true);
-  setError('');
-  setResults([]);
-
-  try {
-    const formDataObj = new FormData();
-    formDataObj.append('file', selectedFile);
-    formDataObj.append('amazon_country', bulkAmazonCountry); 
-
-    const response = await axios.post('/api/scrape', formDataObj, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      withCredentials: true
-    });
-
-    if (response.data.error) {
-      setError(response.data.error);
-    } else {
-      setResults(response.data.data);
-      setSelectedFile(null);
+  const handleBulkUpload = async () => {
+    if (!selectedFile) {
+      setError('Please select a file first');
+      return;
     }
-  } catch (error) {
-    setError(error.response?.data?.error || 'An error occurred during bulk upload');
-  } finally {
-    setBulkLoading(false);
-  }
-};
-  // const handleBulkUpload = async () => {
-  //   if (!selectedFile) {
-  //     setError('Please select a file first');
-  //     return;
-  //   }
 
-  //   setBulkLoading(true);
-  //   setError('');
-  //   setResults([]);
+    setBulkLoading(true);
+    setError('');
+    setResults([]);
 
-  //   try {
-  //     // For bulk upload, we'll send as FormData since backend handles it
-  //     const formDataObj = new FormData();
-  //     formDataObj.append('file', selectedFile);
-  //     formDataObj.append('amazon_country', formData.amazon_country); 
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', selectedFile);
+      uploadFormData.append('amazon_country', bulkAmazonCountry || 'amazon.com'); // FIXED: Use bulkAmazonCountry
 
-  //     const response = await axios.post('/api/scrape', formDataObj, {
-  //       headers: {
-  //         'Content-Type': 'multipart/form-data',
-  //       },
-  //       withCredentials: true
-  //     });
+      console.log('🟡 Sending Amazon domain for bulk upload:', bulkAmazonCountry); // Debug log
 
-  //     if (response.data.error) {
-  //       setError(response.data.error);
-  //     } else {
-  //       setResults(response.data.data);
-  //       setSelectedFile(null);
-  //     }
-  //   } catch (error) {
-  //     setError(error.response?.data?.error || 'An error occurred during bulk upload');
-  //   } finally {
-  //     setBulkLoading(false);
-  //   }
-  // };
+      const response = await axios.post('/api/scrape', uploadFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true
+      });
+
+      if (response.data.error) {
+        setError(response.data.error);
+      } else {
+        setResults(response.data.data);
+        setSelectedFile(null);
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || 'An error occurred during bulk upload');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const removeFile = () => {
     setSelectedFile(null);
@@ -467,16 +435,16 @@ const handleBulkUpload = async () => {
 
               {/* Amazon Region for Bulk Upload */}
               <div className="form-group">
-  <label className="form-label">Amazon Region</label>
-  <div className="input-wrapper">
-    <div className="input-icon">
-      <i className="bi bi-globe-americas"></i>
-    </div>
-    <select
-      name="amazon_country"
-      className="form-select"
-      value={bulkAmazonCountry} // Use separate state
-      onChange={(e) => setBulkAmazonCountry(e.target.value)} 
+                <label className="form-label">Amazon Region</label>
+                <div className="input-wrapper">
+                  <div className="input-icon">
+                    <i className="bi bi-globe-americas"></i>
+                  </div>
+                  <select
+                    name="amazon_country"
+                    className="form-select"
+                    value={bulkAmazonCountry}
+                    onChange={(e) => setBulkAmazonCountry(e.target.value)}
                   >
                     <option value="amazon.com">Amazon.com (US)</option>
                     <option value="amazon.co.uk">Amazon UK</option>

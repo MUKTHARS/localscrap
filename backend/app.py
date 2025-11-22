@@ -71,6 +71,13 @@ def scrape_products():
             if file.filename == '':
                 return jsonify({"error": "No file selected"}), 400
 
+            # Get Amazon domain from form data (not from file)
+            amazon_domain = request.form.get('amazon_country', 'amazon.com').strip().lower()
+            if not amazon_domain:
+                amazon_domain = "amazon.com"
+            
+            print(f"🟡 Using Amazon domain for bulk upload: {amazon_domain}")  # Debug log
+
             # Validate extension
             allowed = ['.csv', '.xlsx', '.xls']
             ext = os.path.splitext(file.filename)[1].lower()
@@ -102,7 +109,9 @@ def scrape_products():
                 site = str(row.get("Website Name", "")).lower().strip()
                 oem = str(row.get("OEM Number", "")).strip()
                 asin = str(row.get("ASIN Number", "")).strip()
-                amazon_domain = str(row.get("Amazon Domain", "amazon.com")).strip().lower()
+                
+                # Use the amazon_domain from form data, not from file
+                # Remove this line: amazon_domain = str(row.get("Amazon Domain", "amazon.com")).strip().lower()
 
                 if not brand or not product:
                     continue
@@ -117,6 +126,7 @@ def scrape_products():
 
                     if site_name == "amazon":
                         os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
+                        print(f"🟡 Scraping Amazon with domain: {amazon_domain}")  # Debug log
                         data = scraper(brand, product)
                     else:
                         data = scraper(brand, product, oem, asin)
@@ -143,6 +153,8 @@ def scrape_products():
             oem = data.get("oem_number", "").strip()
             asin = data.get("asin_number", "").strip()
             amazon_domain = data.get("amazon_country", "amazon.com").strip()
+
+            print(f"🟡 Using Amazon domain for manual: {amazon_domain}")  # Debug log
 
             # Save search history
             if brand and product:
@@ -171,6 +183,7 @@ def scrape_products():
 
                 if site == "amazon":
                     os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
+                    print(f"🟡 Scraping Amazon with domain: {amazon_domain}")  # Debug log
                     data = scraper(brand, product)
                 else:
                     data = scraper(brand, product, oem, asin)
@@ -187,6 +200,7 @@ def scrape_products():
 
     except Exception as e:
         error = str(e)
+        print(f"🔴 Error in scrape_products: {error}")  # Debug log
 
     if error:
         return jsonify({"error": error}), 400
@@ -253,6 +267,10 @@ def html_index():
 
             # ---- BULK UPLOAD ----
             if file and file.filename:
+                # Use the amazon_domain from form, not from file
+                amazon_domain = request.form.get("amazon_country", "amazon.com").strip()
+                os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
+                
                 df = pd.read_excel(file) if file.filename.endswith(".xlsx") else pd.read_csv(file)
 
                 for _, row in df.iterrows():
@@ -261,7 +279,7 @@ def html_index():
                     site = str(row.get("Website Name", "")).lower().strip()
                     oem = str(row.get("OEM Number", "")).strip()
                     asin = str(row.get("ASIN Number", "")).strip()
-                    amazon_domain = str(row.get("Amazon Domain", "amazon.com")).strip()
+                    # Remove: amazon_domain = str(row.get("Amazon Domain", "amazon.com")).strip()
 
                     if not brand or not product:
                         continue
