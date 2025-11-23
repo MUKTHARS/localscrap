@@ -1,9 +1,31 @@
+// import React, { useState, useEffect } from 'react';
+// import { useAuth } from '../contexts/AuthContext';
+// import { useNavigate, useLocation } from 'react-router-dom';
+// import '../styles/Login.css';
+
+// const Login = () => {
+//   const [isLogin, setIsLogin] = useState(true);
+//   const [formData, setFormData] = useState({
+//     name: '',
+//     email: '',
+//     password: '',
+//     confirmPassword: ''
+//   });
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Login.css';
 
 const Login = () => {
+  const navigate = useNavigate();
+  
+  // FORCE REDIRECT - ADD THIS
+  useEffect(() => {
+    navigate('/dashboard', { replace: true });
+  }, [navigate]);
+
+  // Rest of your existing login component code...
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
