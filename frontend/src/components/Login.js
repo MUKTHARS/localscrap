@@ -20,11 +20,6 @@ import '../styles/Login.css';
 const Login = () => {
   const navigate = useNavigate();
   
-  // FORCE REDIRECT - ADD THIS
-  useEffect(() => {
-    navigate('/dashboard', { replace: true });
-  }, [navigate]);
-
   // Rest of your existing login component code...
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
