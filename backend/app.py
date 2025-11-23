@@ -77,7 +77,8 @@ SCRAPERS = {
 @login_manager.user_loader
 def load_user(user_id):
     try:
-        return User.query.get(int(user_id))
+        # User.id is a UUID string — query by string directly
+        return User.query.get(user_id)
     except Exception:
         return None
 
