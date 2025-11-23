@@ -9,6 +9,7 @@ import pandas as pd
 import time, random, os, tempfile
 from datetime import datetime, timezone
 import logging
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Scrapers
 from scrapers.amazon_scraper import scrape_amazon
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 # load base config (ensure Config reads secrets from env in auth_config)
 app.config.from_object(Config)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # ---- PRODUCTION cookie / session settings ----
 # Ensure SECRET_KEY is set in environment for production.
@@ -49,9 +51,6 @@ CORS(app,
      expose_headers=["Content-Type", "Authorization"])
 
 db.init_app(app)
-
-from werkzeug.middleware.proxy_fix import ProxyFix
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
