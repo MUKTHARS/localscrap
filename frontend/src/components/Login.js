@@ -65,7 +65,7 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8080/auth/login/google';
+    window.location.href = 'https://tutomart.com/auth/login/google/callback';
   };
 
   // Show loading while checking auth status
