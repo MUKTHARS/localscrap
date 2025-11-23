@@ -55,12 +55,26 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_DOMAIN'] = '.tutomart.com'
+
 # Avoid default redirect behavior for APIs — return JSON 401 instead
 @login_manager.unauthorized_handler
 def unauthorized_callback():
     return jsonify({"error": "Unauthorized"}), 401
 
 init_oauth(app)
+# Fix HTTPS + domain detection behind Nginx
+app.wsgi_app = ProxyFix(
+    app.wsgi_app,
+    x_for=1,
+    x_proto=1,
+    x_host=1,
+    x_port=1,
+    x_prefix=1
+)
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
 SCRAPERS = {
