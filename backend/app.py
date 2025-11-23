@@ -328,4 +328,4 @@ def health():
 if __name__ == "__main__":
     # Ensure DB tables exist (when running via python app.py locally)
     create_tables(app)
-    app.run(debug=False, host='0.0.0.0', port=8080)
+    app.run(debug=False, host='0.0.0.0', port=8090)
