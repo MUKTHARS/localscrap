@@ -20,10 +20,10 @@ const Login = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    // if (!authLoading && user) {
-    //   const from = location.state?.from?.pathname || '/dashboard';
-    //   navigate(from, { replace: true });
-    // }
+    if (!authLoading && user) {
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
+    }
   }, [user, authLoading, navigate, location]);
 
   const handleChange = (e) => {
@@ -83,18 +83,18 @@ const Login = () => {
   }
 
   // Don't render login form if user is authenticated (will redirect)
-  // if (user) {
-  //   return (
-  //     <div className="premium-login-container">
-  //       <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
-  //         <div className="text-center">
-  //           <div className="btn-spinner" style={{ width: '40px', height: '40px', margin: '0 auto 20px' }}></div>
-  //           <p>Redirecting to dashboard...</p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (user) {
+    return (
+      <div className="premium-login-container">
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+          <div className="text-center">
+            <div className="btn-spinner" style={{ width: '40px', height: '40px', margin: '0 auto 20px' }}></div>
+            <p>Redirecting to dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="premium-login-container">
