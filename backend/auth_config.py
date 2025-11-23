@@ -5,7 +5,7 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production')
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://postgres:Tutomart$2025@localhost:5432/price_scraper
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://postgres:Tutomart$2025@localhost:5432/price_scraper')
 
 ')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
