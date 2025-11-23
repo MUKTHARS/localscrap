@@ -1,5 +1,3 @@
-# /var/www/Final_Scraper/backend/auth_routes.py
-
 from flask import Blueprint, redirect, url_for, request, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_cors import cross_origin
@@ -12,9 +10,9 @@ import os
 auth_bp = Blueprint("auth", __name__)
 oauth = OAuth()
 
-FRONTEND_URL = "https://tutomart.com"
+# Use your actual domain
+FRONTEND_BASE = "https://tutomart.com"
 CALLBACK_URL = "https://tutomart.com/auth/login/google/callback"
-
 
 def init_oauth(app):
     oauth.init_app(app)
@@ -33,15 +31,13 @@ def init_oauth(app):
         },
     )
 
-
 # -------------------------- LOGIN STATUS ----------------------------------
 
 @auth_bp.route("/login")
 def login():
     if current_user.is_authenticated:
-        return redirect(f"{FRONTEND_URL}/dashboard")
-    return redirect(f"{FRONTEND_URL}/login")
-
+        return redirect(f"{FRONTEND_BASE}/dashboard")
+    return redirect(f"{FRONTEND_BASE}/login")
 
 @auth_bp.route('/api/login-status')
 @cross_origin(supports_credentials=True)
@@ -57,7 +53,6 @@ def login_status():
         })
     return jsonify({"authenticated": False})
 
-
 # -------------------------- GOOGLE LOGIN ----------------------------------
 
 @auth_bp.route("/login/google")
@@ -67,8 +62,7 @@ def google_login():
         return oauth.google.authorize_redirect(redirect_uri)
     except Exception as e:
         print("Google OAuth Error:", e)
-        return redirect(f"{FRONTEND_URL}/login?error=oauth_failed")
-
+        return redirect(f"{FRONTEND_BASE}/login?error=oauth_failed")
 
 @auth_bp.route("/login/google/callback")
 def google_callback():
@@ -76,7 +70,7 @@ def google_callback():
         # Manually exchange token
         code = request.args.get("code")
         if not code:
-            return redirect(f"{FRONTEND_URL}/login?error=no_code")
+            return redirect(f"{FRONTEND_BASE}/login?error=no_code")
 
         token_response = requests.post(
             "https://oauth2.googleapis.com/token",
@@ -93,7 +87,7 @@ def google_callback():
 
         if token_response.status_code != 200:
             print("Token Exchange Error:", token_response.text)
-            return redirect(f"{FRONTEND_URL}/login?error=token_failed")
+            return redirect(f"{FRONTEND_BASE}/login?error=token_failed")
 
         token_data = token_response.json()
         access_token = token_data.get("access_token")
@@ -107,7 +101,7 @@ def google_callback():
 
         if user_response.status_code != 200:
             print("User Info Error:", user_response.text)
-            return redirect(f"{FRONTEND_URL}/login?error=userinfo_failed")
+            return redirect(f"{FRONTEND_BASE}/login?error=userinfo_failed")
 
         user_info = user_response.json()
         email = user_info["email"]
@@ -129,12 +123,12 @@ def google_callback():
 
         login_user(user, remember=True)
 
-        return redirect(f"{FRONTEND_URL}/dashboard?login=success")
+        # FIX: Use absolute URL for redirect
+        return redirect(f"{FRONTEND_BASE}/dashboard?login=success")
 
     except Exception as e:
         print("Callback Error:", str(e))
-        return redirect(f"{FRONTEND_URL}/login?error=callback_failed")
-
+        return redirect(f"{FRONTEND_BASE}/login?error=callback_failed")
 
 # -------------------------- TRADITIONAL LOGIN -----------------------------
 
