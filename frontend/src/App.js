@@ -31,38 +31,51 @@ function ProtectedRoute({ children }) {
   return user ? children : <Navigate to="/login" />;
 }
 
+// import { Routes, Route, Navigate } from 'react-router-dom';
+
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          {/* Remove DebugAuth after testing */}
-          <DebugAuth />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Navbar />
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Navbar />
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Navbar />
-                <Profile />
-              </ProtectedRoute>
-            } />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+    <Routes>
+      {/* Redirect root path directly to dashboard */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      {/* Add other routes as needed */}
+    </Routes>
   );
 }
+// function App() {
+//   return (
+//     <AuthProvider>
+//       <Router>
+//         <div className="App">
+//           {/* Remove DebugAuth after testing */}
+//           <DebugAuth />
+//           <Routes>
+//             <Route path="/login" element={<Login />} />
+//             <Route path="/" element={
+//               <ProtectedRoute>
+//                 <Navbar />
+//                 <Dashboard />
+//               </ProtectedRoute>
+//             } />
+//             <Route path="/dashboard" element={
+//               <ProtectedRoute>
+//                 <Navbar />
+//                 <Dashboard />
+//               </ProtectedRoute>
+//             } />
+//             <Route path="/profile" element={
+//               <ProtectedRoute>
+//                 <Navbar />
+//                 <Profile />
+//               </ProtectedRoute>
+//             } />
+//           </Routes>
+//         </div>
+//       </Router>
+//     </AuthProvider>
+//   );
+// }
 
 export default App;
