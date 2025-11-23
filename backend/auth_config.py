@@ -10,3 +10,6 @@ class Config:
     GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
     GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
     SESSION_PROTECTION = 'strong'
+
+    SERVER_NAME = "tutomart.com"
+    PREFERRED_URL_SCHEME = "https"
