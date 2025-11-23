@@ -11,5 +11,6 @@ class Config:
     GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
     SESSION_PROTECTION = 'strong'
 
-    SERVER_NAME = "tutomart.com"
-    PREFERRED_URL_SCHEME = "https"
+    # Remove these lines as they're causing redirect issues
+    # SERVER_NAME = "tutomart.com"  # This forces all URLs to use this domain
+    # PREFERRED_URL_SCHEME = "https"
