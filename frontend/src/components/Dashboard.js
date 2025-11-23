@@ -39,8 +39,11 @@ const Dashboard = () => {
     setResults([]);
 
     try {
-      const response = await axios.post('/api/scrape', formData, {
-        withCredentials: true
+      const response = await axios.post('https://tutomart.com/api/scrape', formData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       if (response.data.error) {
@@ -117,7 +120,7 @@ const Dashboard = () => {
 
       console.log('🟡 Sending Amazon domain for bulk upload:', bulkAmazonCountry); // Debug log
 
-      const response = await axios.post('/api/scrape', uploadFormData, {
+      const response = await axios.post('https://tutomart.com/api/scrape', uploadFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
