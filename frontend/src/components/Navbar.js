@@ -4,7 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import '../styles/Navbar.css';
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const auth = useAuth() || {};
+  const user = auth.user || null;
+  const logout = auth.logout || (() => Promise.resolve());
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
