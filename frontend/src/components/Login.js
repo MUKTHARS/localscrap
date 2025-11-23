@@ -1,26 +1,9 @@
-// import React, { useState, useEffect } from 'react';
-// import { useAuth } from '../contexts/AuthContext';
-// import { useNavigate, useLocation } from 'react-router-dom';
-// import '../styles/Login.css';
-
-// const Login = () => {
-//   const [isLogin, setIsLogin] = useState(true);
-//   const [formData, setFormData] = useState({
-//     name: '',
-//     email: '',
-//     password: '',
-//     confirmPassword: ''
-//   });
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Login.css';
 
 const Login = () => {
-  const navigate = useNavigate();
-  
-  // Rest of your existing login component code...
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -82,7 +65,7 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'https://tutomart.com/auth/login/google/callback';
+    window.location.href = 'http://localhost:8080/auth/login/google';
   };
 
   // Show loading while checking auth status
