@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Login.css';
@@ -14,9 +14,17 @@ const Login = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, register } = useAuth();
+  const { user, loading: authLoading, login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && user) {
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
+    }
+  }, [user, authLoading, navigate, location]);
 
   const handleChange = (e) => {
     setFormData({
@@ -44,7 +52,8 @@ const Login = () => {
       }
 
       if (result.success) {
-        navigate('/dashboard');
+        // Navigation will be handled by the useEffect above
+        setMessage('Login successful! Redirecting...');
       } else {
         setMessage(result.message);
       }
@@ -58,6 +67,34 @@ const Login = () => {
   const handleGoogleLogin = () => {
     window.location.href = 'http://localhost:8080/auth/login/google';
   };
+
+  // Show loading while checking auth status
+  if (authLoading) {
+    return (
+      <div className="premium-login-container">
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+          <div className="text-center">
+            <div className="btn-spinner" style={{ width: '40px', height: '40px', margin: '0 auto 20px' }}></div>
+            <p>Checking authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render login form if user is authenticated (will redirect)
+  if (user) {
+    return (
+      <div className="premium-login-container">
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+          <div className="text-center">
+            <div className="btn-spinner" style={{ width: '40px', height: '40px', margin: '0 auto 20px' }}></div>
+            <p>Redirecting to dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="premium-login-container">
@@ -274,6 +311,3 @@ const Login = () => {
 };
 
 export default Login;
-
-
-

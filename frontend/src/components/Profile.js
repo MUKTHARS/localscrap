@@ -2,6 +2,72 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 
+// Format for user join date (shows UTC time)
+const formatUserJoinDate = (utcDateString) => {
+    if (!utcDateString) return 'Date not available';
+    
+    try {
+        const date = new Date(utcDateString);
+        
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+        
+        // For user join date, show UTC time as stored in database
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'UTC'
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'Invalid date';
+    }
+};
+
+// Format for search history (shows local time)
+const formatSearchHistoryDate = (utcDateString) => {
+    if (!utcDateString) return 'Date not available';
+    
+    try {
+        const date = new Date(utcDateString);
+        
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+        
+        // For search history, show local time for better user experience
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+            // No timeZone specified - uses local timezone
+        });
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'Invalid date';
+    }
+};
+
+const getMemberSinceDate = (userData, authUser) => {
+    if (userData?.user?.created_at) {
+        return userData.user.created_at;
+    }
+    
+    if (authUser?.created_at) {
+        return authUser.created_at;
+    }
+    
+    return new Date().toISOString();
+};
+
 const Profile = () => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +96,7 @@ const Profile = () => {
         await axios.delete(`/api/delete-search/${searchId}`, {
           withCredentials: true
         });
-        fetchProfileData(); // Refresh data
+        fetchProfileData();
       } catch (error) {
         console.error('Error deleting search:', error);
       }
@@ -65,11 +131,7 @@ const Profile = () => {
               <p className="card-text text-muted">{user?.email}</p>
               <p className="card-text">
                 <small className="text-muted">
-                  Member since: {new Date(profileData?.user.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
+                  Member since: {formatUserJoinDate(getMemberSinceDate(profileData, user))}
                 </small>
               </p>
             </div>
@@ -119,13 +181,7 @@ const Profile = () => {
                           <td>{search.asin_number || 'N/A'}</td>
                           <td>{search.website || 'All'}</td>
                           <td>
-                            {new Date(search.created_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {formatSearchHistoryDate(search.created_at)}
                           </td>
                           <td>
                             <button

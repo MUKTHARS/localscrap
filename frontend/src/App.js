@@ -8,6 +8,19 @@ import Navbar from './components/Navbar';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
+// Temporary debug component - remove after testing
+function DebugAuth() {
+  const { user, loading } = useAuth();
+  
+  return (
+    <div style={{ position: 'fixed', top: 10, right: 10, background: 'white', padding: '10px', border: '1px solid #ccc', zIndex: 1000 }}>
+      <div>Loading: {loading ? 'Yes' : 'No'}</div>
+      <div>User: {user ? user.email : 'None'}</div>
+      <div>Authenticated: {user ? 'Yes' : 'No'}</div>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   
@@ -23,6 +36,8 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
+          {/* Remove DebugAuth after testing */}
+          <DebugAuth />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={

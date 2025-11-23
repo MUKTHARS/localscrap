@@ -17,9 +17,17 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await axios.get('/api/user', { withCredentials: true });
-      setUser(response.data);
+      const response = await axios.get('http://localhost:8080/auth/api/login-status', { 
+        withCredentials: true 
+      });
+      
+      if (response.data.authenticated) {
+        setUser(response.data.user);
+      } else {
+        setUser(null);
+      }
     } catch (error) {
+      console.log('Auth check failed:', error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -28,11 +36,16 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, remember) => {
     try {
-      const response = await axios.post('/auth/login/traditional', {
+      const response = await axios.post('http://localhost:8080/auth/login/traditional', {
         email,
         password,
         remember
-      }, { withCredentials: true });
+      }, { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       setUser(response.data.user);
       return { success: true, message: response.data.message };
@@ -46,12 +59,17 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password, confirmPassword) => {
     try {
-      const response = await axios.post('/auth/register', {
+      const response = await axios.post('http://localhost:8080/auth/register', {
         name,
         email,
         password,
         confirm_password: confirmPassword
-      }, { withCredentials: true });
+      }, { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       setUser(response.data.user);
       return { success: true, message: response.data.message };
@@ -65,7 +83,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/auth/logout', {}, { withCredentials: true });
+      await axios.post('http://localhost:8080/auth/logout', {}, { 
+        withCredentials: true 
+      });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
