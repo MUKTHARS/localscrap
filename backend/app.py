@@ -29,25 +29,24 @@ app.config.from_object(Config)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # ---- PRODUCTION cookie / session settings ----
-# Ensure SECRET_KEY is set in environment for production.
-# e.g., export SECRET_KEY="super-secret"
 if not app.config.get("SECRET_KEY"):
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-for-local")
-# serve cookies for the top-level domain so React on tutomart.com receives them
+
+# Cookie settings for production
 app.config.update({
     "SESSION_COOKIE_SECURE": True,          # only send cookie over HTTPS
-    "SESSION_COOKIE_SAMESITE": "None",     # allow cross-site (React <> API)
+    "SESSION_COOKIE_SAMESITE": "None",      # allow cross-site (React <> API)
     "SESSION_COOKIE_HTTPONLY": True,
-    "SESSION_COOKIE_DOMAIN": ".tutomart.com",  # leading dot is OK
+    "SESSION_COOKIE_DOMAIN": ".tutomart.com",  # leading dot for subdomains
     "REMEMBER_COOKIE_SAMESITE": "None",
-    "REMEMBER_COOKIE_SECURE": True
+    "REMEMBER_COOKIE_SECURE": True,
+    "REMEMBER_COOKIE_DOMAIN": ".tutomart.com"
 })
 
 # CORS: allow your frontend and enable credentials
 CORS(app,
      supports_credentials=True,
-     resources={r"/api/*": {"origins": ["https://tutomart.com", "https://www.tutomart.com"]},
-                r"/auth/*": {"origins": ["https://tutomart.com", "https://www.tutomart.com"]}},
+     origins=["https://tutomart.com", "https://www.tutomart.com"],
      expose_headers=["Content-Type", "Authorization"])
 
 db.init_app(app)
@@ -55,16 +54,13 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-app.config['SESSION_COOKIE_DOMAIN'] = '.tutomart.com'
-
 # Avoid default redirect behavior for APIs — return JSON 401 instead
 @login_manager.unauthorized_handler
 def unauthorized_callback():
     return jsonify({"error": "Unauthorized"}), 401
 
 init_oauth(app)
+
 # Fix HTTPS + domain detection behind Nginx
 app.wsgi_app = ProxyFix(
     app.wsgi_app,
@@ -74,6 +70,7 @@ app.wsgi_app = ProxyFix(
     x_port=1,
     x_prefix=1
 )
+
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
 SCRAPERS = {
