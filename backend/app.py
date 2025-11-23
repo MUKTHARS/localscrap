@@ -50,6 +50,9 @@ CORS(app,
 
 db.init_app(app)
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 # Avoid default redirect behavior for APIs — return JSON 401 instead
