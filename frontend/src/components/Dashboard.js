@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import api from '../utils/apiConfig'; // Import the api instance
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/Dashboard.css';
@@ -39,7 +40,7 @@ const Dashboard = () => {
     setResults([]);
 
     try {
-      const response = await axios.post('https://tutomart.com/api/scrape', formData, {
+      const response = await axios.post('/scrape', formData, {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json'
