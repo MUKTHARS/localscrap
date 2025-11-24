@@ -14,10 +14,6 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
-    # VPS-specific optimizations
-    options.add_argument("--remote-debugging-port=9222")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-plugins")
     
     # Random User Agent
     user_agents = [
@@ -28,11 +24,9 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
     
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-    driver = None
+    driver = uc.Chrome(options=options)
+    
     try:
-        # Remove version_main to auto-detect, add use_subprocess for VPS
-        driver = uc.Chrome(options=options, use_subprocess=True)
-
         polite_delay()
 
         # Build search query
