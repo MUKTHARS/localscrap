@@ -9,6 +9,7 @@ import os
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     # Start undetected Chrome (headless OK!)
     options = uc.ChromeOptions()
+    options.binary_location = "/opt/chrome-142-cft/chrome"
     options.add_argument("--headless=new")  
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
@@ -28,7 +29,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     driver = None
     try:
         # Remove version_main to auto-detect, add use_subprocess for VPS
-        driver = uc.Chrome(options=options)
+        driver = uc.Chrome(options=options, driver_executable_path="/opt/chrome-142-cft/chromedriver")
 
         polite_delay()
 
