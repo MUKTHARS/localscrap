@@ -6,7 +6,6 @@ from datetime import datetime
 import random
 
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
-    # Start undetected Chrome (headless OK!)
     options = uc.ChromeOptions()
     options.headless = True
     options.add_argument("--disable-gpu")
@@ -14,21 +13,21 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
-    options.binary_location = '/usr/bin/chromium-broswer'  # CHANGED: Use Chrome instead of Chromium
+    
+    # FIX: Use Chrome instead of Chromium
+    options.binary_location = '/usr/bin/google-chrome'
 
-    # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
     ]
     
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-    # CHANGED: Let undetected_chromedriver auto-detect version
-    driver = uc.Chrome(version_main=141, options=options)
-
     try:
+        # FIX: Let undetected_chromedriver handle version automatically
+        driver = uc.Chrome(options=options)
+
         polite_delay()
 
         # Build search query
@@ -39,71 +38,93 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
 
         query = "+".join([k for k in keywords if k])
         url = f"https://www.amitretail.com/shop?search={query}"
+        print(f"Scraping AmitRetail: {url}")
         driver.get(url)
 
-        # GIVE ALGOLIA JS TIME TO LOAD RENDERED RESULTS
-        time.sleep(5)
+        # Wait for page load with better handling
+        time.sleep(8)
 
-        # Ensure further JS rendering is complete
-        for _ in range(5):
-            time.sleep(1)
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-            time.sleep(1)
+        # Scroll to trigger lazy loading
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
+        time.sleep(2)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(3)
 
         # Parse
         soup = BeautifulSoup(driver.page_source, "html.parser")
-        product_cards = soup.select("li.product-col")
+        
+        # Try multiple possible selectors
+        product_cards = (soup.select("li.product-col") or 
+                        soup.select(".product") or 
+                        soup.select(".woocommerce-loop-product"))
 
         scraped_data = []
 
         for card in product_cards:
+            try:
+                # URL
+                url_tag = card.select_one("a") or card.select_one(".product-loop-title")
+                product_url = url_tag["href"] if url_tag and url_tag.has_attr("href") else "N/A"
+                if product_url and not product_url.startswith("http"):
+                    product_url = "https://www.amitretail.com" + product_url
 
-            # URL
-            url_tag = card.select_one("a.product-loop-title")
-            product_url = url_tag["href"] if url_tag else "N/A"
+                # Name
+                name_tag = (card.select_one("h3") or 
+                           card.select_one(".woocommerce-loop-product__title") or
+                           card.select_one(".product-title"))
+                name = name_tag.get_text(strip=True) if name_tag else "N/A"
 
-            # Name
-            name_tag = card.select_one("h3.woocommerce-loop-product__title")
-            name = name_tag.get_text(strip=True) if name_tag else "N/A"
+                # Price
+                price_tag = (card.select_one(".price") or 
+                            card.select_one(".amount") or
+                            card.select_one("[class*='price']"))
+                raw_price = price_tag.get_text(strip=True) if price_tag else "0"
 
-            # Price
-            price_tag = card.select_one("span.price")
-            raw_price = price_tag.get_text(strip=True) if price_tag else "0"
+                price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
+                price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
 
-            price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
-            price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
+                # Currency - try multiple ways to detect
+                currency = "AED"  # Default for UAE sites
+                if "₹" in raw_price or "INR" in raw_price:
+                    currency = "INR"
+                elif "$" in raw_price or "USD" in raw_price:
+                    currency = "USD"
 
-            # Currency
-            currency_tag = card.select_one("span.custom_currency")
-            currency = currency_tag["alt"] if currency_tag and currency_tag.has_attr("alt") else "NA"
-
-            scraped_data.append({
-                "BRAND": brand,
-                "PRODUCT": product,
-                "OEM NUMBER": oem_number or "NA",
-                "ASIN NUMBER": asin_number or "NA",
-                "WEBSITE": "AmitRetail",
-                "PRODUCT NAME": name,
-                "PRICE": price_value,
-                "CURRENCY": currency,
-                "SELLER RATING": "N/A",
-                "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "SOURCE URL": product_url,
-            })
+                scraped_data.append({
+                    "BRAND": brand,
+                    "PRODUCT": product,
+                    "OEM NUMBER": oem_number or "NA",
+                    "ASIN NUMBER": asin_number or "NA",
+                    "WEBSITE": "AmitRetail",
+                    "PRODUCT NAME": name,
+                    "PRICE": price_value,
+                    "CURRENCY": currency,
+                    "SELLER RATING": "N/A",
+                    "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "SOURCE URL": product_url,
+                })
+            except Exception as card_error:
+                print(f"Error processing card: {card_error}")
+                continue
 
         if not scraped_data:
-            return {"error": "No products found. JS may not have loaded fully."}
+            # Save page source for debugging
+            with open("amitretail_debug.html", "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            return {"error": "No products found. Check amitretail_debug.html"}
 
         # Save to Excel
         try:
             save_to_excel("AmitRetail", scraped_data)
-        except:
-            pass
+        except Exception as save_error:
+            print(f"Save error: {save_error}")
 
         return {"data": scraped_data}
 
     except Exception as e:
+        print(f"AmitRetail scraping error: {e}")
         return {"error": str(e)}
 
     finally:
-        driver.quit()
+        if 'driver' in locals():
+            driver.quit()
