@@ -14,7 +14,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
-    options.binary_location = '/usr/bin/google-chrome'  # CHANGED: Use Chrome instead of Chromium
+    options.binary_location = '/usr/bin/chromium-broswer'  # CHANGED: Use Chrome instead of Chromium
 
     # Random User Agent
     user_agents = [
@@ -26,7 +26,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
     # CHANGED: Let undetected_chromedriver auto-detect version
-    driver = uc.Chrome(version_main=142, options=options)
+    driver = uc.Chrome(version_main=141, options=options)
 
     try:
         polite_delay()
