@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 from flask_login import LoginManager, current_user, login_required
 from flask_cors import CORS
@@ -111,6 +110,7 @@ def get_user():
 def scrape_products():
     print(f"Current user: {current_user}")
     print(f"User authenticated: {current_user.is_authenticated}")
+    print(f"User ID: {current_user.id if current_user.is_authenticated else 'None'}")
     results = []
     error = None
     temp_file_path = None
@@ -138,13 +138,6 @@ def scrape_products():
                 else:
                     df = pd.read_excel(temp_file_path)
 
-                # Validate required columns
-                required_columns = ['Brand', 'Product']
-                missing_columns = [col for col in required_columns if col not in df.columns]
-                if missing_columns:
-                    return jsonify({"error": f"Missing required columns: {', '.join(missing_columns)}"}), 400
-
-                # Log bulk upload
                 bulk = SearchHistory(
                     user_id=current_user.id,
                     brand="Bulk Upload",
@@ -155,10 +148,7 @@ def scrape_products():
                 db.session.add(bulk)
                 db.session.commit()
 
-                processed_count = 0
-                max_products = min(50, len(df))  # Limit to 50 products max
-
-                for index, row in df.iterrows()[:max_products]:
+                for index, row in df.iterrows():
                     brand = str(row.get("Brand", "")).strip()
                     product = str(row.get("Product", "")).strip()
                     site = str(row.get("Website Name", "")).lower().strip()
@@ -168,10 +158,7 @@ def scrape_products():
                     if not brand or not product:
                         continue
 
-                    processed_count += 1
-                    sites_to_scrape = SCRAPERS.keys() if not site or site == "all" else [site]
-
-                    print(f"🟡 Processing bulk item {processed_count}: {brand} - {product}")
+                    sites_to_scrape = SCRAPERS.keys() if not site else [site]
 
                     for site_name in sites_to_scrape:
                         if site_name not in SCRAPERS:
@@ -180,39 +167,33 @@ def scrape_products():
                         scraper = SCRAPERS[site_name]
 
                         try:
-                            # Set Amazon domain for Amazon scraper
                             if site_name == "amazon":
                                 os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
-                                data = scraper(brand, product, oem, asin)
+                                data = scraper(brand, product)
                             else:
                                 data = scraper(brand, product, oem, asin)
 
-                            if isinstance(data, dict) and "data" in data:
-                                for d in data["data"]:
+                            if isinstance(data, dict) and "error" in data:
+                                error = data["error"]
+                            else:
+                                for d in data.get("data", []):
                                     d["WEBSITE"] = site_name.capitalize()
                                     results.append(d)
-                                print(f"🟢 {site_name}: Found {len(data['data'])} products for {brand} {product}")
-                            elif isinstance(data, dict) and "error" in data:
-                                print(f"🔴 {site_name} error for {brand} {product}: {data['error']}")
 
-                            # Add delay between scrapers to avoid rate limiting
-                            time.sleep(random.uniform(2, 5))
+                            if site_name == "amazon":
+                                time.sleep(random.uniform(10, 25))
 
                         except Exception as scrape_error:
-                            logger.exception(f"Error scraping {site_name} for {brand} {product}: {scrape_error}")
+                            logger.exception(f"Error scraping {site_name}: {scrape_error}")
                             continue
-
-                print(f"🟢 Bulk upload completed: {processed_count} products processed, {len(results)} results found")
 
             except Exception as file_error:
                 error = f"Error processing file: {str(file_error)}"
-                logger.exception("File processing error")
             finally:
                 if temp_file_path and os.path.exists(temp_file_path):
                     os.unlink(temp_file_path)
 
         else:
-            # Manual scraping (existing code remains the same)
             data = request.get_json()
             if not data:
                 return jsonify({"error": "No data provided"}), 400
@@ -241,7 +222,7 @@ def scrape_products():
             if not brand or not product:
                 return jsonify({"error": "Brand and Product required"}), 400
 
-            sites_to_scrape = SCRAPERS.keys() if not website or website == "all" else [website]
+            sites_to_scrape = SCRAPERS.keys() if not website else [website]
 
             for site in sites_to_scrape:
                 if site not in SCRAPERS:
@@ -252,23 +233,23 @@ def scrape_products():
                 try:
                     if site == "amazon":
                         os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
-                        data = scraper(brand, product, oem, asin)
+                        data = scraper(brand, product)
                     else:
                         data = scraper(brand, product, oem, asin)
 
-                    if isinstance(data, dict) and "data" in data:
-                        for d in data["data"]:
+                    if isinstance(data, dict) and "error" in data:
+                        error = data["error"]
+                    else:
+                        for d in data.get("data", []):
                             d["WEBSITE"] = site.capitalize()
                             results.append(d)
-                    elif isinstance(data, dict) and "error" in data:
-                        error = data["error"]
 
                 except Exception as scrape_error:
                     logger.exception(f"Error scraping {site}: {scrape_error}")
                     continue
 
         if not results and not error:
-            error = "No results found from any website."
+            error = "No results found."
 
     except Exception as e:
         logger.exception("Unexpected error during scrape")
@@ -280,7 +261,6 @@ def scrape_products():
         return jsonify({"error": error}), 400
 
     return jsonify({"data": results})
-
 
 
 @app.route('/api/profile')
