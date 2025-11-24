@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/apiConfig'; // ✅ Add this import
 import { useAuth } from '../contexts/AuthContext';
 
 // Format for user join date (shows UTC time)
@@ -79,9 +79,8 @@ const Profile = () => {
 
   const fetchProfileData = async () => {
     try {
-      const response = await axios.get('/api/profile', {
-        withCredentials: true
-      });
+      // ✅ CORRECT - use api instance
+      const response = await api.get('/profile');
       setProfileData(response.data);
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -93,9 +92,8 @@ const Profile = () => {
   const deleteSearch = async (searchId) => {
     if (window.confirm('Delete this search history?')) {
       try {
-        await axios.delete(`/api/delete-search/${searchId}`, {
-          withCredentials: true
-        });
+        // ✅ CORRECT - use api instance
+        await api.delete(`/delete-search/${searchId}`);
         fetchProfileData();
       } catch (error) {
         console.error('Error deleting search:', error);
