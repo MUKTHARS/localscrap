@@ -20,10 +20,10 @@ def scrape_snapdeal(brand, product, oem_number=None, asin_number=None):
                         "Chrome/141.0.7390.122 Safari/537.36")
 
     # 🧠 Explicitly set the Chromium binary path
-    options.binary_location = "/usr/bin/chromium-browser"
+    options.binary_location = "/usr/bin/google-chrome"
 
     # Start ChromeDriver with these options
-    driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=options)
+    driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
 
     try:
         polite_delay()
