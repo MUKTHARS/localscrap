@@ -4,6 +4,7 @@ import time, re
 from scrapers.utils import polite_delay, save_to_excel
 from datetime import datetime
 import random
+import os
 
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     # Start undetected Chrome (headless OK!)
@@ -14,6 +15,12 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
+    
+    # VPS-specific optimizations
+    options.add_argument("--remote-debugging-port=9222")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-plugins")
+    
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -23,10 +30,11 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-
-    driver = uc.Chrome(options=options)
-
+    driver = None
     try:
+        # Remove version_main to auto-detect, add use_subprocess for VPS
+        driver = uc.Chrome(options=options, use_subprocess=True)
+
         polite_delay()
 
         # Build search query
@@ -40,7 +48,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         driver.get(url)
 
         # GIVE ALGOLIA JS TIME TO LOAD RENDERED RESULTS
-        time.sleep(10)
+        time.sleep(5)
 
         # Ensure further JS rendering is complete
         for _ in range(5):
@@ -90,7 +98,8 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
             })
 
         if not scraped_data:
-            return {"error": "No products found. JS may not have loaded fully."}
+            # Enhanced error message for debugging
+            return {"error": "No products found. The website might be blocking requests or the search returned no results."}
 
         # Save to Excel
         try:
@@ -101,7 +110,8 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         return {"data": scraped_data}
 
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Scraping failed: {str(e)}"}
 
     finally:
-        driver.quit()
+        if driver:
+            driver.quit()
