@@ -16,11 +16,6 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
     
-    # VPS-specific optimizations
-    options.add_argument("--remote-debugging-port=9222")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-plugins")
-    
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -33,7 +28,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     driver = None
     try:
         # Remove version_main to auto-detect, add use_subprocess for VPS
-        driver = uc.Chrome(options=options, use_subprocess=True)
+        driver = uc.Chrome(options=options)
 
         polite_delay()
 
