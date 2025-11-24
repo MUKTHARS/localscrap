@@ -31,7 +31,7 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
     driver = None
     try:
         # Remove version_main to auto-detect, add use_subprocess for VPS
-        driver = uc.Chrome(options=options, use_subprocess=True)
+        driver = uc.Chrome(options=options, version_main=142)
 
         polite_delay()
 
