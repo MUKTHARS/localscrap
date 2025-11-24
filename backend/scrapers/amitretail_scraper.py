@@ -40,7 +40,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         driver.get(url)
 
         # GIVE ALGOLIA JS TIME TO LOAD RENDERED RESULTS
-        time.sleep(8)
+        time.sleep(10)
 
         # Ensure further JS rendering is complete
         for _ in range(5):
