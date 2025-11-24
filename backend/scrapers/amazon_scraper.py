@@ -1,5 +1,3 @@
-
-
 import os
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
@@ -66,7 +64,7 @@ def scrape_amazon(brand, product):
             try:
                 options = uc.ChromeOptions()
                 if headless:
-                    options.add_argument("--headless+new")
+                    options.add_argument("--headless=new")  # CHANGED: Fixed headless argument
                     options.add_argument("--no-sandbox")
                     options.add_argument("--disable-dev-shm-usage")
                     options.add_argument("--disable-gpu")
@@ -76,10 +74,10 @@ def scrape_amazon(brand, product):
                     options.add_argument("--disable-extensions")
                     options.add_argument("--disable-background-networking")
                     options.add_argument("--log-level=3")
-                    options.binary_location = '/usr/bin/chromium-browser'
+                    options.binary_location = '/usr/bin/google-chrome'  # CHANGED: Use Chrome instead of Chromium
 
-
-                driver = uc.Chrome(options=options)
+                # CHANGED: Let undetected_chromedriver auto-detect version
+                driver = uc.Chrome(options=options, version_main=None)
                 driver.set_page_load_timeout(45)
 
                 _stealth_hook(driver, ua)
