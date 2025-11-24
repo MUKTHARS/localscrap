@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Base API URL for production
-  const API_URL = 'https://tutomart.com';
+  const API_URL = 'https://tutomart.com/api';
 
   // Check authentication status on mount
   useEffect(() => {
