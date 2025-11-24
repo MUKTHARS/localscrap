@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await axios.get(`${API_URL}/auth/api/login-status`, {
+      const response = await axios.get(`${API_URL}/auth/login-status`, {
         withCredentials: true
       });
 
