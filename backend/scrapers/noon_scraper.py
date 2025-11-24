@@ -6,13 +6,13 @@ from scrapers.utils import polite_delay, save_to_excel
 import random
 
 def scrape_noon(brand, product, oem_number=None, asin_number=None):
+
     options = uc.ChromeOptions()
     options.headless = True
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -22,9 +22,11 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
     
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-    driver = uc.Chrome(options=options)
+
+    driver = uc.Chrome(version_main=142, options=options)
 
     try:
+
         polite_delay()
 
         # Build search query
@@ -35,114 +37,73 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
 
         query = "+".join([k for k in keywords if k])
         url = f"https://www.noon.com/uae-en/search/?q={query}"
-        print(f"🔄 Loading Noon: {url}")
         driver.get(url)
 
-        # IMPROVED: Wait for Noon's heavy JS to load
-        print("⏳ Waiting for Noon's JavaScript to load...")
-        time.sleep(8)  # Increased from 5 to 8 seconds
+        time.sleep(10)
 
-        # IMPROVED: Check if products are loaded with retry mechanism
-        products_loaded = False
-        max_retries = 3
-        
-        for retry in range(max_retries):
-            # Smooth scroll to trigger lazy loading
-            print(f"🔄 Scrolling to load products (attempt {retry + 1}/{max_retries})...")
-            for i in range(20):  # More controlled scrolling
-                driver.execute_script(f"window.scrollTo(0, {i * 500});")
-                time.sleep(0.5)
-            
-            time.sleep(2)  # Wait after scrolling
-            
-            # Check if we have product elements
-            soup = BeautifulSoup(driver.page_source, "html.parser")
-            product_cards = soup.select('div[class*="linkWrapper"]')
-            
-            if product_cards:
-                print(f"✅ Found {len(product_cards)} products on attempt {retry + 1}")
-                products_loaded = True
-                break
-            else:
-                print(f"🔄 No products found yet, retrying... ({retry + 1}/{max_retries})")
-                time.sleep(4)  # Wait longer before retry
-
-        # Final scroll to ensure all content is loaded
-        if products_loaded:
-            print("📜 Final scroll to load all content...")
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(3)
+        # Smooth scroll — required for Noon
+        for _ in range(30):
+            driver.execute_script("window.scrollBy(0, 900);")
+            time.sleep(0.8)
+        time.sleep(3)
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        # Product cards
         product_cards = soup.select('div[class*="linkWrapper"]')
 
         scraped_data = []
 
         for card in product_cards:
-            try:
-                # URL
-                link = card.select_one('a[class*="productBoxLink"], a[href*="/p/"]')
-                product_url = "https://www.noon.com" + link["href"] if link else "N/A"
 
-                # Name
-                name_tag = card.select_one('[data-qa="plp-product-box-name"], h2[data-qa="plp-product-box-name"]')
-                name = name_tag.get_text(strip=True) if name_tag else "N/A"
+            # URL
+            link = card.select_one('a[class*="productBoxLink"], a[href*="/p/"]')
+            product_url = "https://www.noon.com" + link["href"] if link else "N/A"
 
-                # Rating
-                rating_tag = card.select_one('div[class*="textCtr"]')
-                rating = rating_tag.get_text(strip=True) if rating_tag else "N/A"
+            # Name
+            name_tag = card.select_one('[data-qa="plp-product-box-name"], h2[data-qa="plp-product-box-name"]')
+            name = name_tag.get_text(strip=True) if name_tag else "N/A"
 
-                # Price
-                price_tag = card.select_one('strong[class*="amount"]')
-                raw_price = price_tag.get_text(strip=True) if price_tag else "0"
+            # Rating
+            rating_tag = card.select_one('div[class*="textCtr"]')
+            rating = rating_tag.get_text(strip=True) if rating_tag else "N/A"
 
-                price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
-                price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
+            # Price
+            price_tag = card.select_one('strong[class*="amount"]')
+            raw_price = price_tag.get_text(strip=True) if price_tag else "0"
 
-                # Currency
-                currency = "AED"
+            price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
+            price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
 
-                scraped_data.append({
-                    "BRAND": brand,
-                    "PRODUCT": product,
-                    "OEM NUMBER": oem_number or "NA",
-                    "ASIN NUMBER": asin_number or "NA",
-                    "WEBSITE": "Noon",
-                    "PRODUCT NAME": name,
-                    "PRICE": price_value,
-                    "CURRENCY": currency,
-                    "SELLER RATING": rating,
-                    "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "SOURCE URL": product_url,
-                })
-            except Exception as card_error:
-                print(f"⚠️ Error processing one Noon product card: {card_error}")
-                continue
+            # Currency
+            currency = "AED"
+
+            scraped_data.append({
+                "BRAND": brand,
+                "PRODUCT": product,
+                "OEM NUMBER": oem_number or "NA",
+                "ASIN NUMBER": asin_number or "NA",
+                "WEBSITE": "Noon",
+                "PRODUCT NAME": name,
+                "PRICE": price_value,
+                "CURRENCY": currency,
+                "SELLER RATING": rating,
+                "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "SOURCE URL": product_url,
+            })
 
         if not scraped_data:
-            # Save debug info
-            debug_info = {
-                "url": url,
-                "page_title": driver.title,
-                "product_cards_found": len(product_cards),
-                "page_source_length": len(driver.page_source)
-            }
-            print(f"❌ Noon debug info: {debug_info}")
-            return {"error": "No products found after multiple retries. Noon might be blocking or slow."}
+            return {"error": "Selectors matched 0 products — but this set SHOULD work."}
 
-        print(f"✅ Successfully scraped {len(scraped_data)} products from Noon")
-        
-        # Save to Excel
         try:
             save_to_excel("Noon", scraped_data)
-        except Exception as save_error:
-            print(f"⚠️ Save to Excel failed: {save_error}")
+        except:
+            pass
 
         return {"data": scraped_data}
 
     except Exception as e:
-        print(f"❌ Noon scraping error: {str(e)}")
-        return {"error": f"Noon: {str(e)}"}
+        return {"error": str(e)}
 
     finally:
         driver.quit()
