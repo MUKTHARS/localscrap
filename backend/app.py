@@ -306,7 +306,7 @@ def get_profile():
         return jsonify({"error": "Failed to get profile"}), 500
 
 
-@app.route('/api/delete-search/<int:search_id>', methods=['DELETE'])
+@app.route('/api/delete-search/<string:search_id>', methods=['DELETE'])
 @login_required
 def delete_search(search_id):
     entry = SearchHistory.query.filter_by(id=search_id, user_id=current_user.id).first()
