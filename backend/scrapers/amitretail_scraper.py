@@ -57,7 +57,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
                 options.add_argument("--disable-background-networking")
                 options.add_argument("--log-level=3")
 
-            driver = uc.Chrome(options=options)
+            driver = uc.Chrome(options=options, use_subprocess=False)
             driver.set_page_load_timeout(45)
 
             _stealth_hook(driver, ua)
