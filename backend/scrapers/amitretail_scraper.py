@@ -14,6 +14,8 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
+    options.binary_location = '/usr/bin/chromium-browser'
+
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
