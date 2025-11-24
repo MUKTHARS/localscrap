@@ -12,7 +12,7 @@ oauth = OAuth()
 
 # Use your actual domain
 FRONTEND_BASE = "https://tutomart.com"
-CALLBACK_URL = "https://tutomart.com/auth/login/google/callback"
+CALLBACK_URL = "https://tutomart.com/api/auth/login/google/callback"  # Updated
 
 def init_oauth(app):
     oauth.init_app(app)
@@ -39,7 +39,7 @@ def login():
         return redirect(f"{FRONTEND_BASE}/dashboard")
     return redirect(f"{FRONTEND_BASE}/login")
 
-@auth_bp.route('/api/login-status')
+@auth_bp.route('/login-status')
 @cross_origin(supports_credentials=True)
 def login_status():
     if current_user.is_authenticated:
