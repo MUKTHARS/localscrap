@@ -134,7 +134,7 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
                     "PRODUCT": product,
                     "OEM NUMBER": oem_number or "NA",
                     "ASIN NUMBER": asin_number or "NA",
-                    "WEBSITE": "AmitRetail",
+                    "WEBSITE": "SharafDG",
                     "PRODUCT NAME": name,
                     "PRICE": price_value,
                     "CURRENCY": currency,
