@@ -31,21 +31,23 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 if not app.config.get("SECRET_KEY"):
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-for-local")
 
-# Cookie settings for production
+# Update cookie settings:
 app.config.update({
-    "SESSION_COOKIE_SECURE": True,          # only send cookie over HTTPS
-    "SESSION_COOKIE_SAMESITE": "None",      # allow cross-site (React <> API)
+    "SESSION_COOKIE_SECURE": True,
+    "SESSION_COOKIE_SAMESITE": "Lax",  # Change from "None" to "Lax"
     "SESSION_COOKIE_HTTPONLY": True,
-    "SESSION_COOKIE_DOMAIN": ".tutomart.com",  # leading dot for subdomains
-    "REMEMBER_COOKIE_SAMESITE": "None",
+    "SESSION_COOKIE_DOMAIN": "tutomart.com",  # Remove the leading dot
+    "REMEMBER_COOKIE_SAMESITE": "Lax",
     "REMEMBER_COOKIE_SECURE": True,
-    "REMEMBER_COOKIE_DOMAIN": ".tutomart.com"
+    "REMEMBER_COOKIE_DOMAIN": "tutomart.com"
 })
 
 # CORS: allow your frontend and enable credentials
 CORS(app,
      supports_credentials=True,
      origins=["https://tutomart.com", "https://www.tutomart.com"],
+     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      expose_headers=["Content-Type", "Authorization"])
 
 db.init_app(app)
@@ -106,6 +108,9 @@ def get_user():
 @app.route("/api/scrape", methods=["POST"])
 @login_required
 def scrape_products():
+    print(f"Current user: {current_user}")
+    print(f"User authenticated: {current_user.is_authenticated}")
+    print(f"User ID: {current_user.id if current_user.is_authenticated else 'None'}")
     results = []
     error = None
     temp_file_path = None
