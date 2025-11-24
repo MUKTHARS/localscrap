@@ -169,7 +169,10 @@ def scrape_products():
                         try:
                             if site_name == "amazon":
                                 os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
+                                time.sleep(0.2)
                                 data = scraper(brand, product)
+                                if "SELECTED_AMAZON_DOMAIN" in os.environ:
+                                    del os.environ["SELECTED_AMAZON_DOMAIN"]
                             else:
                                 data = scraper(brand, product, oem, asin)
 
@@ -234,6 +237,8 @@ def scrape_products():
                     if site == "amazon":
                         os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
                         data = scraper(brand, product)
+                        if "SELECTED_AMAZON_DOMAIN" in os.environ:
+                            del os.environ["SELECTED_AMAZON_DOMAIN"]
                     else:
                         data = scraper(brand, product, oem, asin)
 
