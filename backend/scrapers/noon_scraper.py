@@ -46,7 +46,7 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
         try:
             options = uc.ChromeOptions()
             if headless:
-                options.add_argument("--headless+new")
+                options.add_argument("--headless=new")
                 options.add_argument("--no-sandbox")
                 options.add_argument("--disable-dev-shm-usage")
                 options.add_argument("--disable-gpu")
@@ -56,8 +56,9 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
                 options.add_argument("--disable-extensions")
                 options.add_argument("--disable-background-networking")
                 options.add_argument("--log-level=3")
+                options.binary_location = '/usr/bin/google-chrome'
 
-            driver = uc.Chrome(options=options)
+            driver = uc.Chrome(options=options, version_main=None)
             driver.set_page_load_timeout(45)
 
             _stealth_hook(driver, ua)
@@ -82,27 +83,17 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
             url = f"https://www.noon.com/uae-en/search/?q={query}"
             driver.get(url)
 
-            # Wait for results with retry logic
-            try:
-                WebDriverWait(driver, 18).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div[class*="linkWrapper"]'))
-                )
-            except Exception:
-                try:
-                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight/4);")
-                except Exception:
-                    pass
-                time.sleep(random.uniform(4.5, 8.5))
-
-            # Smooth scroll — required for Noon
+            # Wait for content with retry logic
+            time.sleep(8)
+            
+            # Enhanced scrolling
             for _ in range(30):
                 driver.execute_script("window.scrollBy(0, 900);")
                 time.sleep(0.8)
             time.sleep(3)
 
+            # Check for blocks
             html = driver.page_source
-
-            # Block detection
             if "access denied" in html.lower() or "bot" in html.lower():
                 driver.quit()
                 time.sleep(random.uniform(6, 14) * attempt)
@@ -153,7 +144,7 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
             if scraped_data:
                 try:
                     save_to_excel("Noon", scraped_data)
-                except Exception:
+                except:
                     pass
                 driver.quit()
                 return {"data": scraped_data}
@@ -174,4 +165,6 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
             time.sleep(random.uniform(4, 12) * attempt)
             continue
 
-    return {"error": "No products found or blocked after multiple retries."}
+    return {
+        "error": "Blocked or failed after multiple retries — consider rotating proxies or using a scraping API."
+    }
