@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import api from '../utils/apiConfig'; // Import the api instance
-import axios from 'axios';
+import api from '../utils/apiConfig'; // Use this consistently
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/Dashboard.css';
 import '../styles/Table.css';
@@ -40,12 +39,8 @@ const Dashboard = () => {
     setResults([]);
 
     try {
-      const response = await axios.post('/scrape', formData, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // ✅ CORRECT - use api instance consistently
+      const response = await api.post('/scrape', formData);
 
       if (response.data.error) {
         setError(response.data.error);
@@ -117,15 +112,15 @@ const Dashboard = () => {
     try {
       const uploadFormData = new FormData();
       uploadFormData.append('file', selectedFile);
-      uploadFormData.append('amazon_country', bulkAmazonCountry || 'amazon.com'); // FIXED: Use bulkAmazonCountry
+      uploadFormData.append('amazon_country', bulkAmazonCountry || 'amazon.com');
 
-      console.log('🟡 Sending Amazon domain for bulk upload:', bulkAmazonCountry); // Debug log
+      console.log('🟡 Sending Amazon domain for bulk upload:', bulkAmazonCountry);
 
-      const response = await axios.post('https://tutomart.com/api/scrape', uploadFormData, {
+      // ✅ CORRECT - use api instance for FormData too
+      const response = await api.post('/scrape', uploadFormData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-        },
-        withCredentials: true
+        }
       });
 
       if (response.data.error) {
