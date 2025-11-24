@@ -14,7 +14,6 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
-    
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -23,6 +22,7 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
     ]
     
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
+
 
     driver = uc.Chrome(options=options)
 
@@ -37,122 +37,77 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
 
         query = "+".join([k for k in keywords if k])
         url = f"https://uae.sharafdg.com/?q={query}&post_type=product"
-        print(f"🔄 Loading SharafDG: {url}")
         driver.get(url)
 
-        # IMPROVED: Wait for Algolia JS to load
-        print("⏳ Waiting for SharafDG's JavaScript to load...")
-        time.sleep(8)  # Increased from 5 to 8 seconds
+        # GIVE ALGOLIA JS TIME TO LOAD RENDERED RESULTS
+        time.sleep(8)
 
-        # IMPROVED: Check if products are loaded with retry mechanism
-        products_loaded = False
-        max_retries = 3
-        
-        for retry in range(max_retries):
-            # Scroll to trigger lazy loading
-            print(f"🔄 Scrolling to load products (attempt {retry + 1}/{max_retries})...")
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-            time.sleep(2)
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            
-            # Check if we have product elements
-            soup = BeautifulSoup(driver.page_source, "html.parser")
-            product_cards = soup.select("div.product-wrapper")
-            
-            if product_cards:
-                print(f"✅ Found {len(product_cards)} products on attempt {retry + 1}")
-                products_loaded = True
-                break
-            else:
-                print(f"🔄 No products found yet, retrying... ({retry + 1}/{max_retries})")
-                time.sleep(4)  # Wait longer before retry
+        # Ensure further JS rendering is complete
+        for _ in range(5):
+            time.sleep(1)
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+            time.sleep(1)
 
-        # If still no products, try alternative approach
-        if not products_loaded:
-            print("🔄 Trying alternative loading method...")
-            driver.execute_script("window.scrollTo(0, 0);")
-            time.sleep(2)
-            # Scroll in smaller increments
-            for i in range(5):
-                driver.execute_script(f"window.scrollTo(0, {i * 300});")
-                time.sleep(1)
-            
-            soup = BeautifulSoup(driver.page_source, "html.parser")
-            product_cards = soup.select("div.product-wrapper")
+        # Parse
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        product_cards = soup.select("div.product-wrapper")
 
         scraped_data = []
 
         for card in product_cards:
-            try:
-                # URL
-                url_tag = card.select_one("a.product-link")
-                product_url = url_tag["href"] if url_tag else "N/A"
-                if product_url and not product_url.startswith('http'):
-                    product_url = "https://uae.sharafdg.com" + product_url
 
-                # Name
-                name_tag = card.select_one("div.slider--prd-info")
-                name = name_tag.get_text(strip=True) if name_tag else "N/A"
+            # URL
+            url_tag = card.select_one("a.product-link")
+            product_url = url_tag["href"] if url_tag else "N/A"
 
-                # Price
-                price_tag = card.select_one("div.price")
-                raw_price = price_tag.get_text(strip=True) if price_tag else "0"
+            # Name
+            name_tag = card.select_one("div.slider--prd-info")
+            name = name_tag.get_text(strip=True) if name_tag else "N/A"
 
-                price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
-                price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
+            # Price
+            price_tag = card.select_one("div.price")
+            raw_price = price_tag.get_text(strip=True) if price_tag else "0"
 
-                # Currency
-                currency = "AED"
+            price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
+            price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
 
-                # Rating
-                rating_tag = card.select_one("span.product-rating-count")
-                if rating_tag:
-                    rating = rating_tag.get_text(strip=True).replace("(", "").replace(")", "")
-                else:
-                    rating = "N/A"
+            # Currency
+            currency="AED"
 
-                scraped_data.append({
-                    "BRAND": brand,
-                    "PRODUCT": product,
-                    "OEM NUMBER": oem_number or "NA",
-                    "ASIN NUMBER": asin_number or "NA",
-                    "WEBSITE": "SharafDG",
-                    "PRODUCT NAME": name,
-                    "PRICE": price_value,
-                    "CURRENCY": currency,
-                    "SELLER RATING": rating,
-                    "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "SOURCE URL": product_url,
-                })
-            except Exception as card_error:
-                print(f"⚠️ Error processing one SharafDG product card: {card_error}")
-                continue
+            #Rating
+            rating_tag = card.select_one("span.product-rating-count")
+            if rating_tag:
+                rating = rating_tag.get_text(strip=True).replace("(", "").replace(")", "")
+            else:
+                rating = "N/A"
+
+            scraped_data.append({
+                "BRAND": brand,
+                "PRODUCT": product,
+                "OEM NUMBER": oem_number or "NA",
+                "ASIN NUMBER": asin_number or "NA",
+                "WEBSITE": "AmitRetail",
+                "PRODUCT NAME": name,
+                "PRICE": price_value,
+                "CURRENCY": currency,
+                "SELLER RATING": rating,
+                "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "SOURCE URL": product_url,
+            })
 
         if not scraped_data:
-            # Save debug info
-            debug_info = {
-                "url": url,
-                "page_title": driver.title,
-                "product_cards_found": len(product_cards),
-                "page_source_length": len(driver.page_source)
-            }
-            print(f"❌ SharafDG debug info: {debug_info}")
-            return {"error": "No products found after multiple retries. SharafDG might be blocking or slow."}
+            return {"error": "No products found. JS may not have loaded fully."}
 
-        print(f"✅ Successfully scraped {len(scraped_data)} products from SharafDG")
-        
         # Save to Excel
         try:
-            save_to_excel("SharafDG", scraped_data)  # Fixed typo: "SharaFDG" → "SharafDG"
-        except Exception as save_error:
-            print(f"⚠️ Save to Excel failed: {save_error}")
+            save_to_excel("SharaFDG", scraped_data)
+        except:
+            pass
 
         return {"data": scraped_data}
 
     except Exception as e:
-        print(f"❌ SharafDG scraping error: {str(e)}")
-        return {"error": f"SharafDG: {str(e)}"}
+        return {"error": str(e)}
 
     finally:
         driver.quit()
