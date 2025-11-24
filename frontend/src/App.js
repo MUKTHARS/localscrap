@@ -58,6 +58,9 @@ function App() {
                 <Profile />
               </ProtectedRoute>
             } />
+            
+            {/* 👇 ADD THIS CATCH-ALL ROUTE AT THE END */}
+            <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </div>
       </Router>
