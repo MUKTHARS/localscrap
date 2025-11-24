@@ -23,11 +23,9 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
     
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-    driver = None
+    driver = uc.Chrome(options=options)  
+    
     try:
-        # Remove version_main to auto-detect, add use_subprocess for VPS
-        driver = uc.Chrome(options=options)
-
         polite_delay()
 
         # Build search query
