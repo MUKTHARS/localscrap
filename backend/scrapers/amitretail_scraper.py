@@ -1,93 +1,112 @@
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
-import time, re
+import time, re, traceback, random
 from scrapers.utils import polite_delay, save_to_excel
 from datetime import datetime
-import random
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
+]
+
+def _stealth_hook(driver, user_agent):
+    try:
+        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});")
+        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});")
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
+        driver.execute_script("window.chrome = { runtime: {}, loadTimes: function(){return {}} };")
+        driver.execute_script("""
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.__query = originalQuery;
+            window.navigator.permissions.query = (parameters) => (
+              parameters.name === 'notifications' ?
+                Promise.resolve({ state: Notification.permission }) :
+                originalQuery(parameters)
+            );
+        """)
+        driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
+    except Exception:
+        pass
+
+def _random_viewport_size():
+    widths = [1200, 1366, 1440, 1600, 1920]
+    heights = [800, 768, 900, 1024, 1080]
+    return random.choice(widths), random.choice(heights)
 
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
-    # Start undetected Chrome (headless OK!)
-    options = uc.ChromeOptions()
-    options.headless = True
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--window-size=1920,1080")
-    
-    # Random User Agent
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
-    ]
-    
-    options.add_argument(f"--user-agent={random.choice(user_agents)}")
+    max_retries = 3
+    headless = True
+    scraped_data = []
 
-    driver = uc.Chrome(options=options)
+    for attempt in range(1, max_retries + 1):
+        ua = random.choice(USER_AGENTS)
+        width, height = _random_viewport_size()
 
-    try:
-        polite_delay()
+        try:
+            options = uc.ChromeOptions()
+            if headless:
+                options.add_argument("--headless=new")
+                options.add_argument("--no-sandbox")
+                options.add_argument("--disable-dev-shm-usage")
+                options.add_argument("--disable-gpu")
+                options.add_argument("--disable-blink-features=AutomationControlled")
+                options.add_argument(f"--user-agent={ua}")
+                options.add_argument(f"--window-size={width},{height}")
+                options.add_argument("--disable-extensions")
+                options.add_argument("--disable-background-networking")
+                options.add_argument("--log-level=3")
+                options.binary_location = '/usr/bin/google-chrome'
 
-        # Build search query
-        if asin_number:
-            keywords = [brand, product, asin_number]
-        else:
-            keywords = [brand, product, oem_number] if oem_number else [brand, product]
+            driver = uc.Chrome(options=options, version_main=None)
+            driver.set_page_load_timeout(45)
 
-        query = "+".join([k for k in keywords if k])
-        url = f"https://www.amitretail.com/shop?search={query}"
-        print(f"🔄 Loading AmitRetail: {url}")
-        driver.get(url)
+            _stealth_hook(driver, ua)
 
-        # IMPROVED: Wait for initial page load and Algolia JS
-        print("⏳ Waiting for Algolia JS to load...")
-        time.sleep(8)  # Increased from 5 to 8 seconds
-
-        # IMPROVED: Check if products are actually loaded
-        products_loaded = False
-        max_retries = 3
-        
-        for retry in range(max_retries):
-            # Scroll to trigger lazy loading
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-            time.sleep(2)
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            
-            # Check if we have product elements
-            soup = BeautifulSoup(driver.page_source, "html.parser")
-            product_cards = soup.select("li.product-col")
-            
-            if product_cards:
-                print(f"✅ Found {len(product_cards)} products on attempt {retry + 1}")
-                products_loaded = True
-                break
-            else:
-                print(f"🔄 No products found yet, retrying... ({retry + 1}/{max_retries})")
-                time.sleep(3)  # Wait longer before retry
-
-        # If still no products, try one more approach
-        if not products_loaded:
-            print("🔄 Trying alternative loading method...")
-            # Sometimes scrolling to top helps
-            driver.execute_script("window.scrollTo(0, 0);")
-            time.sleep(3)
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(3)
-            
-            soup = BeautifulSoup(driver.page_source, "html.parser")
-            product_cards = soup.select("li.product-col")
-
-        scraped_data = []
-
-        for card in product_cards:
+            # Warm-up visit
             try:
+                warmup_url = "https://www.amitretail.com/"
+                driver.get(warmup_url)
+                time.sleep(random.uniform(1.2, 2.8))
+            except Exception:
+                pass
+
+            polite_delay()
+
+            # Build search query
+            if asin_number:
+                keywords = [brand, product, asin_number]
+            else:
+                keywords = [brand, product, oem_number] if oem_number else [brand, product]
+
+            query = "+".join([k for k in keywords if k])
+            url = f"https://www.amitretail.com/shop?search={query}"
+            driver.get(url)
+
+            # Wait for content with retry logic
+            time.sleep(5)
+
+            # Check for blocks
+            html = driver.page_source
+            if "access denied" in html.lower() or "bot" in html.lower():
+                driver.quit()
+                time.sleep(random.uniform(6, 14) * attempt)
+                continue
+
+            # Ensure further JS rendering is complete
+            for _ in range(5):
+                time.sleep(1)
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+                time.sleep(1)
+
+            # Parse
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+            product_cards = soup.select("li.product-col")
+
+            for card in product_cards:
                 # URL
                 url_tag = card.select_one("a.product-loop-title")
                 product_url = url_tag["href"] if url_tag else "N/A"
-                if product_url and not product_url.startswith('http'):
-                    product_url = "https://www.amitretail.com" + product_url
 
                 # Name
                 name_tag = card.select_one("h3.woocommerce-loop-product__title")
@@ -102,7 +121,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
 
                 # Currency
                 currency_tag = card.select_one("span.custom_currency")
-                currency = currency_tag["alt"] if currency_tag and currency_tag.has_attr("alt") else "AED"  # Default to AED
+                currency = currency_tag["alt"] if currency_tag and currency_tag.has_attr("alt") else "NA"
 
                 scraped_data.append({
                     "BRAND": brand,
@@ -117,34 +136,31 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
                     "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "SOURCE URL": product_url,
                 })
-            except Exception as card_error:
-                print(f"⚠️ Error processing one product card: {card_error}")
+
+            if scraped_data:
+                try:
+                    save_to_excel("AmitRetail", scraped_data)
+                except:
+                    pass
+                driver.quit()
+                return {"data": scraped_data}
+            else:
+                driver.quit()
+                time.sleep(random.uniform(4, 10))
                 continue
 
-        if not scraped_data:
-            # Save debug info
-            debug_info = {
-                "url": url,
-                "page_title": driver.title,
-                "product_cards_found": len(product_cards),
-                "page_source_length": len(driver.page_source)
-            }
-            print(f"❌ Debug info: {debug_info}")
-            return {"error": "No products found after multiple retries. Site might be blocking or slow."}
+        except Exception as e:
+            try:
+                traceback.print_exc()
+            except Exception:
+                pass
+            try:
+                driver.quit()
+            except Exception:
+                pass
+            time.sleep(random.uniform(4, 12) * attempt)
+            continue
 
-        print(f"✅ Successfully scraped {len(scraped_data)} products from AmitRetail")
-        
-        # Save to Excel
-        try:
-            save_to_excel("AmitRetail", scraped_data)
-        except Exception as save_error:
-            print(f"⚠️ Save to Excel failed: {save_error}")
-
-        return {"data": scraped_data}
-
-    except Exception as e:
-        print(f"❌ AmitRetail scraping error: {str(e)}")
-        return {"error": f"AmitRetail: {str(e)}"}
-
-    finally:
-        driver.quit()
+    return {
+        "error": "Blocked or failed after multiple retries — consider rotating proxies or using a scraping API."
+    }
