@@ -1,11 +1,8 @@
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 import time, re, traceback, random
-from datetime import datetime
 from scrapers.utils import polite_delay, save_to_excel
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from datetime import datetime
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -49,7 +46,7 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
         try:
             options = uc.ChromeOptions()
             if headless:
-                options.add_argument("--headless+new")
+                options.add_argument("--headless=new")
                 options.add_argument("--no-sandbox")
                 options.add_argument("--disable-dev-shm-usage")
                 options.add_argument("--disable-gpu")
@@ -59,8 +56,9 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
                 options.add_argument("--disable-extensions")
                 options.add_argument("--disable-background-networking")
                 options.add_argument("--log-level=3")
+                options.binary_location = '/usr/bin/google-chrome'
 
-            driver = uc.Chrome(options=options)
+            driver = uc.Chrome(options=options, version_main=None)
             driver.set_page_load_timeout(45)
 
             _stealth_hook(driver, ua)
@@ -85,31 +83,21 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
             url = f"https://uae.sharafdg.com/?q={query}&post_type=product"
             driver.get(url)
 
-            # Wait for results with retry logic
-            try:
-                WebDriverWait(driver, 18).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "div.product-wrapper"))
-                )
-            except Exception:
-                try:
-                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight/4);")
-                except Exception:
-                    pass
-                time.sleep(random.uniform(4.5, 8.5))
+            # Wait for content with retry logic
+            time.sleep(8)
+
+            # Check for blocks
+            html = driver.page_source
+            if "access denied" in html.lower() or "bot" in html.lower():
+                driver.quit()
+                time.sleep(random.uniform(6, 14) * attempt)
+                continue
 
             # Ensure further JS rendering is complete
             for _ in range(5):
                 time.sleep(1)
                 driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
                 time.sleep(1)
-
-            html = driver.page_source
-
-            # Block detection
-            if "access denied" in html.lower() or "bot" in html.lower():
-                driver.quit()
-                time.sleep(random.uniform(6, 14) * attempt)
-                continue
 
             # Parse
             soup = BeautifulSoup(driver.page_source, "html.parser")
@@ -132,9 +120,9 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
                 price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
 
                 # Currency
-                currency="AED"
+                currency = "AED"
 
-                #Rating
+                # Rating
                 rating_tag = card.select_one("span.product-rating-count")
                 if rating_tag:
                     rating = rating_tag.get_text(strip=True).replace("(", "").replace(")", "")
@@ -146,7 +134,7 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
                     "PRODUCT": product,
                     "OEM NUMBER": oem_number or "NA",
                     "ASIN NUMBER": asin_number or "NA",
-                    "WEBSITE": "SharafDG",
+                    "WEBSITE": "AmitRetail",
                     "PRODUCT NAME": name,
                     "PRICE": price_value,
                     "CURRENCY": currency,
@@ -157,8 +145,8 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
 
             if scraped_data:
                 try:
-                    save_to_excel("SharafDG", scraped_data)
-                except Exception:
+                    save_to_excel("SharaFDG", scraped_data)
+                except:
                     pass
                 driver.quit()
                 return {"data": scraped_data}
@@ -179,4 +167,6 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
             time.sleep(random.uniform(4, 12) * attempt)
             continue
 
-    return {"error": "No products found or blocked after multiple retries."}
+    return {
+        "error": "Blocked or failed after multiple retries — consider rotating proxies or using a scraping API."
+    }
