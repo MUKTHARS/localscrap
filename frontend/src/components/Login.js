@@ -65,9 +65,9 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'https://tutomart.com/auth/login/google';
-  };
-
+    window.location.href = 'https://tutomart.com/api/auth/login/google';
+  };  
+  
   // Show loading while checking auth status
   if (authLoading) {
     return (
