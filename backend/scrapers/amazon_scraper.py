@@ -76,6 +76,8 @@ def scrape_amazon(brand, product):
                     options.add_argument("--disable-extensions")
                     options.add_argument("--disable-background-networking")
                     options.add_argument("--log-level=3")
+                    options.binary_location = '/usr/bin/chromium-browser'
+
 
                 driver = uc.Chrome(options=options)
                 driver.set_page_load_timeout(45)
