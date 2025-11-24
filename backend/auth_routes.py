@@ -33,7 +33,7 @@ def init_oauth(app):
 
 # -------------------------- LOGIN STATUS ----------------------------------
 
-@auth_bp.route("/login")
+@auth_bp.route("/")
 def login():
     if current_user.is_authenticated:
         return redirect(f"{FRONTEND_BASE}/dashboard")
