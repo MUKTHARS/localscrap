@@ -74,10 +74,10 @@ def scrape_amazon(brand, product):
                     options.add_argument("--disable-extensions")
                     options.add_argument("--disable-background-networking")
                     options.add_argument("--log-level=3")
-                    options.binary_location = '/usr/bin/google-chrome'  # CHANGED: Use Chrome instead of Chromium
+                    # options.binary_location = '/usr/bin/google-chrome'  # CHANGED: Use Chrome instead of Chromium
 
                 # CHANGED: Let undetected_chromedriver auto-detect version
-                driver = uc.Chrome(options=options, version_main=None)
+                driver = uc.Chrome(options=options)
                 driver.set_page_load_timeout(45)
 
                 _stealth_hook(driver, ua)
