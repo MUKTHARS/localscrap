@@ -4,19 +4,16 @@ import time, re
 from scrapers.utils import polite_delay, save_to_excel
 from datetime import datetime
 import random
-import os
 
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     # Start undetected Chrome (headless OK!)
     options = uc.ChromeOptions()
-    options.binary_location = "/opt/chrome-142-cft/chrome"
-    options.add_argument("--headless=new")  
+    options.headless = True
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
-    
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -26,11 +23,10 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-    driver = None
-    try:
-        # Remove version_main to auto-detect, add use_subprocess for VPS
-        driver = uc.Chrome(options=options, driver_executable_path="/opt/chrome-142-cft/chromedriver")
 
+    driver = uc.Chrome(version_main=142, options=options)
+
+    try:
         polite_delay()
 
         # Build search query
@@ -94,8 +90,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
             })
 
         if not scraped_data:
-            # Enhanced error message for debugging
-            return {"error": "No products found. The website might be blocking requests or the search returned no results."}
+            return {"error": "No products found. JS may not have loaded fully."}
 
         # Save to Excel
         try:
@@ -106,8 +101,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         return {"data": scraped_data}
 
     except Exception as e:
-        return {"error": f"Scraping failed: {str(e)}"}
+        return {"error": str(e)}
 
     finally:
-        if driver:
-            driver.quit()
+        driver.quit()
