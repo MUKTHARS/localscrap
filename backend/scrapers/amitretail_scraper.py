@@ -68,6 +68,7 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
                 {{urls: ["<all_urls>"]}},
                 ['blocking']
     );
+    """
 
     with zipfile.ZipFile(plugin_path, 'w') as zp:
         zp.writestr("manifest.json", manifest_json)
