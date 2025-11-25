@@ -1,115 +1,107 @@
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
-import time, re
-import random
-import requests
+import time, re, os, zipfile
 from datetime import datetime
-from scrapers.utils import polite_delay, save_to_excel
+import random
 
-# ==========================================
-# 1. PROXY FUNCTIONS (As requested)
-# ==========================================
+# --- CONFIGURATION (FILL THESE IN) ---
+PROXY_HOST = "gate.decodo.com"  # Check your dashboard (e.g., gate.smartproxy.com or similar)
+PROXY_PORT = "10001"             # Check your dashboard
+PROXY_USER = "sp7oukpich"    # Your Decodo Sub-user
+PROXY_PASS = "oHz7RSjbv1W7cafe+7"    # Your Decodo Password
 
-def get_proxy_list():
-    """Get free proxies from multiple reliable sources"""
-    proxies = []
-    
-    # Source 1: FreeProxy API
-    try:
-        response = requests.get('https://freeproxyapi.com/api/v1/proxy?limit=10', timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if isinstance(data, list):
-                for proxy in data:
-                    if proxy.get('isWorking'):
-                        proxies.append(f"http://{proxy['ip']}:{proxy['port']}")
-            elif isinstance(data, dict):
-                if data.get('ip') and data.get('port'):
-                    proxies.append(f"http://{data['ip']}:{data['port']}")
-    except:
-        pass
-    
-    # Source 2: Geonode API (more reliable)
-    try:
-        response = requests.get('https://proxylist.geonode.com/api/proxy-list?limit=20&page=1&sort_by=lastChecked&sort_type=desc', timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            for proxy in data.get('data', []):
-                if proxy.get('protocols') and 'http' in proxy['protocols']:
-                    proxies.append(f"http://{proxy['ip']}:{proxy['port']}")
-    except:
-        pass
-    
-    # Source 3: Proxyscrape API
-    try:
-        response = requests.get('https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all', timeout=10)
-        if response.status_code == 200:
-            proxy_list = response.text.strip().split('\n')
-            for proxy in proxy_list:
-                proxy = proxy.strip()
-                if proxy and ':' in proxy:
-                    proxies.append(f"http://{proxy}")
-    except:
-        pass
-    
-    # Source 4: ProxyList from GitHub
-    try:
-        response = requests.get('https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt', timeout=10)
-        if response.status_code == 200:
-            proxy_list = response.text.strip().split('\n')
-            for proxy in proxy_list[:20]:  # Take first 20
-                proxy = proxy.strip()
-                if proxy and ':' in proxy:
-                    proxies.append(f"http://{proxy}")
-    except:
-        pass
-    
-    # Remove duplicates and return
-    return list(set(proxies))
+def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
+    """
+    Creates a Chrome extension (zip file) to handle proxy authentication.
+    This is required for undetected_chromedriver to use authenticated proxies.
+    """
+    if plugin_path is None:
+        plugin_path = os.path.join(os.getcwd(), 'proxy_auth_plugin.zip')
 
-def test_proxy(proxy_url, timeout=5):
-    """Test if a proxy is working"""
-    try:
-        response = requests.get(
-            'http://httpbin.org/ip',
-            proxies={'http': proxy_url, 'https': proxy_url},
-            timeout=timeout
-        )
-        return response.status_code == 200
-    except:
-        return False
+    manifest_json = """
+    {
+        "version": "1.0.0",
+        "manifest_version": 2,
+        "name": "Chrome Proxy",
+        "permissions": [
+            "proxy",
+            "tabs",
+            "unlimitedStorage",
+            "storage",
+            "<all_urls>",
+            "webRequest",
+            "webRequestBlocking"
+        ],
+        "background": {
+            "scripts": ["background.js"]
+        },
+        "minimum_chrome_version":"22.0.0"
+    }
+    """
 
-def get_working_proxy():
-    """Get a working proxy by testing multiple options"""
-    print("Fetching and testing proxies...")
-    proxies = get_proxy_list()
-    random.shuffle(proxies)  # Shuffle to distribute load
-    
-    for proxy in proxies[:10]:  # Test first 10
-        if test_proxy(proxy):
-            print(f"Using working proxy: {proxy}")
-            return proxy
-    
-    print("No working proxies found, continuing without proxy")
-    return None
+    background_js = f"""
+    var config = {{
+            mode: "fixed_servers",
+            rules: {{
+              singleProxy: {{
+                scheme: "{scheme}",
+                host: "{host}",
+                port: parseInt({port})
+              }},
+              bypassList: ["localhost"]
+            }}
+          }};
 
-# ==========================================
-# 2. MAIN SCRAPER LOGIC
-# ==========================================
+    chrome.proxy.settings.set({{value: config, scope: "regular"}}, function() {{}});
+
+    function callbackFn(details) {{
+        return {{
+            authCredentials: {{
+                username: "{user}",
+                password: "{password}"
+            }}
+        }};
+    }}
+
+    chrome.webRequest.onAuthRequired.addListener(
+                callbackFn,
+                {{urls: ["<all_urls>"]}},
+                ['blocking']
+    );
+
+    with zipfile.ZipFile(plugin_path, 'w') as zp:
+        zp.writestr("manifest.json", manifest_json)
+        zp.writestr("background.js", background_js)
+
+    return plugin_path
+
+# MOCK UTILS for standalone running (Replace with your actual imports)
+def polite_delay():
+    time.sleep(random.uniform(2, 5))
+
+def save_to_excel(filename, data):
+    print(f"Saving {len(data)} items to {filename}.xlsx (Mock Function)")
 
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
-    # --- VPS & Proxy Configuration ---
+    # 1. Create the Proxy Extension
+    proxy_plugin = create_proxy_auth_extension(
+        host=PROXY_HOST,
+        port=PROXY_PORT,
+        user=PROXY_USER,
+        password=PROXY_PASS
+    )
+
+    # 2. Configure Chrome Options
     options = uc.ChromeOptions()
-    
-    options.add_argument("--headless=new")
+    options.add_argument("--headless=new") # Using 'new' headless mode is more undetectable
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
     
-    # Stealth Options (Fixed to avoid 'excludeSwitches' crash)
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    
+    # 3. Load the Proxy Extension
+    options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
+
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -118,24 +110,22 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     ]
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-    # Add Proxy
-    proxy = get_working_proxy()
-    if proxy:
-        options.add_argument(f'--proxy-server={proxy}')
-
     driver = None
 
     try:
-        # Initialize Driver with VPS path and version control
+        # Initialize Driver
         driver = uc.Chrome(options=options)
         
-        # Extra Stealth
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        
+        # 4. VERIFY IP (Optional but Recommended)
+        # This confirms your traffic is actually going through Decodo
+        # try:
+        #     driver.get("https://api.ipify.org?format=json")
+        #     print(f"Current IP: {driver.find_element('tag name', 'body').text}")
+        # except:
+        #     print("Could not verify IP, continuing...")
+
         polite_delay()
 
-        # --- Original Scraping Logic ---
-        
         # Build search query
         if asin_number:
             keywords = [brand, product, asin_number]
@@ -145,18 +135,16 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         query = "+".join([k for k in keywords if k])
         url = f"https://www.amitretail.com/shop?search={query}"
         
-        print(f"Navigating to: {url}")
-        driver.set_page_load_timeout(60) # Safety timeout
+        print(f"Scraping URL: {url}")
         driver.get(url)
 
-        # GIVE ALGOLIA JS TIME TO LOAD RENDERED RESULTS
+        # GIVE JS TIME TO LOAD
         time.sleep(5)
 
-        # Ensure further JS rendering is complete
-        for _ in range(5):
-            time.sleep(1)
+        # Scroll logic
+        for _ in range(3): # Reduced to 3 for speed, increase if needed
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-            time.sleep(1)
+            time.sleep(1.5)
 
         # Parse
         soup = BeautifulSoup(driver.page_source, "html.parser")
@@ -165,7 +153,6 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         scraped_data = []
 
         for card in product_cards:
-
             # URL
             url_tag = card.select_one("a.product-loop-title")
             product_url = url_tag["href"] if url_tag else "N/A"
@@ -179,6 +166,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
             raw_price = price_tag.get_text(strip=True) if price_tag else "0"
 
             price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
+            # Remove commas before converting to float
             price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
 
             # Currency
@@ -200,24 +188,32 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
             })
 
         if not scraped_data:
+            print("No products found.")
             return {"error": "No products found. JS may not have loaded fully."}
 
         # Save to Excel
         try:
             save_to_excel("AmitRetail", scraped_data)
-        except:
-            pass
+        except Exception as e:
+            print(f"Error saving excel: {e}")
 
         return {"data": scraped_data}
 
     except Exception as e:
-        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
         return {"error": str(e)}
 
     finally:
         if driver:
             try:
                 driver.quit()
+            except:
+                pass
+        # Clean up the extension file
+        if os.path.exists('proxy_auth_plugin.zip'):
+            try:
+                os.remove('proxy_auth_plugin.zip')
             except:
                 pass
 
