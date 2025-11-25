@@ -6,116 +6,115 @@ import time, random, re
 from scrapers.utils import polite_delay, save_to_excel
 from datetime import datetime
 
-
-def scrape_snapdeal(brand, product, oem_number=None, asin_number=None):
+def scrape_ebay(brand, product, oem_number=None, asin_number=None):
     options = Options()
-    options.add_argument("--headless") # ✅ Run in headless mode
+    options.add_argument("--headless=new") # ✅ Run in headless mode
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) "
-                        "Chrome/141.0.7390.122 Safari/537.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-    # 🧠 Explicitly set the Chromium binary path
-    options.binary_location = "/usr/bin/chromium-browser"
-
-    # Start ChromeDriver with these options
-    driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
+    driver = None
 
     try:
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        
         polite_delay()
-
-        # ---- Build dynamic search query ----
+        # 🧩 Build dynamic search query
         if asin_number:
+            # Some sellers may list ASINs directly in the title
             keywords = [brand, product, asin_number]
         else:
             keywords = [brand, product, oem_number] if oem_number else [brand, product]
 
-        query = "%20".join([k for k in keywords if k])
-        url = f"https://www.snapdeal.com/search?keyword={query}"
+        query = "+".join([k for k in keywords if k])
+        url = f"https://www.ebay.com/sch/i.html?_nkw={query}"
 
         driver.get(url)
 
-        # Wait for dynamic content
-        time.sleep(random.uniform(5, 10))
+        time.sleep(random.uniform(3, 6))
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
-        product_cards = soup.select(".product-tuple-listing")
+        product_cards = soup.select("li.s-card")
 
         scraped_data = []
 
-        # ---- Parse product listings ----
         for card in product_cards:
-            # Product URL
-            url_tag = card.select_one("a.dp-widget-link, a.dp-widget-link.noUdLine")
-            product_url = url_tag["href"] if url_tag else "N/A"
+            url_tag = card.select_one("a.s-card__link")
+            product_url = url_tag['href'] if url_tag else "N/A"
 
-            # Product Name
-            name_tag = card.select_one(".product-title")
-            name = name_tag.get_text(strip=True) if name_tag else "N/A"
-            if not name or name.lower() in ["sponsored", "advertisement"]:
-                continue
-
-            # ---- Price ----
-            price_tag = (
-                card.select_one("span.lfloat.product-price") or
-                card.select_one("span[id^='display-price']") or
-                card.select_one(".product-price > span")
+            name_tag = (
+                card.select_one(".s-item__title") or
+                card.select_one(".s-card__title") or
+                card.select_one("h3.s-item__title")
             )
-
-            if price_tag:
-                if price_tag.has_attr("data-price"):
-                    price_text = price_tag["data-price"].strip()
-                else:
-                    price_text = re.sub(r"[^\d.]", "", price_tag.get_text(strip=True))
+            
+            if name_tag:
+                name = name_tag.get_text(" ", strip=True)
             else:
-                price_text = "0"
+                name = "N/A"
+            
+            # Remove unwanted text fragments and marketing tags
+            junk_words = [
+                r"shop on ebay",
+                r"open in new tab",
+                r"click to see price",
+                r"see price",
+                r"ships\s*(today|free|in\s*\d+\s*days)",
+                r"free shipping",
+                r"sponsored",
+                r"opens in a new window or tab",
+                r"new window or tab",
+                r"^new\s*",
+                r"\bfree\b",
+            ]
+            
+            for junk in junk_words:
+                name = re.sub(junk, "", name, flags=re.IGNORECASE)
 
-            try:
-                price_value = int(float(price_text))
-            except ValueError:
+            name = name.strip()
+            if not name:
                 continue
+            
+            price_tag = (
+                card.select_one(".s-card__price")
+            )
+            price_text_raw = price_tag.get_text(" ", strip=True) if price_tag else "NA"
 
-            # ---- Currency ----
-            currency_match = re.search(r"(Rs\.?|₹|[$€£])", price_tag.text if price_tag else "")
-            currency = currency_match.group(0) if currency_match else "₹"
+            price_nums = re.findall(r'[\d,]+(?:\.\d+)?', price_text_raw)
+            if not price_nums:
+                continue
+            price_value = int(float(price_nums[0].replace(",", ""))) if price_nums else "NA"
 
-            # ---- Rating ----
-            rating_tag = card.select_one(".filled-stars")
-            if rating_tag and "width" in rating_tag.attrs.get("style", ""):
-                try:
-                    width = float(rating_tag["style"].split(":")[1].replace("%", "").strip())
-                    rating = f"{round(width / 20, 1)}"
-                except Exception:
-                    rating = "N/A"
-            else:
-                rating = "N/A"
+            currency_match = re.search(r'([$€£₹])|([A-Z]{3})', price_text_raw)
+            currency = currency_match.group(0) if currency_match else "NA" 
 
-            # ---- Append structured data ----
+            card_text = card.get_text(" ", strip=True)
+            rating_match = re.search(r'\d{1,3}(?:\.\d+)?%\s*positive(?:\s*\(\d+\))?', card_text, re.IGNORECASE)
+            rating_text = rating_match.group(0) if rating_match else "N/A"
+
             scraped_data.append({
                 "BRAND": brand,
                 "PRODUCT": product,
                 "OEM NUMBER": oem_number or "NA",
                 "ASIN NUMBER": asin_number or "NA",
-                "WEBSITE": "Snapdeal",
+                "WEBSITE": "eBay",
                 "PRODUCT NAME": name,
                 "PRICE": price_value,
                 "CURRENCY": currency,
-                "SELLER RATING": rating,
+                "SELLER RATING": rating_text,
                 "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "SOURCE URL": product_url,
             })
 
-        # ---- Validation ----
         if not scraped_data:
             return {"error": "No data scraped — page may have loaded incorrectly or no items matched."}
 
-        # ---- Save and Return ----
         try:
-            save_to_excel("Snapdeal", scraped_data)
+            save_to_excel("Flipkart", scraped_data)
         except Exception:
             pass
 
