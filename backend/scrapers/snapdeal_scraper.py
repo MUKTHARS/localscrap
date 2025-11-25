@@ -9,23 +9,20 @@ from datetime import datetime
 
 def scrape_snapdeal(brand, product, oem_number=None, asin_number=None):
     options = Options()
-    options.add_argument("--headless") # ✅ Run in headless mode
+    options.add_argument("--headless=new") # ✅ Run in headless mode
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) "
-                        "Chrome/141.0.7390.122 Safari/537.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-    # 🧠 Explicitly set the Chromium binary path
-    # options.binary_location = "/usr/bin/chromium-browser"
-
-    # Start ChromeDriver with these options
-    driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
+    driver = None
 
     try:
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        
         polite_delay()
 
         # ---- Build dynamic search query ----
