@@ -4,9 +4,9 @@ import time, re, os, zipfile, random, string
 from datetime import datetime
 from scrapers.utils import polite_delay, save_to_excel
 
-# --- PROXY CONFIGURATION ---
+# --- CONFIGURATION (FILL THESE IN) ---
 PROXY_HOST = "gate.decodo.com"  # Check your dashboard
-PROXY_PORT = "10001"             # Check your dashboard
+PROXY_PORT = "10002"             # Check your dashboard
 PROXY_USER = "sp7oukpich"    # Your Decodo Sub-user
 PROXY_PASS = "oHz7RSjbv1W7cafe+7"    # Your Decodo Password
 
@@ -15,7 +15,7 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
     Creates a Chrome extension (zip file) to handle proxy authentication.
     """
     if plugin_path is None:
-        # Generate a random filename to avoid conflicts if running multiple scrapers
+        # Random filename to avoid conflicts
         random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
         plugin_path = os.path.join(os.getcwd(), f'proxy_auth_plugin_{random_suffix}.zip')
 
@@ -77,21 +77,24 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
 
     return plugin_path
 
-# ==========================================
-# NOON SCRAPER (With Proxy)
-# ==========================================
 def scrape_noon(brand, product, oem_number=None, asin_number=None):
-    # 1. Create Proxy Extension
-    proxy_plugin = create_proxy_auth_extension(PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
+    # 1. Create the Proxy Extension
+    proxy_plugin = create_proxy_auth_extension(
+        host=PROXY_HOST,
+        port=PROXY_PORT,
+        user=PROXY_USER,
+        password=PROXY_PASS
+    )
 
+    # 2. Configure Chrome Options
     options = uc.ChromeOptions()
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    
-    # 2. Load Proxy Extension
+
+    # 3. Load the Proxy Extension
     options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
 
     # Random User Agent
@@ -106,6 +109,7 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
 
     try:
         driver = uc.Chrome(options=options)
+
         polite_delay()
 
         # Build search query
@@ -117,24 +121,25 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
         query = "+".join([k for k in keywords if k])
         url = f"https://www.noon.com/uae-en/search/?q={query}"
         
-        print(f"Scraping Noon: {url}")
+        print(f"Scraping URL: {url}")
         driver.get(url)
 
         time.sleep(5)
 
-        # Smooth scroll — required for Noon
+        # Smooth scroll — required for Noon (Preserved from your code)
         for _ in range(30):
             driver.execute_script("window.scrollBy(0, 900);")
             time.sleep(0.6)
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        # Product cards
+        # Product cards (Preserved tags)
         product_cards = soup.select('div[class*="linkWrapper"]')
 
         scraped_data = []
 
         for card in product_cards:
+
             # URL
             link = card.select_one('a[class*="productBoxLink"], a[href*="/p/"]')
             product_url = "https://www.noon.com" + link["href"] if link else "N/A"
@@ -190,7 +195,8 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
                 driver.quit()
             except:
                 pass
-        # Cleanup plugin
+        
+        # Clean up the extension file
         if os.path.exists(proxy_plugin):
             try:
                 os.remove(proxy_plugin)
