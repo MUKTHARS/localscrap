@@ -1,12 +1,86 @@
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
-import time, re
-from scrapers.utils import polite_delay, save_to_excel
+import time, re, os, zipfile, random, string
 from datetime import datetime
-import random
+from scrapers.utils import polite_delay, save_to_excel
 
-def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
-    # Start undetected Chrome (headless OK!)
+# --- PROXY CONFIGURATION ---
+PROXY_HOST = "gate.decodo.com"  # Check your dashboard
+PROXY_PORT = "7000"             # Check your dashboard
+PROXY_USER = "your_username"    # Your Decodo Sub-user
+PROXY_PASS = "your_password"    # Your Decodo Password
+
+def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
+    """
+    Creates a Chrome extension (zip file) to handle proxy authentication.
+    """
+    if plugin_path is None:
+        # Generate a random filename to avoid conflicts if running multiple scrapers
+        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        plugin_path = os.path.join(os.getcwd(), f'proxy_auth_plugin_{random_suffix}.zip')
+
+    manifest_json = """
+    {
+        "version": "1.0.0",
+        "manifest_version": 2,
+        "name": "Chrome Proxy",
+        "permissions": [
+            "proxy",
+            "tabs",
+            "unlimitedStorage",
+            "storage",
+            "<all_urls>",
+            "webRequest",
+            "webRequestBlocking"
+        ],
+        "background": {
+            "scripts": ["background.js"]
+        },
+        "minimum_chrome_version":"22.0.0"
+    }
+    """
+
+    background_js = f"""
+    var config = {{
+            mode: "fixed_servers",
+            rules: {{
+              singleProxy: {{
+                scheme: "{scheme}",
+                host: "{host}",
+                port: parseInt({port})
+              }},
+              bypassList: ["localhost"]
+            }}
+          }};
+
+    chrome.proxy.settings.set({{value: config, scope: "regular"}}, function() {{}});
+
+    function callbackFn(details) {{
+        return {{
+            authCredentials: {{
+                username: "{user}",
+                password: "{password}"
+            }}
+        }};
+    }}
+
+    chrome.webRequest.onAuthRequired.addListener(
+                callbackFn,
+                {{urls: ["<all_urls>"]}},
+                ['blocking']
+    );
+    """
+
+    with zipfile.ZipFile(plugin_path, 'w') as zp:
+        zp.writestr("manifest.json", manifest_json)
+        zp.writestr("background.js", background_js)
+
+    return plugin_path
+
+    def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
+    # 1. Create Proxy Extension
+    proxy_plugin = create_proxy_auth_extension(PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
+
     options = uc.ChromeOptions()
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
@@ -14,21 +88,22 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
+    
+    # 2. Load Proxy Extension
+    options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
+
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
     ]
-    
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
-
 
     driver = None
 
     try:
         driver = uc.Chrome(options=options)
-        
         polite_delay()
 
         # Build search query
@@ -39,6 +114,8 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
 
         query = "+".join([k for k in keywords if k])
         url = f"https://uae.sharafdg.com/?q={query}&post_type=product"
+        
+        print(f"Scraping SharafDG: {url}")
         driver.get(url)
 
         # GIVE ALGOLIA JS TIME TO LOAD RENDERED RESULTS
@@ -57,7 +134,6 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
         scraped_data = []
 
         for card in product_cards:
-
             # URL
             url_tag = card.select_one("a.product-link")
             product_url = url_tag["href"] if url_tag else "N/A"
@@ -74,9 +150,9 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
             price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
 
             # Currency
-            currency="AED"
+            currency = "AED"
 
-            #Rating
+            # Rating
             rating_tag = card.select_one("span.product-rating-count")
             if rating_tag:
                 rating = rating_tag.get_text(strip=True).replace("(", "").replace(")", "")
@@ -112,4 +188,14 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
         return {"error": str(e)}
 
     finally:
-        driver.quit()
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
+        # Cleanup plugin
+        if os.path.exists(proxy_plugin):
+            try:
+                os.remove(proxy_plugin)
+            except:
+                pass
