@@ -61,19 +61,20 @@ def scrape_amazon(brand, product):
             ua = random.choice(USER_AGENTS)
             width, height = _random_viewport_size()
 
+            driver=None
+            
             try:
                 options = uc.ChromeOptions()
-                if headless:
-                    options.add_argument("--headless=new")
-                    options.add_argument("--no-sandbox")
-                    options.add_argument("--disable-dev-shm-usage")
-                    options.add_argument("--disable-gpu")
-                    options.add_argument("--disable-blink-features=AutomationControlled")
-                    options.add_argument(f"--user-agent={ua}")
-                    options.add_argument(f"--window-size={width},{height}")
-                    options.add_argument("--disable-extensions")
-                    options.add_argument("--disable-background-networking")
-                    options.add_argument("--log-level=3")
+                options.add_argument("--headless=new")
+                options.add_argument("--no-sandbox")
+                options.add_argument("--disable-dev-shm-usage")
+                options.add_argument("--disable-gpu")
+                options.add_argument("--disable-blink-features=AutomationControlled")
+                options.add_argument(f"--user-agent={ua}")
+                options.add_argument(f"--window-size={width},{height}")
+                options.add_argument("--disable-extensions")
+                options.add_argument("--disable-background-networking")
+                options.add_argument("--log-level=3")
 
                 driver = uc.Chrome(options=options)
                 driver.set_page_load_timeout(45)
