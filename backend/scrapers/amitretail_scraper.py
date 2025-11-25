@@ -4,9 +4,10 @@ import time, re
 import random
 import requests
 from datetime import datetime
+from scrapers.utils import polite_delay, save_to_excel
 
 # ==========================================
-# PART 1: PROXY HELPER FUNCTIONS
+# 1. PROXY FUNCTIONS (As requested)
 # ==========================================
 
 def get_proxy_list():
@@ -28,7 +29,7 @@ def get_proxy_list():
     except:
         pass
     
-    # Source 2: Geonode API
+    # Source 2: Geonode API (more reliable)
     try:
         response = requests.get('https://proxylist.geonode.com/api/proxy-list?limit=20&page=1&sort_by=lastChecked&sort_type=desc', timeout=10)
         if response.status_code == 200:
@@ -39,23 +40,35 @@ def get_proxy_list():
     except:
         pass
     
-    # Source 3: GitHub Proxy List
+    # Source 3: Proxyscrape API
     try:
-        response = requests.get('https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt', timeout=10)
+        response = requests.get('https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all', timeout=10)
         if response.status_code == 200:
             proxy_list = response.text.strip().split('\n')
-            for proxy in proxy_list[:30]:  # Take first 30
+            for proxy in proxy_list:
                 proxy = proxy.strip()
                 if proxy and ':' in proxy:
                     proxies.append(f"http://{proxy}")
     except:
         pass
     
-    # Remove duplicates
+    # Source 4: ProxyList from GitHub
+    try:
+        response = requests.get('https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt', timeout=10)
+        if response.status_code == 200:
+            proxy_list = response.text.strip().split('\n')
+            for proxy in proxy_list[:20]:  # Take first 20
+                proxy = proxy.strip()
+                if proxy and ':' in proxy:
+                    proxies.append(f"http://{proxy}")
+    except:
+        pass
+    
+    # Remove duplicates and return
     return list(set(proxies))
 
 def test_proxy(proxy_url, timeout=5):
-    """Test if a proxy is working by hitting a lightweight IP echo service"""
+    """Test if a proxy is working"""
     try:
         response = requests.get(
             'http://httpbin.org/ip',
@@ -70,32 +83,23 @@ def get_working_proxy():
     """Get a working proxy by testing multiple options"""
     print("Fetching and testing proxies...")
     proxies = get_proxy_list()
-    random.shuffle(proxies)
+    random.shuffle(proxies)  # Shuffle to distribute load
     
-    for proxy in proxies[:15]:  # Test up to 15 proxies
-        print(f"Testing proxy: {proxy}...")
+    for proxy in proxies[:10]:  # Test first 10
         if test_proxy(proxy):
-            print(f"Found working proxy: {proxy}")
+            print(f"Using working proxy: {proxy}")
             return proxy
     
     print("No working proxies found, continuing without proxy")
     return None
 
-def polite_delay(min_wait=2, max_wait=5):
-    time.sleep(random.uniform(min_wait, max_wait))
-
 # ==========================================
-# PART 2: MAIN SCRAPER FUNCTION
+# 2. MAIN SCRAPER LOGIC
 # ==========================================
 
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
-    print(f"Starting scrape for: {brand} - {product}")
-    
-    # --- Chrome Options Setup ---
+    # --- VPS & Proxy Configuration ---
     options = uc.ChromeOptions()
-    
-    # VPS SPECIFIC PATHS (As requested)
-    options.binary_location = "/opt/chrome-142-cft/chrome"
     
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
@@ -103,40 +107,36 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
     
-    # Stealth options
+    # Stealth Options (Fixed to avoid 'excludeSwitches' crash)
     options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
     
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
     ]
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-    driver = None
-    
-    try:
-        # --- Proxy Integration ---
-        proxy = get_working_proxy()
-        if proxy:
-            options.add_argument(f'--proxy-server={proxy}')
+    # Add Proxy
+    proxy = get_working_proxy()
+    if proxy:
+        options.add_argument(f'--proxy-server={proxy}')
 
-        # --- Driver Initialization ---
-        print("Initializing Chrome Driver...")
-        driver = uc.Chrome(
-            options=options, 
-            driver_executable_path="/opt/chrome-142-cft/chromedriver",
-            version_main=114 # Helps prevents version mismatch errors
-        )
+    driver = None
+
+    try:
+        # Initialize Driver with VPS path and version control
+        driver = uc.Chrome(options=options)
         
-        # Extra Stealth: Overwrite navigator properties
+        # Extra Stealth
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
         polite_delay()
 
-        # --- Build URL ---
+        # --- Original Scraping Logic ---
+        
+        # Build search query
         if asin_number:
             keywords = [brand, product, asin_number]
         else:
@@ -146,29 +146,26 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         url = f"https://www.amitretail.com/shop?search={query}"
         
         print(f"Navigating to: {url}")
-        
-        # Set Page Load Timeout (prevent hanging on bad proxies)
-        driver.set_page_load_timeout(45)
+        driver.set_page_load_timeout(60) # Safety timeout
         driver.get(url)
 
-        # --- Handle Dynamic Content (Algolia/JS) ---
-        print("Waiting for results to load...")
-        time.sleep(5) # Initial wait for Algolia
+        # GIVE ALGOLIA JS TIME TO LOAD RENDERED RESULTS
+        time.sleep(5)
 
-        # Scroll to ensure rendering
-        for _ in range(3):
+        # Ensure further JS rendering is complete
+        for _ in range(5):
+            time.sleep(1)
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
             time.sleep(1)
 
-        # --- Parsing ---
+        # Parse
         soup = BeautifulSoup(driver.page_source, "html.parser")
         product_cards = soup.select("li.product-col")
-        
-        print(f"Found {len(product_cards)} product cards.")
 
         scraped_data = []
 
         for card in product_cards:
+
             # URL
             url_tag = card.select_one("a.product-loop-title")
             product_url = url_tag["href"] if url_tag else "N/A"
@@ -180,6 +177,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
             # Price
             price_tag = card.select_one("span.price")
             raw_price = price_tag.get_text(strip=True) if price_tag else "0"
+
             price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
             price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
 
@@ -187,7 +185,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
             currency_tag = card.select_one("span.custom_currency")
             currency = currency_tag["alt"] if currency_tag and currency_tag.has_attr("alt") else "NA"
 
-            item = {
+            scraped_data.append({
                 "BRAND": brand,
                 "PRODUCT": product,
                 "OEM NUMBER": oem_number or "NA",
@@ -199,19 +197,29 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
                 "SELLER RATING": "N/A",
                 "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "SOURCE URL": product_url,
-            }
-            scraped_data.append(item)
+            })
+
+        if not scraped_data:
+            return {"error": "No products found. JS may not have loaded fully."}
+
+        # Save to Excel
+        try:
+            save_to_excel("AmitRetail", scraped_data)
+        except:
+            pass
 
         return {"data": scraped_data}
 
     except Exception as e:
-        print(f"Error occurred: {str(e)}")
+        print(f"Error: {e}")
         return {"error": str(e)}
 
     finally:
         if driver:
-            print("Closing driver...")
-            driver.quit()
+            try:
+                driver.quit()
+            except:
+                pass
 
 # import undetected_chromedriver as uc
 # from bs4 import BeautifulSoup
