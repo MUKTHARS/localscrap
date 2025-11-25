@@ -8,13 +8,11 @@ import random
 def scrape_noon(brand, product, oem_number=None, asin_number=None):
 
     options = uc.ChromeOptions()
-    options.binary_location = "/opt/chrome-142-cft/chrome"
-    options.add_argument("--headless=new")  
+    options.headless = True
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    
     # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -24,9 +22,11 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
     
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
-    driver = uc.Chrome(options=options, driver_executable_path="/opt/chrome-142-cft/chromedriver") 
-    
+
+    driver = uc.Chrome(version_main=142, options=options)
+
     try:
+
         polite_delay()
 
         # Build search query
@@ -105,5 +105,4 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
         return {"error": str(e)}
 
     finally:
-        if driver:
-            driver.quit()
+        driver.quit()
