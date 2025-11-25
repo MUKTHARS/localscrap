@@ -77,7 +77,7 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
 
     return plugin_path
 
-    def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
+def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
     # 1. Create Proxy Extension
     proxy_plugin = create_proxy_auth_extension(PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
 
