@@ -8,7 +8,7 @@ import random
 def scrape_noon(brand, product, oem_number=None, asin_number=None):
 
     options = uc.ChromeOptions()
-    options.add_argument("--headless=new")
+    options.headless = True
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
@@ -23,7 +23,7 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
 
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(version_main=141, options=options)
 
     try:
 
