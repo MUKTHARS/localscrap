@@ -8,7 +8,7 @@ import random
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     # Start undetected Chrome (headless OK!)
     options = uc.ChromeOptions()
-    options.add_argument("--headless=new")
+    options.headless = True
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--no-sandbox")
@@ -24,7 +24,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     options.add_argument(f"--user-agent={random.choice(user_agents)}")
 
 
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(version_main=141, options=options)
 
     try:
         polite_delay()
