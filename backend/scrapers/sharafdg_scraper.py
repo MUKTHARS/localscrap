@@ -6,9 +6,9 @@ from scrapers.utils import polite_delay, save_to_excel
 
 # --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"  # Check your dashboard
-PROXY_PORT = "7000"             # Check your dashboard
-PROXY_USER = "your_username"    # Your Decodo Sub-user
-PROXY_PASS = "your_password"    # Your Decodo Password
+PROXY_PORT = "10001"             # Check your dashboard
+PROXY_USER = "sp7oukpich"    # Your Decodo Sub-user
+PROXY_PASS = "oHz7RSjbv1W7cafe+7"    # Your Decodo Password
 
 def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
     """
