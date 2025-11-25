@@ -122,8 +122,4 @@ def scrape_snapdeal(brand, product, oem_number=None, asin_number=None):
         return {"error": str(e)}
 
     finally:
-        if driver:  # <--- Only quit if driver actually exists
-            try:
-                driver.quit()
-            except:
-                pass
+        driver.quit()
