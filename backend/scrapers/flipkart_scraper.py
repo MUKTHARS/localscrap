@@ -19,7 +19,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                         "Chrome/141.0.7390.122 Safari/537.36")
 
     # 🧠 Explicitly set the Chromium binary path
-    # options.binary_location = "/usr/bin/chromium-browser"
+    options.binary_location = "/usr/bin/chromium-browser"
 
     # Start ChromeDriver with these options
     driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
