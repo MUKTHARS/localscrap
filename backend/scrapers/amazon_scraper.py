@@ -64,7 +64,7 @@ def scrape_amazon(brand, product):
             try:
                 options = uc.ChromeOptions()
                 if headless:
-                    options.add_argument("--headless=new")  # CHANGED: Fixed headless argument
+                    options.add_argument("--headless=new")
                     options.add_argument("--no-sandbox")
                     options.add_argument("--disable-dev-shm-usage")
                     options.add_argument("--disable-gpu")
@@ -74,9 +74,7 @@ def scrape_amazon(brand, product):
                     options.add_argument("--disable-extensions")
                     options.add_argument("--disable-background-networking")
                     options.add_argument("--log-level=3")
-                    # options.binary_location = '/usr/bin/google-chrome'  # CHANGED: Use Chrome instead of Chromium
 
-                # CHANGED: Let undetected_chromedriver auto-detect version
                 driver = uc.Chrome(options=options)
                 driver.set_page_load_timeout(45)
 
