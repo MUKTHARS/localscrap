@@ -135,7 +135,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         time.sleep(5)
 
         # Scroll logic
-        for _ in range(3): # Reduced to 3 for speed, increase if needed
+        for _ in range(5): # Reduced to 3 for speed, increase if needed
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
             time.sleep(1.5)
 
