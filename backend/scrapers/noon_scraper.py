@@ -127,7 +127,7 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
         time.sleep(5)
 
         # Smooth scroll — required for Noon (Preserved from your code)
-        for _ in range(30):
+        for _ in range(5):
             driver.execute_script("window.scrollBy(0, 900);")
             time.sleep(0.6)
 
