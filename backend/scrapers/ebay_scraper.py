@@ -1,31 +1,110 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
-import time, random, re
-from scrapers.utils import polite_delay, save_to_excel
+import time, re, os, zipfile, random, string
 from datetime import datetime
+from scrapers.utils import polite_delay, save_to_excel
+
+# --- PROXY CONFIGURATION ---
+PROXY_HOST = "gate.decodo.com"  # Check your dashboard
+PROXY_PORT = "10001"             # Check your dashboard
+PROXY_USER = "sp7oukpich"    # REPLACE WITH ACTUAL USER
+PROXY_PASS = "oHz7RSjbv1W7cafe+7"    # REPLACE WITH ACTUAL PASS
+
+def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
+    if plugin_path is None:
+        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        plugin_path = os.path.join(os.getcwd(), f'proxy_auth_plugin_{random_suffix}.zip')
+
+    manifest_json = """
+    {
+        "version": "1.0.0",
+        "manifest_version": 2,
+        "name": "Chrome Proxy",
+        "permissions": [
+            "proxy",
+            "tabs",
+            "unlimitedStorage",
+            "storage",
+            "<all_urls>",
+            "webRequest",
+            "webRequestBlocking"
+        ],
+        "background": {
+            "scripts": ["background.js"]
+        },
+        "minimum_chrome_version":"22.0.0"
+    }
+    """
+
+    background_js = f"""
+    var config = {{
+            mode: "fixed_servers",
+            rules: {{
+              singleProxy: {{
+                scheme: "{scheme}",
+                host: "{host}",
+                port: parseInt({port})
+              }},
+              bypassList: ["localhost"]
+            }}
+          }};
+
+    chrome.proxy.settings.set({{value: config, scope: "regular"}}, function() {{}});
+
+    function callbackFn(details) {{
+        return {{
+            authCredentials: {{
+                username: "{user}",
+                password: "{password}"
+            }}
+        }};
+    }}
+
+    chrome.webRequest.onAuthRequired.addListener(
+                callbackFn,
+                {{urls: ["<all_urls>"]}},
+                ['blocking']
+    );
+    """
+
+    with zipfile.ZipFile(plugin_path, 'w') as zp:
+        zp.writestr("manifest.json", manifest_json)
+        zp.writestr("background.js", background_js)
+
+    return plugin_path
 
 def scrape_ebay(brand, product, oem_number=None, asin_number=None):
-    options = Options()
-    options.add_argument("--headless") # ✅ Run in headless mode
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15")
+    # 1. Create Proxy Extension
+    proxy_plugin = create_proxy_auth_extension(PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
 
-    # Start ChromeDriver with these options
-    driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
+    # 2. Configure Chrome Options (VPS Optimized)
+    options = uc.ChromeOptions()
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")            # <--- MANDATORY FOR ROOT USER
+    options.add_argument("--disable-dev-shm-usage") # <--- MANDATORY FOR VPS MEMORY
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    
+    # Load Proxy
+    options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
+
+    # Random User Agent
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
+    ]
+    options.add_argument(f"--user-agent={random.choice(user_agents)}")
+
+    driver = None
 
     try:
+        driver = uc.Chrome(options=options)
         polite_delay()
-        # 🧩 Build dynamic search query
+
+        # Build dynamic search query
         if asin_number:
-            # Some sellers may list ASINs directly in the title
             keywords = [brand, product, asin_number]
         else:
             keywords = [brand, product, oem_number] if oem_number else [brand, product]
@@ -57,7 +136,7 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
             else:
                 name = "N/A"
             
-            # Remove unwanted text fragments and marketing tags
+            # Remove unwanted text fragments
             junk_words = [
                 r"shop on ebay",
                 r"open in new tab",
@@ -87,7 +166,11 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
             price_nums = re.findall(r'[\d,]+(?:\.\d+)?', price_text_raw)
             if not price_nums:
                 continue
-            price_value = int(float(price_nums[0].replace(",", ""))) if price_nums else "NA"
+            
+            try:
+                price_value = float(price_nums[0].replace(",", ""))
+            except:
+                price_value = 0
 
             currency_match = re.search(r'([$€£₹])|([A-Z]{3})', price_text_raw)
             currency = currency_match.group(0) if currency_match else "NA" 
@@ -114,7 +197,7 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
             return {"error": "No data scraped — page may have loaded incorrectly or no items matched."}
 
         try:
-            save_to_excel("Flipkart", scraped_data)
+            save_to_excel("eBay", scraped_data)
         except Exception:
             pass
 
@@ -124,4 +207,16 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
         return {"error": str(e)}
 
     finally:
-        driver.quit()
+        # --- SAFE QUIT LOGIC ---
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
+        
+        # Cleanup proxy file
+        if os.path.exists(proxy_plugin):
+            try:
+                os.remove(proxy_plugin)
+            except:
+                pass
