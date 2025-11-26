@@ -115,7 +115,7 @@ def scrape_snapdeal(brand, product, oem_number=None, asin_number=None):
         driver.get(url)
 
         # Wait for dynamic content
-        time.sleep(random.uniform(5, 10))
+        time.sleep(random.uniform(2, 5))
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         product_cards = soup.select(".product-tuple-listing")
