@@ -3,6 +3,9 @@ from bs4 import BeautifulSoup
 import time, re, os, zipfile
 from datetime import datetime
 import random
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIGURATION (FILL THESE IN) ---
 PROXY_HOST = "gate.decodo.com"  # Check your dashboard (e.g., gate.smartproxy.com or similar)
@@ -140,16 +143,18 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         driver.get(url)
 
         # GIVE JS TIME TO LOAD
-        time.sleep(5)
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "li[class*='product_cat-']"))
+        )
 
         # Scroll logic
-        for _ in range(3): # Reduced to 3 for speed, increase if needed
+        for _ in range(5):
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
             time.sleep(1.5)
 
         # Parse
         soup = BeautifulSoup(driver.page_source, "html.parser")
-        product_cards = soup.select("li.product-col")
+        product_cards = soup.find_all("li", class_=lambda c: c and c.startswith("product_cat-"))
 
         scraped_data = []
 
