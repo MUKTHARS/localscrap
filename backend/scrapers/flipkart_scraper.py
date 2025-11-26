@@ -126,9 +126,9 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
     except Exception as e:
         return {"error": str(e)}
 
-    finally:
-        if driver:  # <--- Only quit if driver actually exists
-            try:
-                driver.quit()
-            except:
-                pass
+    #finally:
+        #if driver:  # <--- Only quit if driver actually exists
+            #try:
+                #driver.quit()
+            #except:
+                #pass
