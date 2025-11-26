@@ -8,20 +8,20 @@ from datetime import datetime
 
 def scrape_ebay(brand, product, oem_number=None, asin_number=None):
     options = Options()
-    options.add_argument("--headless=new") # ✅ Run in headless mode
+    options.add_argument("--headless") # ✅ Run in headless mode
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    options.add_argument("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15")
 
-    driver = None
+    # Start ChromeDriver with these options
+    driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=options)
 
     try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        
         polite_delay()
         # 🧩 Build dynamic search query
         if asin_number:
@@ -123,6 +123,5 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
     except Exception as e:
         return {"error": str(e)}
 
-    # finally:
-    #     driver.quit()
-
+    finally:
+        driver.quit()
