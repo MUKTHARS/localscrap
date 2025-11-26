@@ -84,6 +84,10 @@ def scrape_amazon(brand, product):
                 options.add_argument("--window-size=1920,1080")
                 options.add_argument("--disable-blink-features=AutomationControlled")
                 options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
+                options.add_argument(f"--user-agent={ua}")
+                options.add_argument("--disable-extensions")
+                options.add_argument("--disable-background-networking")
+                options.add_argument("--log-level=3")
 
                 driver = uc.Chrome(options=options)
                 driver.set_page_load_timeout(45)
@@ -95,28 +99,28 @@ def scrape_amazon(brand, product):
 
                 driver.get(search_url)
 
-                try:
-                    WebDriverWait(driver, 18).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-component-type='s-search-result']"))
-                    )
-                except Exception:
-                    try:
-                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight/4);")
-                    except Exception:
-                        pass
-                    time.sleep(random.uniform(4.5, 8.5))
+                # try:
+                #     WebDriverWait(driver, 18).until(
+                #         EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-component-type='s-search-result']"))
+                #     )
+                # except Exception:
+                #     try:
+                #         driver.execute_script("window.scrollTo(0, document.body.scrollHeight/4);")
+                #     except Exception:
+                #         pass
+                #     time.sleep(random.uniform(4.5, 8.5))
 
                 html = driver.page_source
 
                 #Captcha or block detection
-                if (
-                    "Enter the characters you see below" in html
-                    or "automated access" in html
-                    or "To discuss automated access to Amazon" in html
-                ):
-                    driver.quit()
-                    time.sleep(random.uniform(6, 14) * attempt)
-                    continue
+                # if (
+                #     "Enter the characters you see below" in html
+                #     or "automated access" in html
+                #     or "To discuss automated access to Amazon" in html
+                # ):
+                #     driver.quit()
+                #     time.sleep(random.uniform(6, 14) * attempt)
+                #     continue
 
                 soup = BeautifulSoup(html, "html.parser")
                 product_cards = soup.select("div[data-component-type='s-search-result']")
