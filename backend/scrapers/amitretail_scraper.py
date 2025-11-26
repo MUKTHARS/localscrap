@@ -3,17 +3,18 @@ from bs4 import BeautifulSoup
 import time, re, os, zipfile
 from datetime import datetime
 import random
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIGURATION (FILL THESE IN) ---
-PROXY_HOST = "gate.decodo.com"
-PROXY_PORT = "10001"
-PROXY_USER = "sp7oukpich"
-PROXY_PASS = "oHz7RSjbv1W7cafe+7"
+PROXY_HOST = "gate.decodo.com"  # Check your dashboard (e.g., gate.smartproxy.com or similar)
+PROXY_PORT = "10001"             # Check your dashboard
+PROXY_USER = "sp7oukpich"    # Your Decodo Sub-user
+PROXY_PASS = "oHz7RSjbv1W7cafe+7"    # Your Decodo Password
 
 def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
+    """
+    Creates a Chrome extension (zip file) to handle proxy authentication.
+    This is required for undetected_chromedriver to use authenticated proxies.
+    """
     if plugin_path is None:
         plugin_path = os.path.join(os.getcwd(), 'proxy_auth_plugin.zip')
 
@@ -63,9 +64,9 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
     }}
 
     chrome.webRequest.onAuthRequired.addListener(
-        callbackFn,
-        {{urls: ["<all_urls>"]}},
-        ['blocking']
+                callbackFn,
+                {{urls: ["<all_urls>"]}},
+                ['blocking']
     );
     """
 
@@ -75,20 +76,15 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
 
     return plugin_path
 
-
+# MOCK UTILS for standalone running (Replace with your actual imports)
 def polite_delay():
     time.sleep(random.uniform(2, 5))
 
 def save_to_excel(filename, data):
     print(f"Saving {len(data)} items to {filename}.xlsx (Mock Function)")
 
-
-# =====================================================================
-#                    MAIN SCRAPER (REWRITTEN)
-# =====================================================================
-
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
-
+    # 1. Create the Proxy Extension
     proxy_plugin = create_proxy_auth_extension(
         host=PROXY_HOST,
         port=PROXY_PORT,
@@ -96,14 +92,18 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         password=PROXY_PASS
     )
 
+    # 2. Configure Chrome Options
     options = uc.ChromeOptions()
-    options.add_argument("--headless=new")
+    options.add_argument("--headless=new") # Using 'new' headless mode is more undetectable
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1920,1080")
+    
+    # 3. Load the Proxy Extension
     options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
 
+    # Random User Agent
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -114,84 +114,55 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     driver = None
 
     try:
+        # Initialize Driver
         driver = uc.Chrome(options=options)
+
         polite_delay()
 
-        # Build query
+        # Build search query
         if asin_number:
             keywords = [brand, product, asin_number]
         else:
             keywords = [brand, product, oem_number] if oem_number else [brand, product]
 
         query = "+".join([k for k in keywords if k])
-        url = f"https://www.amitretail.com/shop?search={query}"
+        url = f"https://www.amitretail.com/?s={query}&post_type=product"
+        
         print(f"Scraping URL: {url}")
-
         driver.get(url)
 
-        # WAIT FOR JS
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "ul.products"))
-        )
+        # GIVE JS TIME TO LOAD
+        time.sleep(5)
 
-        # SCROLL
-        for _ in range(5):
+        # Scroll logic
+        for _ in range(3): # Reduced to 3 for speed, increase if needed
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
             time.sleep(1.5)
 
-        # PARSE
+        # Parse
         soup = BeautifulSoup(driver.page_source, "html.parser")
+        product_cards = soup.select("li.product-col")
 
-        # -------------------------------------------------------------------------------------
-        # FIX 1: Detect "no results" message → avoid fallback Garmin watches
-        # -------------------------------------------------------------------------------------
-        no_results_text = soup.find(text=re.compile("No products were found", re.I))
-        if no_results_text:
-            print("Detected zero results → returning empty set, avoiding fallback Garmin items")
-            return {"data": []}
-
-        # -------------------------------------------------------------------------------------
-        # FIX 2: Select only REAL category products
-        # -------------------------------------------------------------------------------------
-        product_cards = soup.find_all("li", class_=lambda c: c and c.startswith("product_cat-"))
-
-        filtered_cards = []
-        brand_l = brand.lower().strip()
-        product_l = product.lower().strip()
-
-        # -------------------------------------------------------------------------------------
-        # FIX 3: Filter out Fallback Garmin products (they don't contain query keywords)
-        # -------------------------------------------------------------------------------------
-        for card in product_cards:
-            name_tag = card.select_one("h3.woocommerce-loop-product__title")
-            name = name_tag.get_text(strip=True).lower() if name_tag else ""
-
-            if brand_l in name or product_l in name:
-                filtered_cards.append(card)
-
-        if not filtered_cards:
-            print("No matching products after filtering fallback Garmin items.")
-            return {"data": []}
-
-        # -------------------------------------------------------------------------------------
-        # SCRAPE THE FILTERED CARDS
-        # -------------------------------------------------------------------------------------
         scraped_data = []
 
-        for card in filtered_cards:
-
+        for card in product_cards:
+            # URL
             url_tag = card.select_one("a.product-loop-title")
             product_url = url_tag["href"] if url_tag else "N/A"
 
+            # Name
             name_tag = card.select_one("h3.woocommerce-loop-product__title")
             name = name_tag.get_text(strip=True) if name_tag else "N/A"
 
+            # Price
             price_tag = card.select_one("span.price")
             raw_price = price_tag.get_text(strip=True) if price_tag else "0"
 
             price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
+            # Remove commas before converting to float
             price_value = float(price_nums[0].replace(",", "")) if price_nums else 0
 
+            # Currency
             currency_tag = card.select_one("span.custom_currency")
             currency = currency_tag["alt"] if currency_tag and currency_tag.has_attr("alt") else "NA"
 
@@ -209,7 +180,16 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
                 "SOURCE URL": product_url,
             })
 
-        save_to_excel("AmitRetail", scraped_data)
+        if not scraped_data:
+            print("No products found.")
+            return {"error": "No products found. JS may not have loaded fully."}
+
+        # Save to Excel
+        try:
+            save_to_excel("AmitRetail", scraped_data)
+        except Exception as e:
+            print(f"Error saving excel: {e}")
+
         return {"data": scraped_data}
 
     except Exception as e:
@@ -223,12 +203,12 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
                 driver.quit()
             except:
                 pass
+        # Clean up the extension file
         if os.path.exists('proxy_auth_plugin.zip'):
             try:
                 os.remove('proxy_auth_plugin.zip')
             except:
                 pass
-
 
 # import undetected_chromedriver as uc
 # from bs4 import BeautifulSoup
