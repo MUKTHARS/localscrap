@@ -177,8 +177,8 @@ def scrape_products():
                             else:
                                 data = scraper(brand, product, oem, asin)
 
-                            if data is None: continue 
-                            if not isinstance(data, dict): continue
+                            # if data is None: continue 
+                            # if not isinstance(data, dict): continue
 
                             if isinstance(data, dict) and "error" in data:
                                 error = data["error"]
