@@ -9,7 +9,7 @@ from datetime import datetime
 
 def scrape_snapdeal(brand, product, oem_number=None, asin_number=None):
     options = Options()
-    options.add_argument("--headless=new") # ✅ Run in headless mode
+    options.add_argument("--headless") # ✅ Run in headless mode
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
@@ -20,8 +20,7 @@ def scrape_snapdeal(brand, product, oem_number=None, asin_number=None):
     driver = None
 
     try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Chrome(service="/usr/local/bin/chromedriver", options=options)
         
         polite_delay()
 
