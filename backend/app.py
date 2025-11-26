@@ -5,7 +5,7 @@ from db_models import db, User, SearchHistory, create_tables
 from auth_config import Config
 from auth_routes import auth_bp, init_oauth
 import pandas as pd
-import time, random, os, tempfile
+import time, random, os, tempfile, gc
 from datetime import datetime, timezone
 import logging
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -167,6 +167,7 @@ def scrape_products():
                         scraper = SCRAPERS[site_name]
 
                         try:
+                            gc.collect()
                             if site_name == "amazon":
                                 os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
                                 time.sleep(0.2)
@@ -176,6 +177,9 @@ def scrape_products():
                             else:
                                 data = scraper(brand, product, oem, asin)
 
+                            if data is None: continue 
+                            if not isinstance(data, dict): continue
+
                             if isinstance(data, dict) and "error" in data:
                                 error = data["error"]
                             else:
@@ -184,7 +188,7 @@ def scrape_products():
                                     results.append(d)
 
                             if site_name == "amazon":
-                                time.sleep(random.uniform(10, 25))
+                                time.sleep(random.uniform(2, 5))
 
                         except Exception as scrape_error:
                             logger.exception(f"Error scraping {site_name}: {scrape_error}")
@@ -234,6 +238,7 @@ def scrape_products():
                 scraper = SCRAPERS[site]
 
                 try:
+                    gc.collect()
                     if site == "amazon":
                         os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
                         data = scraper(brand, product)
@@ -241,6 +246,9 @@ def scrape_products():
                             del os.environ["SELECTED_AMAZON_DOMAIN"]
                     else:
                         data = scraper(brand, product, oem, asin)
+
+                    if data is None: continue
+                    if not isinstance(data, dict): continue
 
                     if isinstance(data, dict) and "error" in data:
                         error = data["error"]
