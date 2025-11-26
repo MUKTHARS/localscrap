@@ -108,7 +108,7 @@ def scrape_amazon(brand, product):
 
                 html = driver.page_source
 
-                Captcha or block detection
+                #Captcha or block detection
                 if (
                     "Enter the characters you see below" in html
                     or "automated access" in html
