@@ -108,15 +108,15 @@ def scrape_amazon(brand, product):
 
                 html = driver.page_source
 
-                # Captcha or block detection
-                # if (
-                #     "Enter the characters you see below" in html
-                #     or "automated access" in html
-                #     or "To discuss automated access to Amazon" in html
-                # ):
-                #     driver.quit()
-                #     time.sleep(random.uniform(6, 14) * attempt)
-                #     continue
+                Captcha or block detection
+                if (
+                    "Enter the characters you see below" in html
+                    or "automated access" in html
+                    or "To discuss automated access to Amazon" in html
+                ):
+                    driver.quit()
+                    time.sleep(random.uniform(6, 14) * attempt)
+                    continue
 
                 soup = BeautifulSoup(html, "html.parser")
                 product_cards = soup.select("div[data-component-type='s-search-result']")
