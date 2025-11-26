@@ -257,7 +257,7 @@ def scrape_products():
                             d["WEBSITE"] = site.capitalize()
                             results.append(d)
                             
-                    if site_name == "amazon":
+                    if site == "amazon":
                                 time.sleep(random.uniform(10, 25))
 
                 except Exception as scrape_error:
