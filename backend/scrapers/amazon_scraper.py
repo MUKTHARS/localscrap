@@ -4,6 +4,9 @@ from bs4 import BeautifulSoup
 import time, random, re, zipfile, string
 from datetime import datetime
 from scrapers.utils import polite_delay, save_to_excel
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"
