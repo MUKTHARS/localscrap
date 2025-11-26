@@ -123,6 +123,6 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
     except Exception as e:
         return {"error": str(e)}
 
-    finally:
-        driver.quit()
+    # finally:
+    #     driver.quit()
 
