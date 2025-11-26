@@ -5,7 +5,7 @@ from db_models import db, User, SearchHistory, create_tables
 from auth_config import Config
 from auth_routes import auth_bp, init_oauth
 import pandas as pd
-import time, random, os, tempfile, gc
+import time, random, os, tempfile
 from datetime import datetime, timezone
 import logging
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -167,7 +167,6 @@ def scrape_products():
                         scraper = SCRAPERS[site_name]
 
                         try:
-                            gc.collect()
                             if site_name == "amazon":
                                 os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
                                 time.sleep(0.2)
@@ -238,7 +237,6 @@ def scrape_products():
                 scraper = SCRAPERS[site]
 
                 try:
-                    gc.collect()
                     if site == "amazon":
                         os.environ["SELECTED_AMAZON_DOMAIN"] = amazon_domain
                         data = scraper(brand, product)
