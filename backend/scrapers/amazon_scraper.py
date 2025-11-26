@@ -28,6 +28,25 @@ AMAZON_DOMAINS = [
     "amazon.se", "amazon.pl", "amazon.co.jp", "amazon.cn"
 ]
 
+def _stealth_hook(driver, user_agent):
+    try:
+        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});")
+        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});")
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
+        driver.execute_script("window.chrome = { runtime: {}, loadTimes: function(){return {}} };")
+        driver.execute_script("""
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.__query = originalQuery;
+            window.navigator.permissions.query = (parameters) => (
+              parameters.name === 'notifications' ?
+                Promise.resolve({ state: Notification.permission }) :
+                originalQuery(parameters)
+            );
+        """)
+        driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
+    except Exception:
+        pass
+
 def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
     if plugin_path is None:
         random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
@@ -92,6 +111,8 @@ def scrape_amazon(brand, product):
                 driver = uc.Chrome(options=options)
                 driver.set_page_load_timeout(45)
 
+                _stealth_hook()
+
                 polite_delay()
 
                 query = "+".join([k for k in [brand, product] if k])
@@ -100,7 +121,7 @@ def scrape_amazon(brand, product):
                 driver.get(search_url)
 
                 try:
-                    WebDriverWait(driver, 18).until(
+                    WebDriverWait(driver, 5).until(
                         EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-component-type='s-search-result']"))
                     )
                 except Exception:
@@ -108,7 +129,7 @@ def scrape_amazon(brand, product):
                         driver.execute_script("window.scrollTo(0, document.body.scrollHeight/4);")
                     except Exception:
                         pass
-                    time.sleep(random.uniform(4.5, 8.5))
+                    time.sleep(random.uniform(2.5, 3.5))
 
                 html = driver.page_source
 
