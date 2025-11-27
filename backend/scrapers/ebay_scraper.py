@@ -194,7 +194,7 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
             })
 
         if not scraped_data:
-            return {"error": "No data scraped — page may have loaded incorrectly or no items matched."}
+            return {"error": "No products found. Please search for other available products"}
 
         try:
             save_to_excel("eBay", scraped_data)
