@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import time, re, os, zipfile, random, string
 from datetime import datetime
 from scrapers.utils import polite_delay, save_to_excel
+import gc
 
 # --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"  # Check your dashboard
