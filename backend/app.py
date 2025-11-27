@@ -187,8 +187,8 @@ def scrape_products():
                                     d["WEBSITE"] = site_name.capitalize()
                                     results.append(d)
 
-                            if site_name == "amazon":
-                                time.sleep(random.uniform(10, 25))
+                            # if site_name == "amazon":
+                            #     time.sleep(random.uniform(10, 25))
 
                         except Exception as scrape_error:
                             logger.exception(f"Error scraping {site_name}: {scrape_error}")
