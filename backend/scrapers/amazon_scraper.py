@@ -7,6 +7,7 @@ from scrapers.utils import polite_delay, save_to_excel
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import gc
 
 # --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"
