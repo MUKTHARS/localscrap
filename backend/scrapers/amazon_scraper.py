@@ -237,7 +237,6 @@ def scrape_amazon(brand, product):
                 if os.path.exists(proxy_plugin):
                     try: os.remove(proxy_plugin)
                     except: pass
-                gc.collect()
 
 # import os
 # import undetected_chromedriver as uc
