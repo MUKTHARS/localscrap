@@ -182,7 +182,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
 
         if not scraped_data:
             print("No products found.")
-            return {"error": "No products found. JS may not have loaded fully."}
+            return {"error": "No products found. Please search for other available products"}
 
         # Save to Excel
         try:
