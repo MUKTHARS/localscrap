@@ -174,7 +174,7 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
             })
 
         if not scraped_data:
-            return {"error": "No products found. Please search for other available products."}
+            return {"error": "No products found. Please search for other available products"}
 
         # Save to Excel
         try:
