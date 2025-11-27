@@ -86,7 +86,14 @@ def scrape_amazon(brand, product):
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "").strip() or None
     domains_to_try = [selected_domain] if selected_domain else AMAZON_DOMAINS
 
-    proxy_plugin = create_proxy_auth_extension(PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
+    session_id = random.randint(100000, 999999)
+    session_user = f"{PROXY_USER}-session-{session_id}"
+    proxy_plugin = create_proxy_auth_extension(
+        host=PROXY_HOST,
+        port=PROXY_PORT,
+        user=session_user,
+        password=PROXY_PASS
+    )
 
     for domain in domains_to_try:
         for attempt in range(1, max_retries + 1):
