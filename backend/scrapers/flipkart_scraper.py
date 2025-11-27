@@ -228,3 +228,5 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                 os.remove(proxy_plugin)
             except:
                 pass
+        gc.collect()
+
