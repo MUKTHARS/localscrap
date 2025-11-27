@@ -177,7 +177,7 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
             })
 
         if not scraped_data:
-            return {"error": "Selectors matched 0 products — but this set SHOULD work."}
+            return {"error": "No products found. Please search for other available products"}
 
         try:
             save_to_excel("Noon", scraped_data)
