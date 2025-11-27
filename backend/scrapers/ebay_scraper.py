@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import time, re, os, zipfile, random, string
 from datetime import datetime
 from scrapers.utils import polite_delay, save_to_excel
+import gc
 
 # --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"  # Check your dashboard
@@ -226,3 +227,5 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
                 os.remove(proxy_plugin)
             except:
                 pass
+        gc.collect()
+
