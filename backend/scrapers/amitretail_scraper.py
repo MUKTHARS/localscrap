@@ -85,10 +85,12 @@ def save_to_excel(filename, data):
 
 def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
     # 1. Create the Proxy Extension
+    session_id = random.randint(100000, 999999)
+    session_user = f"{PROXY_USER}-session-{session_id}"
     proxy_plugin = create_proxy_auth_extension(
         host=PROXY_HOST,
         port=PROXY_PORT,
-        user=PROXY_USER,
+        user=session_user,
         password=PROXY_PASS
     )
 
