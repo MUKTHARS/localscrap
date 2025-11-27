@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import time, re, os, zipfile
 from datetime import datetime
 import random
-
+import gc
 # --- CONFIGURATION (FILL THESE IN) ---
 PROXY_HOST = "gate.decodo.com"  # Check your dashboard (e.g., gate.smartproxy.com or similar)
 PROXY_PORT = "10001"             # Check your dashboard
@@ -211,6 +211,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
                 os.remove('proxy_auth_plugin.zip')
             except:
                 pass
+        gc.collect()
 
 # import undetected_chromedriver as uc
 # from bs4 import BeautifulSoup
