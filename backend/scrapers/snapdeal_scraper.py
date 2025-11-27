@@ -186,7 +186,7 @@ def scrape_snapdeal(brand, product, oem_number=None, asin_number=None):
 
         # ---- Validation ----
         if not scraped_data:
-            return {"error": "No data scraped — page may have loaded incorrectly or no items matched."}
+            return {"error": "No products found. Please search for other available products"}
 
         # ---- Save and Return ----
         try:
