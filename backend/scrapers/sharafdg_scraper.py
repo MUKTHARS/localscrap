@@ -79,8 +79,14 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
 
 def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
     # 1. Create Proxy Extension
-    proxy_plugin = create_proxy_auth_extension(PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
-
+    session_id = random.randint(100000, 999999)
+    session_user = f"{PROXY_USER}-session-{session_id}"
+    proxy_plugin = create_proxy_auth_extension(
+        host=PROXY_HOST,
+        port=PROXY_PORT,
+        user=session_user,
+        password=PROXY_PASS
+    )
     options = uc.ChromeOptions()
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
