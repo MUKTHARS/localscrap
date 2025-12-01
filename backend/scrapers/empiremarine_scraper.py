@@ -1,4 +1,4 @@
-mport undetected_chromedriver as uc
+import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 import time, re, os, zipfile, random, string
 from datetime import datetime
