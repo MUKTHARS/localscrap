@@ -119,6 +119,8 @@ def scrape_climaxmarine(brand, product, oem_number=None, asin_number=None):
             price_tag = card.select_one("span.price bdi")
             raw_price = price_tag.get_text(strip=True) if price_tag else "NA"
 
+            clean_price = raw_price.replace(",", "")
+
             nums = re.findall(r"\d+(?:\.\d+)?", raw_price)
             price = float(nums[0]) if nums else 0.0
 
