@@ -12,7 +12,6 @@ PROXY_PORT = "10001"
 PROXY_USER = "sp7oukpich"
 PROXY_PASS = "oHz7RSjbv1W7cafe+7"
 
-
 def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
 
     if plugin_path is None:
@@ -52,6 +51,41 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
 
 
 def scrape_empiremarine(brand, product, oem_number=None, asin_number=None):
+
+    # Create proxy session for request
+    session_id = random.randint(100000, 999999)
+    session_user = f"{PROXY_USER}-session-{session_id}"
+    proxy_plugin = create_proxy_auth_extension(
+        host=PROXY_HOST,
+        port=PROXY_PORT,
+        user=session_user,
+        password=PROXY_PASS
+    )
+
+    # Chrome Options
+    options = uc.ChromeOptions()
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
+
+    # Random User Agent
+    UA = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+    ]
+    options.add_argument(f"--user-agent={random.choice(UA)}")
+
+    driver = None
+
+    try:
+        driver = uc.Chrome(options=options)
+        polite_delay()
+
+        # Build correct search URL
         query = product.replace(" ", "+")
         url = f"https://empire-marine.com/?s={query}&post_type=product&dgwt_wcas=1"
         print("Scraping:", url)
