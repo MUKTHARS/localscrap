@@ -120,7 +120,7 @@ def scrape_empiremarine(brand, product, oem_number=None, asin_number=None):
 
             # Extract numeric
             price_nums = re.findall(r"\d+(?:\.\d+)?", raw_price)
-            price = float(price_nums[0]) if price_nums else 0.0
+            price = float(price_nums[0]) if price_nums else "NA"
 
             scraped_data.append({
                 "BRAND": brand,
