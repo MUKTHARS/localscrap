@@ -190,7 +190,7 @@ const handleBulkUpload = async () => {
               <div className="stat-label">Websites</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">1M+</div>
+              <div className="stat-number">100+</div>
               <div className="stat-label">Products</div>
             </div>
             <div className="stat-item">
@@ -311,6 +311,10 @@ const handleBulkUpload = async () => {
                       <option value="amitretail">Amit Retail</option>
                       <option value="noon">Noon</option>
                       <option value="sharafdg">Sharaf DG</option>
+                      <option value="ntsuae">NTS UAE</option>
+                      <option value="seazoneuae">Seazone UAE</option>
+                      <option value="empiremarine">Empire Marine</option>
+                      <option value="sharafd">Climax Marine</option>
                     </select>
                   </div>
                 </div>
