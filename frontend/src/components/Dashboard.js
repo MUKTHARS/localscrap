@@ -314,7 +314,7 @@ const handleBulkUpload = async () => {
                       <option value="ntsuae">NTS UAE</option>
                       <option value="seazoneuae">Seazone UAE</option>
                       <option value="empiremarine">Empire Marine</option>
-                      <option value="sharafd">Climax Marine</option>
+                      <option value="climaxmarine">Climax Marine</option>
                     </select>
                   </div>
                 </div>
