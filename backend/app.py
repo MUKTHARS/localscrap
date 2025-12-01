@@ -18,6 +18,10 @@ from scrapers.snapdeal_scraper import scrape_snapdeal
 from scrapers.amitretail_scraper import scrape_amitretail
 from scrapers.noon_scraper import scrape_noon
 from scrapers.sharafdg_scraper import scrape_sharafdg
+from scrapers.ntsuae_scraper import scrape_ntsuae
+from scrapers.seazoneuae_scraper import scrape_seazoneuae
+from scrapers.empiremarine_scraper import scrape_empiremarine
+from scrapers.climaxmarine_scraper import scrape_climaxmarine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -81,7 +85,11 @@ SCRAPERS = {
     "snapdeal": scrape_snapdeal,
     "amitretail": scrape_amitretail,
     "noon": scrape_noon,
-    "sharafdg": scrape_sharafdg
+    "sharafdg": scrape_sharafdg,
+    "ntsuae": scrape_ntsuae,
+    "seazoneuae": scrape_seazoneuae,
+    "empiremarine": scrape_empiremarine,
+    "climaxmarine": scrape_climaxmarine
 }
 
 
