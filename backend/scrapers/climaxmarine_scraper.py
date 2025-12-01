@@ -120,7 +120,7 @@ def scrape_climaxmarine(brand, product, oem_number=None, asin_number=None):
             raw_price = price_tag.get_text(strip=True) if price_tag else "NA"
 
             nums = re.findall(r"[\d,]+(?:\.\d+)?", raw_price)
-            price = float(nums[0].replace(",", "")) if nums else 0
+            price = float(nums[0].replace(",", "")) if nums else "NA"
 
             scraped_data.append({
                 "BRAND": brand,
