@@ -95,10 +95,10 @@ def scrape_seazoneuae(brand, product, oem_number=None, asin_number=None):
 
         driver.get(url)
 
-        # Auto-scroll to load everything
-        for _ in range(4):
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-            time.sleep(1)
+        # # Auto-scroll to load everything
+        # for _ in range(4):
+        #     driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+        #     time.sleep(1)
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
