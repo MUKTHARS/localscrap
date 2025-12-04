@@ -123,7 +123,7 @@ def scrape_seazoneuae(brand, product, oem_number=None, asin_number=None):
             raw_price = price_tag.get_text(strip=True) if price_tag else "0"
 
             price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
-            price = float(price_nums[0].replace(",", "")) if price_nums else 0
+            price = float(price_nums[0].replace(",", "")) if price_nums else None
 
             scraped_data.append({
                 "BRAND": brand,
