@@ -135,12 +135,20 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         for card in product_cards:
             # Product URL
             url_tag = (
-                card.select_one("a.k7wcnx")
+                card.select_one("a.k7wcnx") or
+                card.select_one("a.CIaYa1") or
+                card.select_one("a.GnxRXv") or
+                card.select_one("a.k7wcnx") or
+                card.select_one("a")
             )
             product_url = "https://www.flipkart.com" + url_tag['href'] if url_tag and url_tag.has_attr("href") else "N/A"
 
             # Product Name
             name_tag = (
+                card.select_one("div.RG5Slk") or
+                card.select_one("a.atJtCj") or
+                card.select_one("a.pIpigb") or
+                card.select_one("div.TbCaMn") or
                 card.select_one("div.RG5Slk")
             )
             name = name_tag.get_text(strip=True) if name_tag else "N/A"
