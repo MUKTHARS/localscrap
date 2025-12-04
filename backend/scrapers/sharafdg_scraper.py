@@ -110,7 +110,7 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
 
     try:
         driver = uc.Chrome(options=options)
-        polite_delay()
+        # polite_delay()
 
         # Build search query
         if asin_number:
