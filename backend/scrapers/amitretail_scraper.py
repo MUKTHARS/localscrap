@@ -119,7 +119,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         # Initialize Driver
         driver = uc.Chrome(options=options)
 
-        polite_delay()
+        # polite_delay()
 
         # Build search query
         if asin_number:
