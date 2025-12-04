@@ -94,7 +94,6 @@ def scrape_seazoneuae(brand, product, oem_number=None, asin_number=None):
         print("Scraping:", url)
 
         driver.get(url)
-        time.sleep(4)
 
         # Auto-scroll to load everything
         for _ in range(4):
