@@ -108,7 +108,7 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
 
     try:
         driver = uc.Chrome(options=options)
-        polite_delay()
+        # polite_delay()
 
         # Build dynamic search query
         if asin_number:
@@ -121,7 +121,7 @@ def scrape_ebay(brand, product, oem_number=None, asin_number=None):
 
         driver.get(url)
 
-        time.sleep(random.uniform(3, 6))
+        # time.sleep(random.uniform(3, 6))
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         product_cards = soup.select("li.s-card")
