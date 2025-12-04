@@ -121,7 +121,7 @@ def scrape_ntsuae(brand, product, oem_number=None, asin_number=None):
             price_tag = card.select_one(".pr-details h4")
             raw_price = price_tag.get_text(strip=True) if price_tag else "0"
             nums = re.findall(r"[\d,]+(?:\.\d+)?", raw_price)
-            price = float(nums[0].replace(",", "")) if nums else 0
+            price = float(nums[0].replace(",", "")) if nums else None
 
             scraped_data.append({
                 "BRAND": brand,
