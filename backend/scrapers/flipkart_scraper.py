@@ -4,6 +4,9 @@ import time, re, os, zipfile, random, string
 from datetime import datetime
 from scrapers.utils import polite_delay, save_to_excel
 import gc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"  # Check your dashboard
@@ -124,8 +127,12 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         
         driver.get(url)
 
-        # Wait for dynamic content
-        time.sleep(random.uniform(3, 6))
+       try:
+        WebDriverWait(driver, 12).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id]"))
+        )
+        except:
+            print("⚠️ Warning: Product list did not load within timeout")
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         product_cards = soup.select("div[data-id]")
@@ -138,7 +145,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                 card.select_one("a.k7wcnx") or
                 card.select_one("a.CIaYa1") or
                 card.select_one("a.GnxRXv") or
-                card.select_one("a.k7wcnx") or
                 card.select_one("a")
             )
             product_url = "https://www.flipkart.com" + url_tag['href'] if url_tag and url_tag.has_attr("href") else "N/A"
@@ -148,8 +154,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                 card.select_one("div.RG5Slk") or
                 card.select_one("a.atJtCj") or
                 card.select_one("a.pIpigb") or
-                card.select_one("div.TbCaMn") or
-                card.select_one("div.RG5Slk")
+                card.select_one("div.TbCaMn")
             )
             name = name_tag.get_text(strip=True) if name_tag else "N/A"
 
