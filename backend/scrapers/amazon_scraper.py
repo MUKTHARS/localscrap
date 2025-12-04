@@ -117,7 +117,7 @@ def scrape_amazon(brand, product):
                 options.add_argument("--log-level=3")
 
                 driver = uc.Chrome(options=options)
-                # driver.set_page_load_timeout(45)
+                driver.set_page_load_timeout(45)
 
                 _stealth_hook(driver, ua)
 
