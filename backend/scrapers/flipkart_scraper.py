@@ -126,13 +126,10 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         url = f"https://www.flipkart.com/search?q={query}"
         
         driver.get(url)
-
-       try:
+        
         WebDriverWait(driver, 12).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id]"))
         )
-        except:
-            print("⚠️ Warning: Product list did not load within timeout")
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         product_cards = soup.select("div[data-id]")
