@@ -125,13 +125,13 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
         driver.get(url)
 
         # GIVE ALGOLIA JS TIME TO LOAD RENDERED RESULTS
-        time.sleep(5)
+        # time.sleep(5)
 
         # Ensure further JS rendering is complete
-        for _ in range(5):
-            time.sleep(1)
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-            time.sleep(1)
+        # for _ in range(5):
+        #     time.sleep(1)
+        #     driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+        #     time.sleep(1)
 
         # Parse
         soup = BeautifulSoup(driver.page_source, "html.parser")
