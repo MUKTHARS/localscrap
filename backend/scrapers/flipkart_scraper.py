@@ -127,7 +127,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         
         driver.get(url)
         
-        WebDriverWait(driver, 12).until(
+        WebDriverWait(driver, 6).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id]"))
         )
 
