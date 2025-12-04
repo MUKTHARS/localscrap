@@ -1,5 +1,4 @@
-import undetected_chromedriver as uc
-from bs4 import BeautifulSoup
+from selenium import webdriver
 import time, re, os, zipfile, random, string
 from datetime import datetime
 from scrapers.utils import polite_delay, save_to_excel
@@ -90,30 +89,31 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
     )
 
     # 2. Configure Chrome Options
-    options = uc.ChromeOptions()
+    options = webdriver.ChromeOptions()
     options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")            # Mandatory for VPS Root
     options.add_argument("--disable-dev-shm-usage") # Mandatory for VPS Memory
-    options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-blink-features=AutomationControlled")
+
+     # Disable heavy content
+    prefs = {
+        "profile.managed_default_content_settings.images": 2,
+        "profile.managed_default_content_settings.stylesheets": 2,
+        "profile.managed_default_content_settings.fonts": 2,
+    }
+    options.add_experimental_option("prefs", prefs)
     
     # Load Proxy
     options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
 
-    # 3. Random User Agent (Fixed Logic)
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
-    ]
-    # We pick ONE agent randomly, instead of passing the whole list
-    options.add_argument(f"--user-agent={random.choice(user_agents)}")
+    # Lightweight anti-bot
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
 
     driver = None
 
     try:
-        driver = uc.Chrome(options=options)
+        driver = webdriver.Chrome(options=options)
         polite_delay()
 
         # Build dynamic query
@@ -131,8 +131,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
             EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id]"))
         )
 
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        product_cards = soup.select("div[data-id]")
+        product_cards = driver.find_elements(By.CSS_SELECTOR, "div[data-id]")
 
         scraped_data = []
 
