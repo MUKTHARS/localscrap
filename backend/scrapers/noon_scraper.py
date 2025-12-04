@@ -113,7 +113,7 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
     try:
         driver = uc.Chrome(options=options)
 
-        polite_delay()
+        # polite_delay()
 
         # Build search query
         if asin_number:
@@ -127,12 +127,12 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
         print(f"Scraping URL: {url}")
         driver.get(url)
 
-        time.sleep(5)
+        # time.sleep(5)
 
-        # Smooth scroll — required for Noon (Preserved from your code)
-        for _ in range(5):
-            driver.execute_script("window.scrollBy(0, 900);")
-            time.sleep(0.6)
+        # # Smooth scroll — required for Noon (Preserved from your code)
+        # for _ in range(5):
+        #     driver.execute_script("window.scrollBy(0, 900);")
+        #     time.sleep(0.6)
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
