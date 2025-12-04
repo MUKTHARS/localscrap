@@ -134,12 +134,12 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
         driver.get(url)
 
         # GIVE JS TIME TO LOAD
-        time.sleep(5)
+        # time.sleep(5)
 
-        # Scroll logic
-        for _ in range(5): # Reduced to 3 for speed, increase if needed
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-            time.sleep(1.5)
+        # # Scroll logic
+        # for _ in range(5): # Reduced to 3 for speed, increase if needed
+        #     driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+        #     time.sleep(1.5)
 
         # Parse
         soup = BeautifulSoup(driver.page_source, "html.parser")
