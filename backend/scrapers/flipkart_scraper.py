@@ -135,23 +135,13 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         for card in product_cards:
             # Product URL
             url_tag = (
-                card.select_one("a.wjcEIp") or
-                card.select_one("a.KzDlHZ") or
-                card.select_one("a.WKTcLC.BwBZTg") or
-                card.select_one("a.CGtC98") or
-                card.select_one("a.VJA4J3") or
-                card.select_one("a.WKTcLC")
+                card.select_one("a.k7wcnx")
             )
             product_url = "https://www.flipkart.com" + url_tag['href'] if url_tag and url_tag.has_attr("href") else "N/A"
 
             # Product Name
             name_tag = (
-                card.select_one("a.wjcEIp") or
-                card.select_one("div.KzDlHZ") or
-                card.select_one("a.WKTcLC.BwBZTg") or
-                card.select_one("a.VJA4J3") or
-                card.select_one("a.WKTcLC") or
-                card.select_one("div.kv0tEm")
+                card.select_one("div.RG5Slk")
             )
             name = name_tag.get_text(strip=True) if name_tag else "N/A"
 
@@ -160,10 +150,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
 
             # Price
             price_tag = (
-                card.select_one("div.Nx9bqj") or
-                card.select_one("div._30jeq3") or
-                card.select_one("div._1_WHN1") or
-                card.select_one("div._16Jk6d")
+                card.select_one("div.hZ3P6w")
             )
             raw_price = price_tag.text.strip() if price_tag else "0"
             price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
@@ -180,10 +167,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
 
             # Rating
             rating_tag = (
-                card.select_one("div.XQDdHH") or
-                card.select_one("div._3LWZlK") or
-                card.select_one("span.Y1HWO0") or
-                card.select_one("div._2_R_DZ")
+                card.select_one("div.MKiFS6")
             )
             rating = rating_tag.text.strip() if rating_tag else "N/A"
 
