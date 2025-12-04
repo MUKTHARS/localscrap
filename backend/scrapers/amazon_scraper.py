@@ -117,27 +117,27 @@ def scrape_amazon(brand, product):
                 options.add_argument("--log-level=3")
 
                 driver = uc.Chrome(options=options)
-                driver.set_page_load_timeout(45)
+                # driver.set_page_load_timeout(45)
 
                 _stealth_hook(driver, ua)
 
-                polite_delay()
+                # polite_delay()
 
                 query = "+".join([k for k in [brand, product] if k])
                 search_url = f"https://www.{domain}/s?k={query}"
 
                 driver.get(search_url)
 
-                try:
-                    WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-component-type='s-search-result']"))
-                    )
-                except Exception:
-                    try:
-                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight/4);")
-                    except Exception:
-                        pass
-                    time.sleep(random.uniform(2.5, 3.5))
+                # try:
+                #     WebDriverWait(driver, 5).until(
+                #         EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-component-type='s-search-result']"))
+                #     )
+                # except Exception:
+                #     try:
+                #         driver.execute_script("window.scrollTo(0, document.body.scrollHeight/4);")
+                #     except Exception:
+                #         pass
+                    # time.sleep(random.uniform(2.5, 3.5))
 
                 html = driver.page_source
 
