@@ -369,7 +369,7 @@ def get_user_tickets():
                 'urgency': ticket.urgency,
                 'status': ticket.status,
                 'attachment_paths': ticket.attachment_paths or [],
-                'created_at': ticket.created_at.isoformat() + 'Z',
+                'created_at': ticket.created_at.replace(tzinfo=timezone.utc).isoformat(),
                 'updated_at': ticket.updated_at.isoformat() + 'Z' if ticket.updated_at else None
             })
         
@@ -465,7 +465,7 @@ def get_ticket_details(ticket_id):
             'urgency': ticket.urgency,
             'status': ticket.status,
             'attachment_paths': ticket.attachment_paths or [],
-            'created_at': ticket.created_at.isoformat() + 'Z',
+            'created_at': ticket.created_at.replace(tzinfo=timezone.utc).isoformat(),
             'updated_at': ticket.updated_at.isoformat() + 'Z' if ticket.updated_at else None
         })
         
