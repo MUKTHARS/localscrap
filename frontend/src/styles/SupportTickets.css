@@ -1,0 +1,87 @@
+.support-tickets-container {
+    padding: 20px 0;
+}
+
+.ticket-card {
+    border-left: 4px solid #007bff;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.ticket-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.ticket-card.low {
+    border-left-color: #17a2b8;
+}
+
+.ticket-card.medium {
+    border-left-color: #007bff;
+}
+
+.ticket-card.high {
+    border-left-color: #ffc107;
+}
+
+.ticket-card.critical {
+    border-left-color: #dc3545;
+}
+
+.ticket-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-open {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-in_progress {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-resolved {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.status-closed {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.attachment-list {
+    list-style: none;
+    padding: 0;
+}
+
+.attachment-list li {
+    padding: 8px;
+    margin-bottom: 5px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.attachment-list li:hover {
+    background-color: #e9ecef;
+}
+
+.file-icon {
+    margin-right: 10px;
+    color: #6c757d;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #6c757d;
+}
