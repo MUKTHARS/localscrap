@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_login import LoginManager, current_user, login_required
 from flask_cors import CORS
-from db_models import db, User, SearchHistory, create_tables
+from db_models import db, User, SearchHistory, SupportTicket ,create_tables
 from auth_config import Config
 from auth_routes import auth_bp, init_oauth
 import pandas as pd
