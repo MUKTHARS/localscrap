@@ -28,12 +28,10 @@ const SupportTickets = ({ onBack }) => {
     }
   };
 
-  // 👇 Handle Delete Function
   const handleDeleteTicket = async (ticketId) => {
     if (window.confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
       try {
         await api.delete(`/support/tickets/${ticketId}`);
-        // Update UI immediately by filtering out the deleted ticket
         setTickets(prevTickets => prevTickets.filter(t => t.id !== ticketId));
       } catch (error) {
         console.error('Error deleting ticket:', error);
@@ -44,17 +42,11 @@ const SupportTickets = ({ onBack }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleFileChange = (e) => {
-    setFormData({
-      ...formData,
-      attachments: Array.from(e.target.files)
-    });
+    setFormData({ ...formData, attachments: Array.from(e.target.files) });
   };
 
   const handleSubmit = async (e) => {
@@ -67,15 +59,12 @@ const SupportTickets = ({ onBack }) => {
       ticketData.append('description', formData.description);
       ticketData.append('urgency', formData.urgency);
       
-      // Append attachments
       formData.attachments.forEach(file => {
         ticketData.append('attachments', file);
       });
 
       const response = await api.post('/support/create-ticket', ticketData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (response.data.success) {
@@ -96,6 +85,7 @@ const SupportTickets = ({ onBack }) => {
     }
   };
 
+  // Helper functions for badges and dates
   const getUrgencyBadgeClass = (urgency) => {
     switch (urgency) {
       case 'low': return 'badge bg-info';
@@ -118,80 +108,83 @@ const SupportTickets = ({ onBack }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return "—";
-    
     const d = new Date(dateString);
     if (isNaN(d.getTime())) return "Invalid date";
-    
     return d.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
+      year: "numeric", month: "short", day: "numeric",
+      hour: "2-digit", minute: "2-digit"
     });
   };
 
   return (
     <div className="support-tickets-container">
+      {/* Header Section */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <button 
           className="btn btn-outline-secondary" 
           onClick={() => {
-            if (onBack) {
-              onBack();
-            } else {
-              navigate('/dashboard');
-            }
+            if (onBack) onBack();
+            else navigate('/dashboard');
           }}
         >
           <i className="bi bi-arrow-left me-2"></i>Back to Dashboard
         </button>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowNewTicketForm(true)}
-        >
-          <i className="bi bi-plus-circle me-2"></i>Create New Ticket
-        </button>
+        
+        {/* Hide this button if the form is already open */}
+        {!showNewTicketForm && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowNewTicketForm(true)}
+          >
+            <i className="bi bi-plus-circle me-2"></i>Create New Ticket
+          </button>
+        )}
       </div>
 
-      {showNewTicketForm ? (
-        <div className="card mb-4">
-          <div className="card-header">
-            <h5 className="mb-0">Create New Support Ticket</h5>
+      {/* New Ticket Form */}
+      {showNewTicketForm && (
+        <div className="card mb-4 shadow-sm">
+          <div className="card-header bg-white">
+            <h5 className="mb-0 text-primary">Create New Support Ticket</h5>
           </div>
           <div className="card-body">
             <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label className="form-label">Subject *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="Brief description of your issue"
-                />
+              <div className="row">
+                {/* Subject Field */}
+                <div className="col-md-8 mb-3">
+                  <label className="fw-bold mb-1">Subject <span className="text-danger">*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Brief description of your issue"
+                  />
+                </div>
+
+                {/* Urgency Field */}
+                <div className="col-md-4 mb-3">
+                  <label className="fw-bold mb-1">Urgency <span className="text-danger">*</span></label>
+                  <select
+                    className="form-select"
+                    name="urgency"
+                    value={formData.urgency}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
               </div>
 
+              {/* Description Field */}
               <div className="mb-3">
-                <label className="form-label">Urgency *</label>
-                <select
-                  className="form-select"
-                  name="urgency"
-                  value={formData.urgency}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Description *</label>
+                <label className="fw-bold mb-1">Description <span className="text-danger">*</span></label>
                 <textarea
                   className="form-control"
                   name="description"
@@ -203,35 +196,43 @@ const SupportTickets = ({ onBack }) => {
                 />
               </div>
 
-              <div className="mb-3">
-                <label className="form-label">Attachments (Optional)</label>
-                <input
-                  type="file"
-                  className="form-control"
-                  multiple
-                  onChange={handleFileChange}
-                  accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt"
-                />
-                <small className="text-muted">
-                  Maximum file size: 10MB each. Supported formats: JPG, PNG, PDF, DOC, TXT
-                </small>
-                {formData.attachments.length > 0 && (
-                  <div className="mt-2">
-                    <strong>Selected files:</strong>
-                    <ul className="list-group mt-2">
-                      {formData.attachments.map((file, index) => (
-                        <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
-                          {file.name}
-                          <span className="badge bg-secondary">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+              {/* Attachments Field - Cleaned UI */}
+              <div className="mb-4">
+                <div className="p-3 bg-light border rounded">
+                  <label className="fw-bold mb-2">
+                    <i className="bi bi-paperclip me-1"></i> Attachments (Optional)
+                  </label>
+                  <input
+                    type="file"
+                    className="form-control"
+                    multiple
+                    onChange={handleFileChange}
+                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt"
+                  />
+                  <div className="form-text mt-1 text-muted">
+                    <small>Max size: 10MB each. Formats: JPG, PNG, PDF, DOC, TXT</small>
                   </div>
-                )}
+
+                  {/* File Preview List */}
+                  {formData.attachments.length > 0 && (
+                    <div className="mt-2">
+                      <h6 className="small text-muted mb-2">Selected files:</h6>
+                      <ul className="list-group list-group-flush small">
+                        {formData.attachments.map((file, index) => (
+                          <li key={index} className="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-1">
+                            <span>{file.name}</span>
+                            <span className="badge bg-secondary rounded-pill">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
 
+              {/* Form Buttons */}
               <div className="d-flex gap-2">
                 <button 
                   type="submit" 
@@ -259,66 +260,51 @@ const SupportTickets = ({ onBack }) => {
             </form>
           </div>
         </div>
-      ) : null}
+      )}
 
-      <div className="card">
-        <div className="card-header">
+      {/* Ticket List Table */}
+      <div className="card shadow-sm">
+        <div className="card-header bg-white">
           <h5 className="mb-0">My Support Tickets</h5>
         </div>
-        <div className="card-body">
+        <div className="card-body p-0">
           {tickets.length > 0 ? (
             <div className="table-responsive">
-              <table className="table table-hover">
-                <thead>
+              <table className="table table-hover mb-0 align-middle">
+                <thead className="table-light">
                   <tr>
                     <th>Ticket ID</th>
                     <th>Subject</th>
                     <th>Urgency</th>
                     <th>Status</th>
-                    <th>Created Date</th>
-                    <th>Attachments</th>
-                    {/* 👇 Added Action Header */}
+                    <th>Date</th>
+                    <th>Files</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {tickets.map(ticket => (
                     <tr key={ticket.id}>
+                      <td><code className="text-dark">{ticket.ticket_number}</code></td>
                       <td>
-                        <code>{ticket.ticket_number}</code>
+                        <span className="fw-bold d-block">{ticket.subject}</span>
+                        <small className="text-muted text-truncate d-block" style={{maxWidth: '200px'}}>
+                          {ticket.description}
+                        </small>
                       </td>
-                      
-                      <td>
-                        <strong>{ticket.subject}</strong>
-                        <p className="text-muted mb-0 small">
-                          {ticket.description.substring(0, 100)}...
-                        </p>
-                      </td>
-                      <td>
-                        <span className={getUrgencyBadgeClass(ticket.urgency)}>
-                          {ticket.urgency.toUpperCase()}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={getStatusBadgeClass(ticket.status)}>
-                          {ticket.status.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </td>
+                      <td><span className={getUrgencyBadgeClass(ticket.urgency)}>{ticket.urgency.toUpperCase()}</span></td>
+                      <td><span className={getStatusBadgeClass(ticket.status)}>{ticket.status.replace('_', ' ').toUpperCase()}</span></td>
                       <td>{formatDate(ticket.created_at)}</td>
                       <td>
-                        {ticket.attachment_paths && ticket.attachment_paths.length > 0 ? (
-                          <span className="badge bg-info">
-                            <i className="bi bi-paperclip me-1"></i>
-                            {ticket.attachment_paths.length} file(s)
+                        {ticket.attachment_paths?.length > 0 ? (
+                          <span className="badge bg-light text-dark border">
+                            <i className="bi bi-paperclip"></i> {ticket.attachment_paths.length}
                           </span>
-                        ) : (
-                          <span className="text-muted">None</span>
-                        )}
+                        ) : <span className="text-muted small">-</span>}
                       </td>
-                      {/* 👇 Added Delete Button Column */}
                       <td>
                         <button 
-                          className="btn btn-sm btn-outline-danger"
+                          className="btn btn-sm btn-outline-danger border-0"
                           onClick={() => handleDeleteTicket(ticket.id)}
                           title="Delete Ticket"
                         >
@@ -335,10 +321,7 @@ const SupportTickets = ({ onBack }) => {
               <i className="bi bi-ticket-perforated display-1 text-muted"></i>
               <h4 className="mt-3">No Support Tickets</h4>
               <p className="text-muted">You haven't created any support tickets yet.</p>
-              <button 
-                className="btn btn-primary"
-                onClick={() => setShowNewTicketForm(true)}
-              >
+              <button className="btn btn-primary" onClick={() => setShowNewTicketForm(true)}>
                 Create Your First Ticket
               </button>
             </div>
