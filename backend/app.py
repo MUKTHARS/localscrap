@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_login import LoginManager, current_user, login_required
 from flask_cors import CORS
 from db_models import db, User, SearchHistory, SupportTicket ,create_tables
@@ -9,6 +9,9 @@ import time, random, os, tempfile, gc
 from datetime import datetime, timezone
 import logging
 from werkzeug.middleware.proxy_fix import ProxyFix
+import os
+from werkzeug.utils import secure_filename
+import uuid
 
 # Scrapers
 from scrapers.amazon_scraper import scrape_amazon
@@ -25,6 +28,11 @@ from scrapers.climaxmarine_scraper import scrape_climaxmarine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+UPLOAD_FOLDER = 'static/uploads/tickets'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
 # load base config (ensure Config reads secrets from env in auth_config)
