@@ -453,6 +453,30 @@ def create_support_ticket():
         db.session.rollback()
         return jsonify({"error": "Failed to create ticket"}), 500
 
+@app.route("/api/support/tickets/<int:ticket_id>", methods=["DELETE"])
+@login_required
+def delete_support_ticket(ticket_id):
+    try:
+        # Find ticket ensuring it belongs to the current user
+        ticket = SupportTicket.query.filter_by(id=ticket_id, user_id=current_user.id).first()
+        
+        if not ticket:
+            return jsonify({"error": "Ticket not found or unauthorized"}), 404
+
+        # Delete from database
+        db.session.delete(ticket)
+        db.session.commit()
+        
+        # Optional: You could also delete the associated files from disk here if you wanted to save space
+        # But simply removing the DB record is usually sufficient for the UI.
+
+        return jsonify({"success": True, "message": "Ticket deleted successfully"})
+
+    except Exception as e:
+        logger.exception(f"Error deleting ticket {ticket_id}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete ticket"}), 500
+
 @app.route("/api/support/ticket/<ticket_id>", methods=["GET"])
 @login_required
 def get_ticket_details(ticket_id):
