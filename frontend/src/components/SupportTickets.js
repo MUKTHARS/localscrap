@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Added Import
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/apiConfig';
 import '../styles/SupportTickets.css';
 
 const SupportTickets = ({ onBack }) => {
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [showNewTicketForm, setShowNewTicketForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,6 +25,20 @@ const SupportTickets = ({ onBack }) => {
       setTickets(response.data.tickets);
     } catch (error) {
       console.error('Error fetching tickets:', error);
+    }
+  };
+
+  // 👇 Handle Delete Function
+  const handleDeleteTicket = async (ticketId) => {
+    if (window.confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
+      try {
+        await api.delete(`/support/tickets/${ticketId}`);
+        // Update UI immediately by filtering out the deleted ticket
+        setTickets(prevTickets => prevTickets.filter(t => t.id !== ticketId));
+      } catch (error) {
+        console.error('Error deleting ticket:', error);
+        alert(error.response?.data?.error || 'Failed to delete ticket');
+      }
     }
   };
 
@@ -126,7 +140,7 @@ const SupportTickets = ({ onBack }) => {
             if (onBack) {
               onBack();
             } else {
-              navigate('/dashboard'); // Go to Dashboard if standalone
+              navigate('/dashboard');
             }
           }}
         >
@@ -263,6 +277,8 @@ const SupportTickets = ({ onBack }) => {
                     <th>Status</th>
                     <th>Created Date</th>
                     <th>Attachments</th>
+                    {/* 👇 Added Action Header */}
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,6 +314,16 @@ const SupportTickets = ({ onBack }) => {
                         ) : (
                           <span className="text-muted">None</span>
                         )}
+                      </td>
+                      {/* 👇 Added Delete Button Column */}
+                      <td>
+                        <button 
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDeleteTicket(ticket.id)}
+                          title="Delete Ticket"
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
                       </td>
                     </tr>
                   ))}
