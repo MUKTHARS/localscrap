@@ -453,7 +453,8 @@ def create_support_ticket():
         db.session.rollback()
         return jsonify({"error": "Failed to create ticket"}), 500
 
-@app.route("/api/support/tickets/<int:ticket_id>", methods=["DELETE"])
+# 👇 UPDATED ROUTE: Changed <int:ticket_id> to <string:ticket_id>
+@app.route("/api/support/tickets/<string:ticket_id>", methods=["DELETE"])
 @login_required
 def delete_support_ticket(ticket_id):
     try:
@@ -467,9 +468,6 @@ def delete_support_ticket(ticket_id):
         db.session.delete(ticket)
         db.session.commit()
         
-        # Optional: You could also delete the associated files from disk here if you wanted to save space
-        # But simply removing the DB record is usually sufficient for the UI.
-
         return jsonify({"success": True, "message": "Ticket deleted successfully"})
 
     except Exception as e:
