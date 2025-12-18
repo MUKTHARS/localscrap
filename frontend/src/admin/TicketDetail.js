@@ -12,7 +12,7 @@ const TicketDetail = () => {
   const [updating, setUpdating] = useState(false);
 
   // Define Base URL
-  const API_BASE_URL = 'http://localhost:8080';
+  const API_BASE_URL = 'https://tutomart.com';
 
   useEffect(() => {
     fetchTicket();
