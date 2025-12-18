@@ -91,7 +91,16 @@ const AdminLayout = ({ children }) => {
 
 function App() {
   // Helper to check if currently logged in as admin (for the /dashboard redirect)
-  const isAdminLoggedIn = () => !!localStorage.getItem('admin_user');
+  const isAdminLoggedIn = () => {
+    const data = localStorage.getItem('admin_user');
+    if (!data) return false;
+    try {
+      const parsed = JSON.parse(data);
+      return parsed && parsed.id; // Ensure it has an ID
+    } catch {
+      return false;
+    }
+  };
 
   return (
     <AuthProvider>
