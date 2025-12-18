@@ -67,7 +67,7 @@ const AdminLayout = ({ children }) => {
   const logout = async () => {
     try {
       // API_BASE_URL is assumed to be handled by proxy or relative path
-      await fetch('https://tutomart.com/api/admin/logout', { 
+      await fetch('/api/admin/logout', { 
         method: 'POST',
         credentials: 'include' // Critical for HttpOnly Cookies
       });
