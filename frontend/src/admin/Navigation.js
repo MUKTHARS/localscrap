@@ -7,23 +7,31 @@ const Navigation = ({ user, onLogout }) => {
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
 
-  // Define Base URL for Flask Backend
-  const API_BASE_URL = 'https://tutomart.com';
+  // --- FIX 1: DYNAMIC DASHBOARD LINK ---
+  // If Admin -> /admin/dashboard, If User -> /dashboard
+  const dashboardLink = isAdmin ? '/admin/dashboard' : '/dashboard';
+
+  // --- FIX 2: RELATIVE API URL & DYNAMIC LOGOUT ENDPOINT ---
+  const API_BASE_URL = ''; // Relative path handles localhost vs production automatically
 
   const handleLogout = async () => {
     try {
-      // 1. Call Backend to clear HttpOnly Cookie
-      await fetch(`${API_BASE_URL}/api/admin/logout`, {
+      // Determine correct endpoint based on user role
+      const endpoint = isAdmin ? '/api/admin/logout' : '/api/auth/logout';
+
+      await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include' // Critical: sends the cookie so server can delete it
       });
     } catch (error) {
       console.error("Logout API failed", error);
     } finally {
-      // 2. Clear Frontend State
-      onLogout();
-      // 3. Redirect
-      navigate('/login');
+      // Clear Frontend State
+      if (onLogout) onLogout();
+      
+      // Redirect to correct login page
+      navigate(isAdmin ? '/admin/login' : '/login');
     }
   };
 
@@ -31,7 +39,8 @@ const Navigation = ({ user, onLogout }) => {
     <Navbar bg="dark" variant="dark" expand="lg" className="mb-3 shadow">
       <Container fluid>
         {/* Brand/Logo Section */}
-        <Navbar.Brand as={Link} to="/dashboard" className="d-flex align-items-center">
+        {/* FIX: Use dashboardLink */}
+        <Navbar.Brand as={Link} to={dashboardLink} className="d-flex align-items-center">
           <div className="me-2">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" className="text-primary">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
@@ -50,10 +59,11 @@ const Navigation = ({ user, onLogout }) => {
         <Navbar.Collapse id="basic-navbar-nav">
           {/* Left Navigation Links */}
           <Nav className="me-auto">
+            {/* FIX: Use dashboardLink and check both paths for active state */}
             <Nav.Link 
               as={Link} 
-              to="/dashboard" 
-              active={location.pathname === '/dashboard'}
+              to={dashboardLink} 
+              active={location.pathname === '/dashboard' || location.pathname === '/admin/dashboard'}
               className="d-flex align-items-center"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="me-1">
@@ -100,16 +110,16 @@ const Navigation = ({ user, onLogout }) => {
                 </Dropdown>
 
                  <Nav.Link 
-                    as={Link} 
-                    to="/assign" 
-                    active={location.pathname === '/assign'}
-                    className="d-flex align-items-center"
-                  >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="me-1">
-                      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                  </svg>
-                  Assign Tickets
-                </Nav.Link>
+                   as={Link} 
+                   to="/assign" 
+                   active={location.pathname === '/assign'}
+                   className="d-flex align-items-center"
+                 >
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="me-1">
+                     <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                 </svg>
+                 Assign Tickets
+               </Nav.Link>
               </>
             )}
           </Nav>
@@ -145,12 +155,15 @@ const Navigation = ({ user, onLogout }) => {
                   <small className="text-muted">{user?.email}</small>
                 </Dropdown.Header>
                 <Dropdown.Divider />
-                <Dropdown.Item as={Link} to="/dashboard">
+                
+                {/* FIX: Use dashboardLink here too */}
+                <Dropdown.Item as={Link} to={dashboardLink}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="me-2">
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                   </svg>
                   Dashboard
                 </Dropdown.Item>
+                
                 <Dropdown.Item as={Link} to="/tickets">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="me-2">
                     <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
