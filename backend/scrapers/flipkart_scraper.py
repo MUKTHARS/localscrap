@@ -127,9 +127,9 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         
         driver.get(url)
         
-        WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id]"))
-        )
+        # WebDriverWait(driver, 5).until(
+        #     EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id]"))
+        # )
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         product_cards = soup.select("div[data-id]")
