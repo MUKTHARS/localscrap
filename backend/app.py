@@ -61,6 +61,7 @@ app.wsgi_app = ProxyFix(
 if not app.config.get("SECRET_KEY"):
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-for-local")
 
+# SESSION CONFIGURATION
 app.config.update({
     "SESSION_COOKIE_SECURE": True,
     "SESSION_COOKIE_SAMESITE": "Lax",
@@ -69,7 +70,7 @@ app.config.update({
     "REMEMBER_COOKIE_SAMESITE": "Lax",
     "REMEMBER_COOKIE_SECURE": True,
     "REMEMBER_COOKIE_DOMAIN": "tutomart.com",
-    "PERMANENT_SESSION_LIFETIME": timedelta(days=7)
+    "PERMANENT_SESSION_LIFETIME": timedelta(days=7) # Sessions last 7 days
 })
 
 CORS(app,
@@ -98,6 +99,7 @@ def load_user(user_id):
 def unauthorized_callback():
     return jsonify({"error": "Unauthorized"}), 401
 
+# --- ADMIN AUTH HELPER ---
 def check_admin_auth():
     if 'admin_user' in session:
         return session['admin_user']
@@ -106,6 +108,8 @@ def check_admin_auth():
 def is_super_admin():
     admin = check_admin_auth()
     return admin and admin.get('role') == 'admin'
+
+# --- ROUTES ---
 
 @app.route('/api/admin/employees', methods=['POST'])
 def create_employee():
