@@ -38,22 +38,26 @@ const Login = () => {
     setLoading(true);
     setMessage('');
 
+    // --- FIX: CLEAR ADMIN SESSION ---
+    localStorage.removeItem('admin_user'); 
+    // --------------------------------
+
     try {
       let result;
       if (isLogin) {
         result = await login(formData.email, formData.password, true);
       } else {
+        // ... (Register logic)
         if (formData.password !== formData.confirmPassword) {
-          setMessage('Passwords do not match');
-          setLoading(false);
-          return;
+             // ... error handling
+             return;
         }
         result = await register(formData.name, formData.email, formData.password, formData.confirmPassword);
       }
 
       if (result.success) {
-        // Navigation will be handled by the useEffect above
         setMessage('Login successful! Redirecting...');
+        // Navigation handled by useEffect
       } else {
         setMessage(result.message);
       }
