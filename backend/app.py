@@ -57,18 +57,14 @@ app.wsgi_app = ProxyFix(
     x_prefix=1
 )
 
-if not app.config.get("SECRET_KEY"):
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-for-local")
-
 app.config.update({
-    "SESSION_COOKIE_SECURE": True,
-    "SESSION_COOKIE_SAMESITE": "Lax",
-    "SESSION_COOKIE_HTTPONLY": True,
-    "SESSION_COOKIE_DOMAIN": "tutomart.com", 
-    "REMEMBER_COOKIE_SAMESITE": "Lax",
-    "REMEMBER_COOKIE_SECURE": True,
-    "REMEMBER_COOKIE_DOMAIN": "tutomart.com",
-    "PERMANENT_SESSION_LIFETIME": timedelta(days=7) # <--- Add this: Logins last 7 days
+    "SECRET_KEY": os.environ.get("SECRET_KEY", "complex-random-string-here"), # Ensure this is SET in prod
+    "SESSION_COOKIE_SECURE": True,
+    "SESSION_COOKIE_SAMESITE": "Lax",
+    "SESSION_COOKIE_HTTPONLY": True,
+    "SESSION_COOKIE_DOMAIN": ".tutomart.com", # Note the dot prefix for subdomains
+    "REMEMBER_COOKIE_DOMAIN": ".tutomart.com",
+    "PERMANENT_SESSION_LIFETIME": timedelta(days=7) # Sessions last 7 days
 })
 
 CORS(app,
@@ -98,9 +94,9 @@ def unauthorized_callback():
     return jsonify({"error": "Unauthorized"}), 401
 
 def check_admin_auth():
-    if 'admin_user' in session:
-        return session['admin_user']
-    return None
+    if 'admin_user' in session:
+        return session['admin_user']
+    return None
 
 def is_super_admin():
     admin = check_admin_auth()
@@ -181,31 +177,36 @@ def delete_employee(employee_id):
 
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
-    try:
-        data = request.get_json()
-        email = data.get('email', '').lower().strip()
-        password = data.get('password', '')
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower().strip()
+        password = data.get('password', '')
 
-        admin = AdminUser.query.filter_by(email=email, is_active=True).first()
-        
-        if not admin or not check_password_hash(admin.password, password):
-            return jsonify({"error": "Invalid credentials"}), 401
-            
-        user_data = {
-            'id': admin.id,
-            'name': admin.name,
-            'email': admin.email,
-            'role': admin.role
-        }
-        
-        session.permanent = True
-        session['admin_user'] = user_data 
-        
-        return jsonify({"message": "Login successful", "user": user_data})
-    
-    except Exception as e:
-        logger.error(f"Admin login error: {e}")
-        return jsonify({"error": "Server error"}), 500
+        admin = AdminUser.query.filter_by(email=email, is_active=True).first()
+        
+        if not admin or not check_password_hash(admin.password, password):
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Create session data
+        user_data = {
+            'id': admin.id,
+            'name': admin.name,
+            'email': admin.email,
+            'role': admin.role
+        }
+
+        # Store in Flask Session (Secure Cookie)
+        session.permanent = True
+        session['admin_user'] = user_data
+        
+        # Clear any potential standard user session to avoid conflict
+        session.pop('user_id', None) 
+        
+        return jsonify({"message": "Login successful", "user": user_data})
+    
+    except Exception as e:
+        logger.error(f"Admin login error: {e}")
+        return jsonify({"error": "Server error"}), 500
     
 @app.route('/api/admin/users', methods=['GET'])
 def get_admin_users():
@@ -242,8 +243,8 @@ def admin_status():
 
 @app.route('/api/admin/logout', methods=['POST'])
 def admin_logout():
-    session.pop('admin_user', None)
-    return jsonify({"message": "Logged out"})
+    session.pop('admin_user', None)
+    return jsonify({"message": "Logged out"})
 
 @app.route('/api/admin/tickets', methods=['GET'])
 def get_admin_tickets():
