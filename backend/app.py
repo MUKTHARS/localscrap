@@ -57,18 +57,14 @@ app.wsgi_app = ProxyFix(
     x_prefix=1
 )
 
-if not app.config.get("SECRET_KEY"):
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-for-local")
-
 app.config.update({
+    "SECRET_KEY": os.environ.get("SECRET_KEY", "complex-random-string-here"), # Ensure this is SET in prod
     "SESSION_COOKIE_SECURE": True,
     "SESSION_COOKIE_SAMESITE": "Lax",
     "SESSION_COOKIE_HTTPONLY": True,
-    "SESSION_COOKIE_DOMAIN": "tutomart.com", 
-    "REMEMBER_COOKIE_SAMESITE": "Lax",
-    "REMEMBER_COOKIE_SECURE": True,
-    "REMEMBER_COOKIE_DOMAIN": "tutomart.com",
-    "PERMANENT_SESSION_LIFETIME": timedelta(days=7) # <--- Add this: Logins last 7 days
+    "SESSION_COOKIE_DOMAIN": ".tutomart.com", # Note the dot prefix for subdomains
+    "REMEMBER_COOKIE_DOMAIN": ".tutomart.com",
+    "PERMANENT_SESSION_LIFETIME": timedelta(days=7) # Sessions last 7 days
 })
 
 CORS(app,
@@ -190,16 +186,21 @@ def admin_login():
         
         if not admin or not check_password_hash(admin.password, password):
             return jsonify({"error": "Invalid credentials"}), 401
-            
+
+        # Create session data
         user_data = {
             'id': admin.id,
             'name': admin.name,
             'email': admin.email,
             'role': admin.role
         }
-        
+
+        # Store in Flask Session (Secure Cookie)
         session.permanent = True
-        session['admin_user'] = user_data 
+        session['admin_user'] = user_data
+        
+        # Clear any potential standard user session to avoid conflict
+        session.pop('user_id', None) 
         
         return jsonify({"message": "Login successful", "user": user_data})
     
