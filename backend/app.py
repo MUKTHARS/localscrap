@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session
 from flask_login import LoginManager, current_user, login_required
 from flask_cors import CORS
 from db_models import db, User, SearchHistory, SupportTicket, AdminUser, EmployeeTicketAssignment, create_tables
@@ -6,7 +6,7 @@ from auth_config import Config
 from auth_routes import auth_bp, init_oauth
 import pandas as pd
 import time, random, os, tempfile, gc, logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -62,12 +62,13 @@ if not app.config.get("SECRET_KEY"):
 
 app.config.update({
     "SESSION_COOKIE_SECURE": True,
-    "SESSION_COOKIE_SAMESITE": "Lax",  
+    "SESSION_COOKIE_SAMESITE": "Lax",
     "SESSION_COOKIE_HTTPONLY": True,
-    "SESSION_COOKIE_DOMAIN": "tutomart.com",  
+    "SESSION_COOKIE_DOMAIN": "tutomart.com", 
     "REMEMBER_COOKIE_SAMESITE": "Lax",
     "REMEMBER_COOKIE_SECURE": True,
-    "REMEMBER_COOKIE_DOMAIN": "tutomart.com"
+    "REMEMBER_COOKIE_DOMAIN": "tutomart.com",
+    "PERMANENT_SESSION_LIFETIME": timedelta(days=7) # <--- Add this: Logins last 7 days
 })
 
 CORS(app,
@@ -96,12 +97,9 @@ def load_user(user_id):
 def unauthorized_callback():
     return jsonify({"error": "Unauthorized"}), 401
 
-admin_sessions = {}
-
 def check_admin_auth():
-    session_id = request.cookies.get('admin_session_id')
-    if session_id and session_id in admin_sessions:
-        return admin_sessions[session_id]
+    if 'admin_user' in session:
+        return session['admin_user']
     return None
 
 def is_super_admin():
@@ -192,18 +190,18 @@ def admin_login():
         
         if not admin or not check_password_hash(admin.password, password):
             return jsonify({"error": "Invalid credentials"}), 401
-
-        session_id = os.urandom(16).hex()
-        admin_sessions[session_id] = {
+            
+        user_data = {
             'id': admin.id,
             'name': admin.name,
             'email': admin.email,
             'role': admin.role
         }
-
-        resp = jsonify({"message": "Login successful", "user": admin_sessions[session_id]})
-        resp.set_cookie('admin_session_id', session_id, httponly=True, samesite='Lax', max_age=3600, path='/')
-        return resp
+        
+        session.permanent = True
+        session['admin_user'] = user_data 
+        
+        return jsonify({"message": "Login successful", "user": user_data})
     
     except Exception as e:
         logger.error(f"Admin login error: {e}")
@@ -244,12 +242,8 @@ def admin_status():
 
 @app.route('/api/admin/logout', methods=['POST'])
 def admin_logout():
-    session_id = request.cookies.get('admin_session_id')
-    if session_id in admin_sessions:
-        del admin_sessions[session_id]
-    resp = jsonify({"message": "Logged out"})
-    resp.set_cookie('admin_session_id', '', expires=0)
-    return resp
+    session.pop('admin_user', None)
+    return jsonify({"message": "Logged out"})
 
 @app.route('/api/admin/tickets', methods=['GET'])
 def get_admin_tickets():
