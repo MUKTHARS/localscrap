@@ -37,11 +37,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
-
-    // --- FIX: CLEAR ADMIN SESSION TO PREVENT CONFLICTS ---
-    localStorage.removeItem('admin_user');
-    // -----------------------------------------------------
-
+    
     try {
       let result;
       if (isLogin) {
