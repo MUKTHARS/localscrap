@@ -35,7 +35,7 @@ const Dashboard = ({ user }) => {
   const [error, setError] = useState('');
   
   // Define Base URL for Flask Backend
-  const API_BASE_URL = 'http://localhost:8080';
+  const API_BASE_URL = 'https://tutomart.com';
   
   const isAdmin = user?.role === 'admin';
 
