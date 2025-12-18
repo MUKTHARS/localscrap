@@ -40,10 +40,20 @@ function ProtectedUserRoute({ children }) {
 }
 
 // Admin Protected Route
-function ProtectedAdminRoute({ children }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="text-center mt-5">Loading...</div>;
-  return user ? children : <Navigate to="/admin/login" />;
+function ProtectedAdminRoute({ children, requiredRole }) {
+  // Check LocalStorage for UI state
+  const adminUser = JSON.parse(localStorage.getItem('admin_user') || 'null');
+  
+  if (!adminUser) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  
+  if (requiredRole && adminUser.role !== requiredRole) {
+    // If employee tries to access admin-only route, send to dashboard
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return children;
 }
 
 // Admin Layout Wrapper
@@ -80,6 +90,9 @@ const AdminLayout = ({ children }) => {
 };
 
 function App() {
+  // Helper to check if currently logged in as admin (for the /dashboard redirect)
+  const isAdminLoggedIn = () => !!localStorage.getItem('admin_user');
+
   return (
     <AuthProvider>
       <Router>
@@ -90,7 +103,15 @@ function App() {
             <Route path="/login" element={<UserLogin />} />
             
             {/* Smart Dashboard Redirect: If Admin is logged in, /dashboard goes to /admin/dashboard */}
-            <Route path="/dashboard" element={<ProtectedUserRoute><UserNavbar /><UserDashboard /></ProtectedUserRoute>} />
+            <Route path="/" element={
+              isAdminLoggedIn() ? <Navigate to="/admin/dashboard" /> : 
+              <ProtectedUserRoute><UserNavbar /><UserDashboard /></ProtectedUserRoute>
+            } />
+            
+            <Route path="/dashboard" element={
+              isAdminLoggedIn() ? <Navigate to="/admin/dashboard" /> : 
+              <ProtectedUserRoute><UserNavbar /><UserDashboard /></ProtectedUserRoute>
+            } />
             
             <Route path="/profile" element={<ProtectedUserRoute><UserNavbar /><UserProfile /></ProtectedUserRoute>} />
             <Route path="/support" element={
@@ -151,7 +172,10 @@ function App() {
                 <AdminLayout><Employees /></AdminLayout>
               </ProtectedAdminRoute>
             } />
-              
+
+            {/* Catch All */}
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" />} />
+            <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </div>
       </Router>
