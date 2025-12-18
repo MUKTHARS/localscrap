@@ -4,9 +4,6 @@ import time, re, os, zipfile, random, string
 from datetime import datetime
 from scrapers.utils import polite_delay, save_to_excel
 import gc
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 # --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"  # Check your dashboard
@@ -126,10 +123,12 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         url = f"https://www.flipkart.com/search?q={query}"
         
         driver.get(url)
+
+        time.sleep(2)
         
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id]"))
-        )
+        # WebDriverWait(driver, 10).until(
+        #     EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-id]"))
+        # )
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         product_cards = soup.select("div[data-id]")
