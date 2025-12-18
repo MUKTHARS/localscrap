@@ -97,18 +97,6 @@ const AdminLayout = ({ children }) => {
 };
 
 function App() {
-  // Helper to safely check if currently logged in as admin
-  const isAdminLoggedIn = () => {
-    const data = localStorage.getItem('admin_user');
-    if (!data) return false;
-    try {
-      const parsed = JSON.parse(data);
-      return parsed && parsed.id; // Ensure it has an ID
-    } catch {
-      return false;
-    }
-  };
-
   return (
     <AuthProvider>
       <Router>
@@ -116,16 +104,17 @@ function App() {
           <DebugAuth />
           <Routes>
             {/* === USER ROUTES === */}
+            {/* REMOVED: isAdminLoggedIn logic. 
+                Now, if an admin visits /, they see the user homepage. 
+                If they want the dashboard, they must go to /admin */}
+            
             <Route path="/login" element={<UserLogin />} />
             
-            {/* Smart Dashboard Redirect: If Admin is logged in, /dashboard goes to /admin/dashboard */}
             <Route path="/" element={
-              isAdminLoggedIn() ? <Navigate to="/admin/dashboard" replace /> : 
-              <ProtectedUserRoute><UserNavbar /><UserDashboard /></ProtectedUserRoute>
+               <ProtectedUserRoute><UserNavbar /><UserDashboard /></ProtectedUserRoute>
             } />
             
             <Route path="/dashboard" element={
-              isAdminLoggedIn() ? <Navigate to="/admin/dashboard" replace /> : 
               <ProtectedUserRoute><UserNavbar /><UserDashboard /></ProtectedUserRoute>
             } />
             
@@ -152,45 +141,18 @@ function App() {
               </ProtectedAdminRoute>
             } />
 
-            {/* Tickets */}
-            <Route path="/tickets" element={
-              <ProtectedAdminRoute>
-                <AdminLayout>
-                  <AdminTickets user={JSON.parse(localStorage.getItem('admin_user'))} />
-                </AdminLayout>
-              </ProtectedAdminRoute>
-            } />
-
-            {/* Ticket Detail */}
-            <Route path="/tickets/:id" element={
-              <ProtectedAdminRoute>
-                <AdminLayout><AdminTicketDetail /></AdminLayout>
-              </ProtectedAdminRoute>
-            } />
-
-            {/* Users */}
-            <Route path="/users" element={
-              <ProtectedAdminRoute>
-                <AdminLayout><AdminUsers /></AdminLayout>
-              </ProtectedAdminRoute>
-            } />
-
-            {/* Assign */}
-            <Route path="/assign" element={
-              <ProtectedAdminRoute requiredRole="admin">
-                <AdminLayout><AssignTickets /></AdminLayout>
-              </ProtectedAdminRoute>
-            } />
-
-            {/* Employees */}
-            <Route path="/employees" element={
-              <ProtectedAdminRoute requiredRole="admin">
-                <AdminLayout><Employees /></AdminLayout>
-              </ProtectedAdminRoute>
-            } />
+            {/* ... Keep all other Admin Routes exactly as they are ... */}
+            <Route path="/tickets" element={<ProtectedAdminRoute><AdminLayout><AdminTickets user={JSON.parse(localStorage.getItem('admin_user'))} /></AdminLayout></ProtectedAdminRoute>} />
+            <Route path="/tickets/:id" element={<ProtectedAdminRoute><AdminLayout><AdminTicketDetail /></AdminLayout></ProtectedAdminRoute>} />
+            <Route path="/users" element={<ProtectedAdminRoute><AdminLayout><AdminUsers /></AdminLayout></ProtectedAdminRoute>} />
+            <Route path="/assign" element={<ProtectedAdminRoute requiredRole="admin"><AdminLayout><AssignTickets /></AdminLayout></ProtectedAdminRoute>} />
+            <Route path="/employees" element={<ProtectedAdminRoute requiredRole="admin"><AdminLayout><Employees /></AdminLayout></ProtectedAdminRoute>} />
 
             {/* Catch All */}
+            {/* If they type /admin and nothing else, send to admin login or dashboard */}
             <Route path="/admin" element={<Navigate to="/admin/dashboard" />} />
+            
+            {/* General Catch All: Send to User Dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </div>
