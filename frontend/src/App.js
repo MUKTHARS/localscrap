@@ -41,12 +41,13 @@ function ProtectedUserRoute({ children }) {
 
 // Admin Protected Route
 function ProtectedAdminRoute({ children, requiredRole }) {
-  // Check LocalStorage for UI state
+  // Check LocalStorage for UI state safely
   let adminUser = null;
   try {
-    adminUser = JSON.parse(localStorage.getItem('admin_user'));
+    const stored = localStorage.getItem('admin_user');
+    if (stored) adminUser = JSON.parse(stored);
   } catch (e) {
-    localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin_user'); // Clear corrupted data
   }
   
   if (!adminUser) {
