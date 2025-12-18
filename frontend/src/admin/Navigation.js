@@ -8,7 +8,7 @@ const Navigation = ({ user, onLogout }) => {
   const isAdmin = user?.role === 'admin';
 
   // Define Base URL for Flask Backend
-  const API_BASE_URL = 'http://localhost:8080';
+  const API_BASE_URL = 'https://tutomart.com';
 
   const handleLogout = async () => {
     try {
