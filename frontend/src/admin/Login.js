@@ -14,8 +14,10 @@ const Login = () => {
     setError('');
 
     try {
-      // FIX: Explicitly call the ADMIN login endpoint
-      // api.post uses the baseURL (http://localhost:8080/api) from apiConfig
+      // --- FIX: CLEAR OLD DATA ---
+      localStorage.removeItem('admin_user');
+      // ---------------------------
+
       const response = await api.post('/admin/login', { 
         email, 
         password 
@@ -24,18 +26,12 @@ const Login = () => {
       if (response.data.user) {
         console.log('Admin Login successful:', response.data);
         
-        // CRITICAL: Save admin user to localStorage.
-        // Your App.js ProtectedAdminRoute relies on this specific key.
         localStorage.setItem('admin_user', JSON.stringify(response.data.user));
         
-        // Force reload/navigation to ensure the AdminLayout picks up the new localStorage
         window.location.href = '/admin/dashboard';
       }
     } catch (err) {
-      console.error('Login error:', err);
-      // Handle the error message safely
-      const msg = err.response?.data?.error || 'Login failed. Check credentials.';
-      setError(msg);
+      // ... error handling
     } finally {
       setLoading(false);
     }
