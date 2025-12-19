@@ -2,12 +2,13 @@ import os
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 import time, random, re, zipfile, string
+from datetime import datetime
 from scrapers.utils import save_to_excel
 import gc
 
-PROXY_HOST = "gate.decodo.com"
-PROXY_PORT = "10001"
-PROXY_USER = "sp7oukpich"
+PROXY_HOST = "gate.decodo.com"  
+PROXY_PORT = "10001"             
+PROXY_USER = "sp7oukpich"    
 PROXY_PASS = "oHz7RSjbv1W7cafe+7"
 
 USER_AGENTS = [
@@ -26,9 +27,8 @@ AMAZON_DOMAINS = [
 def _stealth_hook(driver, user_agent):
     try:
         driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});")
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
-        driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
         driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});")
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
         driver.execute_script("window.chrome = { runtime: {}, loadTimes: function(){return {}} };")
         driver.execute_script("""
             const originalQuery = window.navigator.permissions.query;
@@ -39,6 +39,7 @@ def _stealth_hook(driver, user_agent):
                 originalQuery(parameters)
             );
         """)
+        driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
     except Exception:
         pass
 
@@ -71,9 +72,8 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
         zp.writestr("background.js", background_js)
     return plugin_path
 
-def scrape_amazon(brand, product):
-    max_retries = 3
-    max_pages=50
+def scrape_amazon(brand, product, oem_number=None, asin_number=None, max_pages=10):
+    max_retries = 2
     
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "amazon.in").strip()
     domains_to_try = [selected_domain] 
@@ -96,7 +96,7 @@ def scrape_amazon(brand, product):
             ua = random.choice(USER_AGENTS)
             driver = None
             domain_scraped_data = []
-            
+
             seen_urls = set()
 
             try:
@@ -110,13 +110,11 @@ def scrape_amazon(brand, product):
                 options.add_argument(f"--user-agent={ua}")
 
                 driver = uc.Chrome(options=options)
-                driver.set_page_load_timeout(45)
+                driver.set_page_load_timeout(60)
                 _stealth_hook(driver, ua)
 
                 for current_page in range(1, max_pages + 1):
-                    
                     query = "+".join([k for k in [brand, product] if k])
-                    
                     if current_page == 1:
                         search_url = f"https://www.{domain}/s?k={query}"
                     else:
@@ -126,7 +124,7 @@ def scrape_amazon(brand, product):
                     
                     try:
                         driver.get(search_url)
-
+                        
                         time.sleep(2)
                         
                         if "Enter the characters you see below" in driver.page_source:
@@ -152,7 +150,7 @@ def scrape_amazon(brand, product):
                             product_url = f"https://www.{domain}" + url_tag["href"]
 
                             if product_url in seen_urls:
-                                continue
+                                continue  # Skip this loop iteration if we have seen this URL
                             
                             seen_urls.add(product_url) # Mark as seen
 
@@ -164,7 +162,9 @@ def scrape_amazon(brand, product):
                             raw_price = price_tag.text.strip() if price_tag else "NA"
 
                             if raw_price != "NA":
+                                # Remove currency symbols and non-numeric chars except . and ,
                                 raw = re.sub(r'[^\d.,]', '', raw_price)
+                                # Fix European vs US number formats
                                 if re.search(r',\d{2}$', raw): 
                                     raw = raw.replace(".", "").replace(",", ".")
                                 else:
