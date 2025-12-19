@@ -3,10 +3,9 @@ import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 import time, random, re, zipfile, string
 from datetime import datetime
-from scrapers.utils import save_to_excel
+from scrapers.utils import polite_delay, save_to_excel
 import gc
 
-# --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"
 PROXY_PORT = "10001"
 PROXY_USER = "sp7oukpich"
@@ -47,33 +46,22 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
         zp.writestr("background.js", background_js)
     return plugin_path
 
-def scrape_amazon(brand, product, target_domain="amazon.in", oem_number=None, asin_number=None, max_pages=10):
-    """
-    Scrapes a SINGLE specific Amazon domain (e.g., 'amazon.it').
-    """
-    # Clean domain input just in case (remove https:// or www.)
-    domain = target_domain.replace("https://", "").replace("www.", "").strip()
-    
-    # Retry logic for this specific domain
-    max_retries = 3 
+def scrape_amazon(brand, product, target_domain="amazon.com", oem_number=None, asin_number=None, max_pages=10):
+    domain = target_domain.lower().replace("https://", "").replace("http://", "").replace("www.", "").strip()
+    if "/" in domain:
+        domain = domain.split("/")[0]
+
+    max_retries = 3
+    all_data = []
+
+    print(f"--> Starting Scrape strictly for: {domain}")
 
     session_id = random.randint(100000, 999999)
     session_user = f"{PROXY_USER}-session-{session_id}"
-    proxy_plugin = create_proxy_auth_extension(
-        host=PROXY_HOST,
-        port=PROXY_PORT,
-        user=session_user,
-        password=PROXY_PASS
-    )
-
-    all_data = []
-
-    print(f"Targeting Domain: {domain}")
+    proxy_plugin = create_proxy_auth_extension(PROXY_HOST, PROXY_PORT, session_user, PROXY_PASS)
 
     for attempt in range(1, max_retries + 1):
-        # If we already got data, don't retry
-        if all_data: 
-            break
+        if all_data: break 
 
         ua = random.choice(USER_AGENTS)
         driver = None
@@ -87,58 +75,43 @@ def scrape_amazon(brand, product, target_domain="amazon.in", oem_number=None, as
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-gpu")
             
-            # Randomize window size slightly to break fingerprinting
-            width = random.randint(1900, 1920)
-            height = random.randint(1000, 1080)
-            options.add_argument(f"--window-size={width},{height}")
+            w, h = random.randint(1900, 1920), random.randint(1000, 1080)
+            options.add_argument(f"--window-size={w},{h}")
             
             options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
             options.add_argument(f"--user-agent={ua}")
             options.add_argument("--disable-blink-features=AutomationControlled")
-            
-            # Set browser language to match target domain preferences generally (English is usually safe)
             options.add_argument("--lang=en-US") 
-            options.page_load_strategy = 'eager'
+            options.page_load_strategy = 'eager' 
 
             driver = uc.Chrome(options=options)
             
-            # --- COOKIE INJECTION (Crucial for Non-US Domains) ---
-            # Sets language to English to avoid auto-translation redirect blocks
             try:
                 driver.get(f"https://www.{domain}/404test")
                 driver.add_cookie({"name": "lc-main", "value": "en_US", "domain": f".{domain}"})
-                driver.add_cookie({"name": "i18n-prefs", "value": "USD", "domain": f".{domain}"})
             except:
                 pass
 
-            # --- PAGINATION LOOP ---
             for current_page in range(1, max_pages + 1):
                 query = "+".join([k for k in [brand, product] if k])
                 
-                # Dynamic URL Construction
                 if current_page == 1:
                     search_url = f"https://www.{domain}/s?k={query}"
                 else:
                     search_url = f"https://www.{domain}/s?k={query}&page={current_page}&ref=sr_pg_{current_page}"
                 
-                print(f"  > Scraping Page {current_page} (Attempt {attempt})...")
+                print(f"  > Scraping {domain} Page {current_page} (Attempt {attempt})...")
 
                 try:
                     driver.get(search_url)
-                    
-                    # Random delay to look human
-                    time.sleep(random.uniform(3, 6))
+                    time.sleep(random.uniform(3, 5)) 
 
                     html = driver.page_source
 
-                    # --- BLOCK DETECTION ---
                     if "Enter the characters you see below" in html or "automated access" in html:
-                        print(f"    ! Soft Block (CAPTCHA) detected on page {current_page}.")
-                        # If blocked on Page 1, this IP/Attempt is burned. Retry entire session.
-                        if current_page == 1:
-                            raise Exception("Immediate Block") 
-                        else:
-                            break # Keep data from previous pages and stop
+                        print(f"    ! CAPTCHA Block on {domain}.")
+                        if current_page == 1: raise Exception("Immediate Block")
+                        else: break 
 
                     soup = BeautifulSoup(html, "html.parser")
                     product_cards = soup.select("div[data-component-type='s-search-result']")
@@ -147,51 +120,44 @@ def scrape_amazon(brand, product, target_domain="amazon.in", oem_number=None, as
                         if "No results for" in html:
                             print(f"    > No results found on {domain}. Ending.")
                             break
-                        print(f"    > No cards found (possible layout change). Ending.")
+                        print(f"    > No cards found. Ending.")
                         break
 
                     page_new_items = 0
 
                     for card in product_cards:
-                        # URL
                         url_tag = card.select_one("a.a-link-normal.s-underline-text.s-underline-link-text") or \
                                   card.select_one("a.a-link-normal.s-no-outline")
                         if not url_tag or not url_tag.has_attr("href"): continue
 
                         raw_url = f"https://www.{domain}" + url_tag["href"]
                         
-                        # Deduplication
                         if raw_url in seen_urls: continue
                         seen_urls.add(raw_url)
 
-                        # Name
                         name_tag = card.select_one("h2.a-size-base-plus") or card.select_one("h2.a-size-medium")
                         name = name_tag.get_text(strip=True) if name_tag else "N/A"
 
-                        # Price
                         price_tag = card.select_one("span.a-price > span.a-offscreen") or card.select_one("span.a-color-price")
                         raw_price = price_tag.text.strip() if price_tag else "NA"
 
-                        # Price Parsing
                         price_value = "NA"
                         if raw_price != "NA":
                             raw = re.sub(r'[^\d.,]', '', raw_price.replace("\xa0", "").replace(" ", ""))
-                            # Handle European number formats (1.299,99 vs 1,299.99)
-                            if re.search(r',\d{2}$', raw): 
-                                raw = raw.replace(".", "").replace(",", ".")
+                            if domain in ["amazon.it", "amazon.de", "amazon.fr", "amazon.es", "amazon.nl"]:
+                                if re.search(r',\d{2}$', raw): 
+                                    raw = raw.replace(".", "").replace(",", ".")
                             else:
                                 raw = raw.replace(",", "")
-                            try:
-                                price_value = float(re.search(r'\d+(?:\.\d+)?', raw).group(0))
+                                
+                            try: price_value = float(re.search(r'\d+(?:\.\d+)?', raw).group(0))
                             except: pass
                         
                         if price_value == "NA": continue
 
-                        # Currency
                         currency_match = re.search(r'[\$€£₹¥₩₽]|AED|SAR|EUR|GBP', raw_price)
                         currency = currency_match.group(0) if currency_match else "NA"
 
-                        # Rating
                         rating_tag = card.select_one("span.a-icon-alt")
                         rating = rating_tag.text.split("out of")[0].strip() if rating_tag else "N/A"
 
@@ -209,10 +175,8 @@ def scrape_amazon(brand, product, target_domain="amazon.in", oem_number=None, as
 
                 except Exception as e:
                     if "Immediate Block" in str(e): raise e
-                    print(f"    ! Error on page {current_page}: {e}")
                     continue
 
-            # If we finished the loop with data, save and exit retry loop
             if current_attempt_data:
                 all_data = current_attempt_data
                 save_to_excel("Amazon", all_data)
@@ -220,7 +184,7 @@ def scrape_amazon(brand, product, target_domain="amazon.in", oem_number=None, as
 
         except Exception as e:
             print(f"  ! Attempt {attempt} failed: {str(e)}")
-            time.sleep(random.uniform(5, 8))
+            time.sleep(random.uniform(5, 10))
         
         finally:
             if driver:
@@ -228,7 +192,6 @@ def scrape_amazon(brand, product, target_domain="amazon.in", oem_number=None, as
                 except: pass
             gc.collect()
 
-    # Final Cleanup
     if os.path.exists(proxy_plugin):
         try: os.remove(proxy_plugin)
         except: pass
