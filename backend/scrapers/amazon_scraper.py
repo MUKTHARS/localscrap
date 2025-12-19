@@ -78,6 +78,8 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
 def scrape_amazon(brand, product):
     max_retries = 2
     max_pages=50
+    oem_number = None
+    asin_number = None
     
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "").strip() or None
     domains_to_try = [selected_domain] if selected_domain else AMAZON_DOMAINS
@@ -91,7 +93,7 @@ def scrape_amazon(brand, product):
         password=PROXY_PASS
     )
 
-    all_domain_data = [] # Stores successful data
+    all_domain_data = []
 
     for domain in domains_to_try:
         if all_domain_data:
@@ -103,7 +105,7 @@ def scrape_amazon(brand, product):
             ua = random.choice(USER_AGENTS)
             driver = None
             domain_scraped_data = []
-            seen_urls = set() # Deduplication for this domain
+            seen_urls = set()
 
             try:
                 options = uc.ChromeOptions()
@@ -120,7 +122,7 @@ def scrape_amazon(brand, product):
                 options.add_argument("--log-level=3")
 
                 driver = uc.Chrome(options=options)
-                driver.set_page_load_timeout(60) # Increased timeout
+                driver.set_page_load_timeout(60)
                 _stealth_hook(driver, ua)
 
                 for current_page in range(1, max_pages + 1):
@@ -130,25 +132,24 @@ def scrape_amazon(brand, product):
                     else:
                         search_url = f"https://www.{domain}/s?k={query}&page={current_page}&ref=sr_pg_{current_page}"
                     
-                    print(f"  > Scraping Page {current_page} on {domain}...")
+                    print(f"> Scraping Page {current_page} on {domain}...")
 
                     try:
                         driver.get(search_url)
 
-                        # Polite delay between pages (Randomized)
                         time.sleep(random.uniform(3, 6))
 
                         html = driver.page_source
 
                         if "Enter the characters you see below" in html or "automated access" in html:
-                            print(f"    ! Block detected on page {current_page}. Stopping domain attempt.")
+                            print(f"! Block detected on page {current_page}. Stopping domain attempt.")
                             break
 
                         soup = BeautifulSoup(html, "html.parser")
                         product_cards = soup.select("div[data-component-type='s-search-result']")
 
                         if not product_cards:
-                            print(f"    > No products found on page {current_page}. Ending {domain}.")
+                            print(f"> No products found on page {current_page}. Ending {domain}.")
                             break
 
                         page_new_items = 0
