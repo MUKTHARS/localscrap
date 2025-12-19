@@ -5,7 +5,6 @@ from datetime import datetime
 from scrapers.utils import save_to_excel
 import gc
 
-# --- PROXY CONFIGURATION ---
 PROXY_HOST = "gate.decodo.com"  
 PROXY_PORT = "10001"             
 PROXY_USER = "sp7oukpich"    
@@ -41,7 +40,6 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
     return plugin_path
 
 def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages=50):
-    # 1. Create Proxy Extension
     session_id = random.randint(100000, 999999)
     session_user = f"{PROXY_USER}-session-{session_id}"
     proxy_plugin = create_proxy_auth_extension(
@@ -70,13 +68,11 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
     driver = None
     all_scraped_data = [] 
     
-    # --- DEDUPLICATION SET ---
     seen_urls = set()
 
     try:
         driver = uc.Chrome(options=options)
         
-        # Build base query
         if asin_number:
             keywords = [brand, product, asin_number]
         else:
@@ -84,7 +80,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
         
         base_query = "+".join([k for k in keywords if k])
 
-        # --- PAGINATION LOOP ---
         for current_page in range(1, max_pages + 1):
             print(f"Scraping Flipkart Page {current_page}...")
             
@@ -92,7 +87,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
             
             try:
                 driver.get(url)
-                time.sleep(random.uniform(2, 4)) # Randomized delay
+                time.sleep(2)
 
                 if "Something is wrong" in driver.page_source:
                     print(f"Soft block detected on page {current_page}. Stopping.")
@@ -108,7 +103,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
                 page_new_items = 0
 
                 for card in product_cards:
-                    # 1. Product URL
                     url_tag = (
                         card.select_one("a.k7wcnx") or
                         card.select_one("a.CIaYa1") or
@@ -121,18 +115,14 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
 
                     raw_url = "https://www.flipkart.com" + url_tag['href']
                     
-                    # --- URL CLEANING & DEDUPLICATION ---
-                    # Flipkart URLs look like: /product-name/p/itm12345?pid=...
-                    # We want to check uniqueness based on the base path (before '?')
                     clean_url_key = raw_url.split("?")[0]
                     
                     if clean_url_key in seen_urls:
-                        continue # Skip duplicate
+                        continue
                     
                     seen_urls.add(clean_url_key)
                     product_url = raw_url # We save the full URL, but check against the clean key
 
-                    # 2. Product Name
                     name_tag = (
                         card.select_one("div.RG5Slk") or
                         card.select_one("a.atJtCj") or
@@ -141,11 +131,9 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
                     )
                     name = name_tag.get_text(strip=True) if name_tag else "N/A"
 
-                    # Additional check for Sponsored text often hidden in other spans
                     if name.lower() in ["sponsored", "advertisement"]:
                         continue
 
-                    # 3. Price
                     price_tag = card.select_one("div.hZ3P6w")
                     raw_price = price_tag.text.strip() if price_tag else "0"
                     price_nums = re.findall(r'[\d,]+(?:\.\d+)?', raw_price)
@@ -161,7 +149,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
                     currency_match = re.search(r'([$€£₹]|Rs)', raw_price)
                     currency = currency_match.group(0) if currency_match else "₹"
 
-                    # 4. Rating
                     rating_tag = card.select_one("div.MKiFS6")
                     rating = rating_tag.text.strip() if rating_tag else "N/A"
 
@@ -182,7 +169,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
                 
                 print(f"  > Added {page_new_items} unique items from page {current_page}.")
 
-                # If the page loaded products, but ALL of them were duplicates, we are likely looping or at the end.
                 if page_new_items == 0 and len(product_cards) > 0:
                      print("  > Page contained only duplicates. Stopping.")
                      break
@@ -190,8 +176,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
             except Exception as e:
                 print(f"Error scraping page {current_page}: {str(e)}")
                 continue 
-
-        # --- LOOP ENDS ---
 
         if not all_scraped_data:
             return {"error": "No products found across all pages."}
