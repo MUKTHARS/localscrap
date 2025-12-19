@@ -87,7 +87,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
             
             try:
                 driver.get(url)
-                time.sleep(2)
+                time.sleep(3)
 
                 if "Something is wrong" in driver.page_source:
                     print(f"Soft block detected on page {current_page}. Stopping.")
