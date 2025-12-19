@@ -102,7 +102,7 @@ def scrape_amazon(brand, product):
                 options.add_argument(f"--user-agent={ua}")
 
                 driver = uc.Chrome(options=options)
-                wait = WebDriverWait(driver, 10) # Initialize Smart Wait
+                wait = WebDriverWait(driver, 15) # Initialize Smart Wait
 
                 driver.set_page_load_timeout(60)
                 _stealth_hook(driver, ua)
