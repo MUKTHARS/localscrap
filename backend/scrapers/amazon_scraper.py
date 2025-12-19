@@ -4,9 +4,6 @@ from bs4 import BeautifulSoup
 import time, random, re, zipfile, string
 from scrapers.utils import save_to_excel
 import gc
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 PROXY_HOST = "gate.decodo.com"
 PROXY_PORT = "10001"
@@ -30,6 +27,17 @@ def _stealth_hook(driver, user_agent):
         driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});")
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
         driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
+        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});")
+        driver.execute_script("window.chrome = { runtime: {}, loadTimes: function(){return {}} };")
+        driver.execute_script("""
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.__query = originalQuery;
+            window.navigator.permissions.query = (parameters) => (
+              parameters.name === 'notifications' ?
+                Promise.resolve({ state: Notification.permission }) :
+                originalQuery(parameters)
+            );
+        """)
     except Exception:
         pass
 
@@ -63,7 +71,7 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
     return plugin_path
 
 def scrape_amazon(brand, product):
-    max_retries = 2
+    max_retries = 3
     max_pages=100
     
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "amazon.in").strip()
@@ -92,19 +100,16 @@ def scrape_amazon(brand, product):
 
             try:
                 options = uc.ChromeOptions()
-                options.page_load_strategy = 'eager' 
                 options.add_argument("--headless=new")
                 options.add_argument("--no-sandbox")
                 options.add_argument("--disable-dev-shm-usage")
                 options.add_argument("--disable-gpu")
                 options.add_argument("--window-size=1920,1080")
-                options.add_argument("--blink-settings=imagesEnabled=false")  
                 options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
                 options.add_argument(f"--user-agent={ua}")
 
                 driver = uc.Chrome(options=options)
-                wait = WebDriverWait(driver, 10)
-                
+                driver.set_page_load_timeout(30)
                 _stealth_hook(driver, ua)
 
                 for current_page in range(1, max_pages + 1):
@@ -120,13 +125,6 @@ def scrape_amazon(brand, product):
                     
                     try:
                         driver.get(search_url)
-
-                        try:
-                            wait.until(
-                                EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-component-type='s-search-result']"))
-                            )
-                        except:
-                            pass
                         
                         if "Enter the characters you see below" in driver.page_source:
                             print(f"Block detected on page {current_page}. Stopping.")
