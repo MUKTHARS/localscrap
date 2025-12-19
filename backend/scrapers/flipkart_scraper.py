@@ -5,10 +5,10 @@ from datetime import datetime
 from scrapers.utils import save_to_excel
 import gc
 
-PROXY_HOST = "gate.decodo.com"  
-PROXY_PORT = "10001"             
-PROXY_USER = "sp7oukpich"    
-PROXY_PASS = "oHz7RSjbv1W7cafe+7"    
+PROXY_HOST = "gate.decodo.com"
+PROXY_PORT = "10001"         
+PROXY_USER = "sp7oukpich"
+PROXY_PASS = "oHz7RSjbv1W7cafe+7"  
 
 def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
     if plugin_path is None:
@@ -40,7 +40,7 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
     return plugin_path
 
 def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
-    max_pages=50
+    max_pages=100
     session_id = random.randint(100000, 999999)
     session_user = f"{PROXY_USER}-session-{session_id}"
     proxy_plugin = create_proxy_auth_extension(
