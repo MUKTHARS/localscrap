@@ -39,7 +39,8 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
         zp.writestr("background.js", background_js)
     return plugin_path
 
-def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages=50):
+def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
+    max_pages=50
     session_id = random.randint(100000, 999999)
     session_user = f"{PROXY_USER}-session-{session_id}"
     proxy_plugin = create_proxy_auth_extension(
@@ -87,7 +88,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
             
             try:
                 driver.get(url)
-                time.sleep(random.uniform(2, 4))
+                time.sleep(2)
 
                 if "Something is wrong" in driver.page_source:
                     print(f"Soft block detected on page {current_page}. Stopping.")
@@ -103,7 +104,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
                 page_new_items = 0
 
                 for card in product_cards:
-                    # 1. Product URL
                     url_tag = (
                         card.select_one("a.k7wcnx") or
                         card.select_one("a.CIaYa1") or
@@ -119,7 +119,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None, max_pages
                     clean_url_key = raw_url.split("?")[0]
                     
                     if clean_url_key in seen_urls:
-                        continue # Skip duplicate
+                        continue
                     
                     seen_urls.add(clean_url_key)
                     product_url = raw_url
