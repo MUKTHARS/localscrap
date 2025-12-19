@@ -110,7 +110,7 @@ def scrape_amazon(brand, product):
                     try:
                         driver.get(search_url)
                         
-                        # time.sleep(2)
+                        time.sleep(2)
                         
                         if "Enter the characters you see below" in driver.page_source:
                             print(f"Block detected on page {current_page}. Stopping.")
