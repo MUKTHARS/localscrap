@@ -12,6 +12,7 @@ PROXY_PASS = "oHz7RSjbv1W7cafe+7"
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
 ]
 
@@ -71,8 +72,8 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
     return plugin_path
 
 def scrape_amazon(brand, product):
-    max_retries = 2
-    max_pages=100
+    max_retries = 3
+    max_pages=50
     
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "amazon.in").strip()
     domains_to_try = [selected_domain] 
