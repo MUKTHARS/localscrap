@@ -72,7 +72,7 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
         zp.writestr("background.js", background_js)
     return plugin_path
 
-def scrape_amazon(brand, product, oem_number=None, asin_number=None):
+def scrape_amazon(brand, product):
     max_pages=50
     max_retries = 2
     
