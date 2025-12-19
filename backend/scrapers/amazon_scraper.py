@@ -25,13 +25,13 @@ AMAZON_DOMAINS = [
     "amazon.se", "amazon.pl", "amazon.co.jp", "amazon.cn"
 ]
 
-# def _stealth_hook(driver, user_agent):
-#     try:
-#         driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});")
-#         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
-#         driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
-#     except Exception:
-#         pass
+def _stealth_hook(driver, user_agent):
+    try:
+        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});")
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
+        driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
+    except Exception:
+        pass
 
 def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
     if plugin_path is None:
@@ -105,7 +105,7 @@ def scrape_amazon(brand, product):
                 driver = uc.Chrome(options=options)
                 wait = WebDriverWait(driver, 10)
                 
-                # _stealth_hook(driver, ua)
+                _stealth_hook(driver, ua)
 
                 for current_page in range(1, max_pages + 1):
                     
@@ -132,7 +132,7 @@ def scrape_amazon(brand, product):
                             print(f"Block detected on page {current_page}. Stopping.")
                             break
 
-                        soup = BeautifulSoup(driver.page_source, "lxml")
+                        soup = BeautifulSoup(driver.page_source, "html.parser")
                         product_cards = soup.select("div[data-component-type='s-search-result']")
 
                         if not product_cards:
