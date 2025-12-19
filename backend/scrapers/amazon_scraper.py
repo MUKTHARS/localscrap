@@ -72,7 +72,8 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
         zp.writestr("background.js", background_js)
     return plugin_path
 
-def scrape_amazon(brand, product, oem_number=None, asin_number=None, max_pages=10):
+def scrape_amazon(brand, product, oem_number=None, asin_number=None):
+    max_pages=50
     max_retries = 2
     
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "amazon.in").strip()
@@ -150,9 +151,9 @@ def scrape_amazon(brand, product, oem_number=None, asin_number=None, max_pages=1
                             product_url = f"https://www.{domain}" + url_tag["href"]
 
                             if product_url in seen_urls:
-                                continue  # Skip this loop iteration if we have seen this URL
-                            
-                            seen_urls.add(product_url) # Mark as seen
+                                continue
+                                
+                            seen_urls.add(product_url)
 
                             name_tag = card.select_one("h2.a-size-base-plus") or \
                                        card.select_one("h2.a-size-medium")
