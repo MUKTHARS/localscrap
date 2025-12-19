@@ -15,7 +15,12 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15"
 ]
 
-AMAZON_DOMAINS = ["amazon.in", "amazon.com", "amazon.co.uk", "amazon.de"]
+AMAZON_DOMAINS = [
+    "amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr", "amazon.it",
+    "amazon.es", "amazon.ca", "amazon.in", "amazon.com.mx", "amazon.com.br",
+    "amazon.com.au", "amazon.ae", "amazon.sa", "amazon.sg", "amazon.nl",
+    "amazon.se", "amazon.pl", "amazon.co.jp", "amazon.cn"
+]
 
 def _stealth_hook(driver, user_agent):
     try:
