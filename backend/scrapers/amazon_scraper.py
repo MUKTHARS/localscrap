@@ -68,16 +68,6 @@ def scrape_amazon(brand, product):
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "").strip() or None
     domains_to_try = [selected_domain] if selected_domain else AMAZON_DOMAINS
 
-    session_id = random.randint(100000, 999999)
-    session_user = f"{PROXY_USER}-session-{session_id}"
-    
-    proxy_plugin = create_proxy_auth_extension(
-        host=PROXY_HOST,
-        port=PROXY_PORT,
-        user=session_user,
-        password=PROXY_PASS
-    )
-
     driver = None
 
     try:
@@ -87,6 +77,15 @@ def scrape_amazon(brand, product):
             print(f"Trying domain: {domain}")
             
             for attempt in range(1, max_retries + 1):
+                session_id = random.randint(100000, 999999)
+                session_user = f"{PROXY_USER}-session-{session_id}"
+                
+                proxy_plugin = create_proxy_auth_extension(
+                    host=PROXY_HOST,
+                    port=PROXY_PORT,
+                    user=session_user,
+                    password=PROXY_PASS
+                )
                 try:
                     options = uc.ChromeOptions()
                     
@@ -99,7 +98,7 @@ def scrape_amazon(brand, product):
                     options.add_argument("--disable-popup-blocking")
                     
                     driver = uc.Chrome(options=options)
-                    driver.set_page_load_timeout(45)
+                    # driver.set_page_load_timeout(45)
                                             
                     base_query = "+".join([k for k in [brand, product] if k])
                     
@@ -109,26 +108,26 @@ def scrape_amazon(brand, product):
                         search_url = f"https://www.{domain}/s?k={base_query}&page={current_page}"
                         driver.get(search_url)
 
-                        for _ in range(random.randint(2, 4)):
-                            scroll_amount = random.randint(300, 800)
-                            driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
-                            time.sleep(random.uniform(0.5, 1.5))
+                        # for _ in range(random.randint(2, 4)):
+                        #     scroll_amount = random.randint(300, 800)
+                        #     driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+                        #     time.sleep(random.uniform(0.5, 1.5))
                         
-                        driver.execute_script("window.scrollBy(0, -300);")
-                        time.sleep(random.uniform(1, 2))
+                        # driver.execute_script("window.scrollBy(0, -300);")
+                        # time.sleep(random.uniform(1, 2))
 
                         html = driver.page_source
                         
                         if "Enter the characters" in html or "Type the characters" in html:
-                            print(f"⚠️ CAPTCHA detected on page {current_page}. Dumping screenshot...")
+                            print(f"⚠️ CAPTCHA detected on page {current_page}.")
                             
-                            time.sleep(5)
-                            driver.refresh()
-                            time.sleep(5)
+                            # time.sleep(5)
+                            # driver.refresh()
+                            # time.sleep(5)
                             
-                            if "Enter the characters" in driver.page_source:
-                                print("Captcha persists. Switching session...")
-                                raise Exception("Captcha persistence")
+                            # if "Enter the characters" in driver.page_source:
+                            #     print("Captcha persists. Switching session...")
+                            #     raise Exception("Captcha persistence")
 
                         soup = BeautifulSoup(html, "html.parser")
                         
@@ -208,7 +207,7 @@ def scrape_amazon(brand, product):
                         print(f"  > Added {page_new_items} items.")
                         if page_new_items == 0: break
                         
-                        time.sleep(random.uniform(2, 5))
+                        # time.sleep(random.uniform(2, 5))
 
                     if all_scraped_data: break
                 
