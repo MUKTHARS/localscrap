@@ -124,7 +124,6 @@ def scrape_amazon(brand, product):
 
                             if "Enter the characters" in driver.page_source:
                                 print("Captcha persists. Switching session...")
-                                driver.save_screenshot(f"debug_logs/captcha_{domain}_{session_id}.png")
                                 raise Exception("Captcha persistence")
 
                         soup = BeautifulSoup(html, "html.parser")
