@@ -137,7 +137,6 @@ def scrape_amazon(brand, product):
                         page_new_items = 0
 
                         for card in product_cards:
-                            # Optimized extraction (less checks)
                             try:
                                 url_tag = card.select_one("a.a-link-normal.s-underline-text") or card.select_one("h2 a")
                                 if not url_tag: continue
@@ -158,7 +157,6 @@ def scrape_amazon(brand, product):
                                 currency = "NA"
 
                                 if raw_price != "NA":
-                                    # Fast regex cleanup
                                     currency_match = re.search(r'[\$€£₹¥]', raw_price)
                                     currency = currency_match.group(0) if currency_match else "$"
                                     
