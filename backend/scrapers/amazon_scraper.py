@@ -114,7 +114,7 @@ def scrape_amazon(brand, product):
                             time.sleep(random.uniform(0.5, 1.5))
                         
                         driver.execute_script("window.scrollBy(0, -300);")
-                        time.sleep(2)
+                        # time.sleep(2)
 
                         html = driver.page_source
                         
