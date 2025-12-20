@@ -597,39 +597,45 @@ const Dashboard = () => {
             </div>
 
             {/* --- FILTER BAR --- */}
-            <div className="feature-card filter-card" style={{ marginBottom: '20px', padding: '15px' }}>
-              <div className="form-row" style={{ alignItems: 'flex-end', gap: '15px' }}>
-
-                {/* Brand/Product Filter */}
+            <div className="feature-card filter-card" style={{ marginBottom: '20px', padding: '12px 20px' }}>
+              <div className="form-row" style={{ alignItems: 'flex-end', gap: '15px', margin: 0 }}>
+                
+                {/* 1. Keyword Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label">Filter by Keyword</label>
+                  <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
+                    Keyword
+                  </label>
                   <div className="input-wrapper">
                     <input
                       type="text"
                       name="keyword"
                       className="form-input"
-                      placeholder="Brand or Product..."
+                      placeholder="Search brand or product..."
                       value={filters.keyword}
                       onChange={handleFilterChange}
+                      style={{ height: '40px', paddingLeft: '35px', fontSize: '0.9rem' }}
                     />
-                    <div className="input-icon">
-                      <i className="bi bi-search"></i>
+                    <div className="input-icon" style={{ height: '40px', lineHeight: '40px', width: '35px' }}>
+                      <i className="bi bi-search" style={{ fontSize: '0.9rem' }}></i>
                     </div>
                   </div>
                 </div>
 
-                {/* Website Filter */}
+                {/* 2. Website Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label">Filter by Website</label>
+                  <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
+                    Website
+                  </label>
                   <div className="input-wrapper">
-                    <div className="input-icon">
-                      <i className="bi bi-funnel"></i>
+                    <div className="input-icon" style={{ height: '40px', lineHeight: '40px', width: '35px' }}>
+                      <i className="bi bi-funnel" style={{ fontSize: '0.9rem' }}></i>
                     </div>
                     <select
                       name="website"
                       className="form-select"
                       value={filters.website}
                       onChange={handleFilterChange}
+                      style={{ height: '40px', paddingLeft: '35px', fontSize: '0.9rem' }}
                     >
                       <option value="">All Websites</option>
                       <option value="amazon">Amazon</option>
@@ -643,20 +649,23 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Price Filter */}
+                {/* 3. Price Filter (Updated Icon) */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label">Max Price</label>
+                  <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
+                    Max Price
+                  </label>
                   <div className="input-wrapper">
                     <input
                       type="number"
                       name="maxPrice"
                       className="form-input"
-                      placeholder="Enter amount..."
+                      placeholder="0.00"
                       value={filters.maxPrice}
                       onChange={handleFilterChange}
+                      style={{ height: '40px', paddingLeft: '35px', fontSize: '0.9rem' }}
                     />
-                    <div className="input-icon">
-                      <i className="bi bi-currency-dollar"></i>
+                    <div className="input-icon" style={{ height: '40px', lineHeight: '40px', width: '35px' }}>
+                      <i className="bi bi-cash" style={{ fontSize: '0.9rem' }}></i>
                     </div>
                   </div>
                 </div>
