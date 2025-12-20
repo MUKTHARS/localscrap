@@ -645,6 +645,10 @@ const Dashboard = () => {
                       <option value="amitretail">Amit Retail</option>
                       <option value="noon">Noon</option>
                       <option value="sharafdg">Sharaf DG</option>
+                      <option value="ntsuae">NTS UAE</option>
+                      <option value="seazoneuae">Seazone UAE</option>
+                      <option value="empiremarine">Empire Marine</option>
+                      <option value="climaxmarine">Climax Marine</option>
                     </select>
                   </div>
                 </div>
