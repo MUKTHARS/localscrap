@@ -12,8 +12,7 @@ const Dashboard = () => {
     oem_number: '',
     asin_number: '',
     website: '',
-    amazon_country: 'amazon.com',
-    exact_match: false
+    amazon_country: 'amazon.com'
   });
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
@@ -26,7 +25,7 @@ const Dashboard = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const { user } = useAuth();
 
-  // --- Filter State ---
+  // --- Filter State (New) ---
   const [filters, setFilters] = useState({
     keyword: '',
     website: '',
@@ -39,10 +38,9 @@ const Dashboard = () => {
   // --- Handlers ---
 
   const handleChange = (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({
       ...formData,
-      [e.target.name]: value
+      [e.target.name]: e.target.value
     });
   };
 
@@ -132,8 +130,6 @@ const Dashboard = () => {
       const uploadFormData = new FormData();
       uploadFormData.append('file', selectedFile);
       uploadFormData.append('amazon_country', bulkAmazonCountry || 'amazon.com');
-      // Pass the exact_match setting for bulk uploads as well (optional, requires backend support)
-      uploadFormData.append('exact_match', formData.exact_match);
 
       console.log('🟡 Sending bulk upload with Amazon domain:', bulkAmazonCountry);
 
@@ -166,6 +162,7 @@ const Dashboard = () => {
   };
 
   const exportToCSV = () => {
+    // We export filtered results to match what the user sees
     const headers = [
       'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
       'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
@@ -192,19 +189,24 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
-  // --- Filtering Logic (Memoized) ---
+  // --- Filtering Logic (Memoized for Performance) ---
   const filteredResults = useMemo(() => {
     return results.filter(item => {
+      // 1. Keyword Filter (Brand or Product or Product Name)
       const searchTerm = filters.keyword.toLowerCase();
       const matchesKeyword =
         (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
         (item.PRODUCT?.toLowerCase() || '').includes(searchTerm) ||
         (item['PRODUCT NAME']?.toLowerCase() || '').includes(searchTerm);
 
+      // 2. Website Filter
       const matchesWebsite = filters.website === '' ||
         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
+      // 3. Price Filter (Clean currency symbols like $ or ₹ before comparing)
+      // Extracts numbers from string, e.g., "$1,200.00" -> 1200.00
       let priceValue = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
+      // If parsing fails (NaN), treat as 0
       if (isNaN(priceValue)) priceValue = 0;
 
       const maxPrice = parseFloat(filters.maxPrice);
@@ -295,46 +297,6 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* --- UI FIX: ROBUST CHECKBOX LAYOUT --- */}
-                <div className="form-group" style={{ margin: '15px 0' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <input
-                      type="checkbox"
-                      id="exact_match"
-                      name="exact_match"
-                      checked={formData.exact_match}
-                      onChange={handleChange}
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        cursor: 'pointer',
-                        marginTop: '3px',
-                        accentColor: '#6c5ce7', // Matches your purple button
-                        flexShrink: 0
-                      }}
-                    />
-                    <div>
-                      <label 
-                        htmlFor="exact_match" 
-                        style={{ 
-                          display: 'block',
-                          fontSize: '0.95rem', 
-                          color: '#333', 
-                          fontWeight: '600', 
-                          cursor: 'pointer',
-                          marginBottom: '4px'
-                        }}
-                      >
-                        Enable Exact Match
-                      </label>
-                      <small style={{ display: 'block', color: '#666', fontSize: '0.85rem', lineHeight: '1.4' }}>
-                        Strictly matches keywords (e.g., searches for "iPhone 16" will exclude cases/covers)
-                      </small>
-                    </div>
-                  </div>
-                </div>
-                {/* -------------------------------------- */}
 
                 <div className="form-row">
                   <div className="form-group">
@@ -691,7 +653,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* 3. Price Filter */}
+                {/* 3. Price Filter (Updated Icon) */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
                     Max Price
@@ -822,6 +784,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
 // import React, { useState, useCallback } from 'react';
 // import api from '../utils/apiConfig'; // Use this consistently
