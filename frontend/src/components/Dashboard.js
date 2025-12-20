@@ -13,7 +13,7 @@ const Dashboard = () => {
     asin_number: '',
     website: '',
     amazon_country: 'amazon.com',
-    exact_match: false // <--- CHANGE 1: Added exact_match state
+    exact_match: false
   });
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
@@ -26,7 +26,7 @@ const Dashboard = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const { user } = useAuth();
 
-  // --- Filter State (New) ---
+  // --- Filter State ---
   const [filters, setFilters] = useState({
     keyword: '',
     website: '',
@@ -39,9 +39,7 @@ const Dashboard = () => {
   // --- Handlers ---
 
   const handleChange = (e) => {
-    // <--- CHANGE 2: Handle Checkbox inputs differently (checked vs value)
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    
     setFormData({
       ...formData,
       [e.target.name]: value
@@ -62,7 +60,6 @@ const Dashboard = () => {
     setResults([]);
 
     try {
-      // formData now includes 'exact_match': true/false
       const response = await api.post('/scrape', formData);
       if (response.data.error) {
         setError(response.data.error);
@@ -135,6 +132,8 @@ const Dashboard = () => {
       const uploadFormData = new FormData();
       uploadFormData.append('file', selectedFile);
       uploadFormData.append('amazon_country', bulkAmazonCountry || 'amazon.com');
+      // Pass the exact_match setting for bulk uploads as well (optional, requires backend support)
+      uploadFormData.append('exact_match', formData.exact_match);
 
       console.log('🟡 Sending bulk upload with Amazon domain:', bulkAmazonCountry);
 
@@ -193,21 +192,18 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
-  // --- Filtering Logic (Memoized for Performance) ---
+  // --- Filtering Logic (Memoized) ---
   const filteredResults = useMemo(() => {
     return results.filter(item => {
-      // 1. Keyword Filter
       const searchTerm = filters.keyword.toLowerCase();
       const matchesKeyword =
         (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
         (item.PRODUCT?.toLowerCase() || '').includes(searchTerm) ||
         (item['PRODUCT NAME']?.toLowerCase() || '').includes(searchTerm);
 
-      // 2. Website Filter
       const matchesWebsite = filters.website === '' ||
         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
-      // 3. Price Filter
       let priceValue = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
       if (isNaN(priceValue)) priceValue = 0;
 
@@ -300,37 +296,43 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* --- CHANGE 3: EXACT MATCH CHECKBOX --- */}
-                <div className="form-group">
-                  <label 
-                    className="checkbox-container" 
-                    style={{
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      cursor: 'pointer', 
-                      gap: '10px',
-                      padding: '8px 0'
-                    }}
-                  >
-                    <input 
-                      type="checkbox" 
-                      name="exact_match" 
-                      checked={formData.exact_match} 
+                {/* --- UI FIX: ROBUST CHECKBOX LAYOUT --- */}
+                <div className="form-group" style={{ margin: '15px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <input
+                      type="checkbox"
+                      id="exact_match"
+                      name="exact_match"
+                      checked={formData.exact_match}
                       onChange={handleChange}
                       style={{
-                        width: '18px', 
-                        height: '18px', 
-                        accentColor: '#4a90e2',
-                        cursor: 'pointer'
+                        width: '20px',
+                        height: '20px',
+                        cursor: 'pointer',
+                        marginTop: '3px',
+                        accentColor: '#6c5ce7', // Matches your purple button
+                        flexShrink: 0
                       }}
                     />
-                    <span style={{fontSize: '0.95rem', color: '#333', fontWeight: '500'}}>
-                      Enable Exact Match
-                    </span>
-                  </label>
-                  <small className="form-help" style={{marginLeft: '28px', display:'block', color: '#666'}}>
-                    Strictly matches keywords (e.g., searches for "iPhone 16" will exclude cases/covers)
-                  </small>
+                    <div>
+                      <label 
+                        htmlFor="exact_match" 
+                        style={{ 
+                          display: 'block',
+                          fontSize: '0.95rem', 
+                          color: '#333', 
+                          fontWeight: '600', 
+                          cursor: 'pointer',
+                          marginBottom: '4px'
+                        }}
+                      >
+                        Enable Exact Match
+                      </label>
+                      <small style={{ display: 'block', color: '#666', fontSize: '0.85rem', lineHeight: '1.4' }}>
+                        Strictly matches keywords (e.g., searches for "iPhone 16" will exclude cases/covers)
+                      </small>
+                    </div>
+                  </div>
                 </div>
                 {/* -------------------------------------- */}
 
