@@ -12,7 +12,8 @@ const Dashboard = () => {
     oem_number: '',
     asin_number: '',
     website: '',
-    amazon_country: 'amazon.com'
+    amazon_country: 'amazon.com',
+    exact_match: false // <--- CHANGE 1: Added exact_match state
   });
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
@@ -38,9 +39,12 @@ const Dashboard = () => {
   // --- Handlers ---
 
   const handleChange = (e) => {
+    // <--- CHANGE 2: Handle Checkbox inputs differently (checked vs value)
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     });
   };
 
@@ -58,6 +62,7 @@ const Dashboard = () => {
     setResults([]);
 
     try {
+      // formData now includes 'exact_match': true/false
       const response = await api.post('/scrape', formData);
       if (response.data.error) {
         setError(response.data.error);
@@ -162,7 +167,6 @@ const Dashboard = () => {
   };
 
   const exportToCSV = () => {
-    // We export filtered results to match what the user sees
     const headers = [
       'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
       'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
@@ -192,7 +196,7 @@ const Dashboard = () => {
   // --- Filtering Logic (Memoized for Performance) ---
   const filteredResults = useMemo(() => {
     return results.filter(item => {
-      // 1. Keyword Filter (Brand or Product or Product Name)
+      // 1. Keyword Filter
       const searchTerm = filters.keyword.toLowerCase();
       const matchesKeyword =
         (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
@@ -203,10 +207,8 @@ const Dashboard = () => {
       const matchesWebsite = filters.website === '' ||
         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
-      // 3. Price Filter (Clean currency symbols like $ or ₹ before comparing)
-      // Extracts numbers from string, e.g., "$1,200.00" -> 1200.00
+      // 3. Price Filter
       let priceValue = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
-      // If parsing fails (NaN), treat as 0
       if (isNaN(priceValue)) priceValue = 0;
 
       const maxPrice = parseFloat(filters.maxPrice);
@@ -297,6 +299,40 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* --- CHANGE 3: EXACT MATCH CHECKBOX --- */}
+                <div className="form-group">
+                  <label 
+                    className="checkbox-container" 
+                    style={{
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      cursor: 'pointer', 
+                      gap: '10px',
+                      padding: '8px 0'
+                    }}
+                  >
+                    <input 
+                      type="checkbox" 
+                      name="exact_match" 
+                      checked={formData.exact_match} 
+                      onChange={handleChange}
+                      style={{
+                        width: '18px', 
+                        height: '18px', 
+                        accentColor: '#4a90e2',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <span style={{fontSize: '0.95rem', color: '#333', fontWeight: '500'}}>
+                      Enable Exact Match
+                    </span>
+                  </label>
+                  <small className="form-help" style={{marginLeft: '28px', display:'block', color: '#666'}}>
+                    Strictly matches keywords (e.g., searches for "iPhone 16" will exclude cases/covers)
+                  </small>
+                </div>
+                {/* -------------------------------------- */}
 
                 <div className="form-row">
                   <div className="form-group">
@@ -653,7 +689,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* 3. Price Filter (Updated Icon) */}
+                {/* 3. Price Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
                     Max Price
