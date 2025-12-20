@@ -40,7 +40,7 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
     return plugin_path
 
 def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
-    max_pages=100
+    max_pages=25
     session_id = random.randint(100000, 999999)
     session_user = f"{PROXY_USER}-session-{session_id}"
     proxy_plugin = create_proxy_auth_extension(
