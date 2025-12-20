@@ -7,6 +7,8 @@ from selenium.webdriver.common.by import By
 from scrapers.utils import save_to_excel 
 import gc
 
+from pyvirtualdisplay import Display
+
 PROXY_HOST = "gate.decodo.com"
 PROXY_PORT = "10001"
 PROXY_USER = "sp7oukpich"
@@ -55,10 +57,17 @@ def create_proxy_auth_extension(host, port, user, password, scheme='http', plugi
     return plugin_path
 
 def scrape_amazon(brand, product):
+    display = Display(visible=0, size=(1920, 1080))
+    display.start()
+
     max_retries = 3
     max_pages = 25
     all_scraped_data = []
     seen_urls = set()
+    
+    # Ensure debug directory exists for screenshots
+    if not os.path.exists("debug_logs"):
+        os.makedirs("debug_logs")
 
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "").strip() or None
     domains_to_try = [selected_domain] if selected_domain else AMAZON_DOMAINS
@@ -84,20 +93,18 @@ def scrape_amazon(brand, product):
             for attempt in range(1, max_retries + 1):
                 try:
                     options = uc.ChromeOptions()
-                    options.add_argument("--headless=new") 
-                    options.add_argument("--no-sandbox")
+                    
+                    options.add_argument("--no-sandbox") 
                     options.add_argument("--disable-dev-shm-usage")
                     options.add_argument("--disable-gpu")
-                    w = random.randint(1300, 1920)
-                    h = random.randint(900, 1080)
-                    options.add_argument(f"--window-size={w},{h}")
+                    options.add_argument("--start-maximized")
                     
                     options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
                     options.add_argument("--disable-popup-blocking")
                     
                     driver = uc.Chrome(options=options)
                     driver.set_page_load_timeout(60)
-                                        
+                                            
                     base_query = "+".join([k for k in [brand, product] if k])
                     
                     for current_page in range(1, max_pages + 1):
@@ -117,11 +124,13 @@ def scrape_amazon(brand, product):
                         html = driver.page_source
                         
                         if "Enter the characters" in html or "Type the characters" in html:
-                            print(f"⚠️ CAPTCHA detected on page {current_page}. Refreshing...")
-                            time.sleep(random.uniform(3, 5))
+                            print(f"⚠️ CAPTCHA detected on page {current_page}. Dumping screenshot...")
+                            driver.save_screenshot(f"debug_logs/captcha_{domain}_{attempt}.png")
+                            
+                            time.sleep(5)
                             driver.refresh()
                             time.sleep(5)
-
+                            
                             if "Enter the characters" in driver.page_source:
                                 print("Captcha persists. Switching session...")
                                 raise Exception("Captcha persistence")
@@ -162,9 +171,9 @@ def scrape_amazon(brand, product):
 
                             if raw_price and raw_price != "NA":
                                 raw = raw_price.replace("\xa0", "").replace(" ", "")
-                                # Remove weird chars
                                 raw = re.sub(r'[^\d.,]', '', raw)
                                 
+                                # European decimal handling
                                 if re.search(r',\d{2}$', raw): 
                                     raw = raw.replace(".", "").replace(",", ".")
                                 else:
@@ -224,7 +233,7 @@ def scrape_amazon(brand, product):
             except: pass
             return {"data": all_scraped_data}
         else:
-            return {"error": "No products found across all domains."}
+            return {"error": "No products found across all domains. Check debug_logs."}
 
     except Exception as e:
         return {"error": str(e)}
@@ -233,6 +242,11 @@ def scrape_amazon(brand, product):
         if os.path.exists(proxy_plugin):
             try: os.remove(proxy_plugin)
             except: pass
+        
+        # Stop the virtual display to free up memory
+        try: display.stop()
+        except: pass
+        
         gc.collect()
 
 # import os
