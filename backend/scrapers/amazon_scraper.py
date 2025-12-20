@@ -79,7 +79,7 @@ def scrape_amazon(brand, product):
             for attempt in range(1, max_retries + 1):
                 session_id = random.randint(100000, 999999)
                 session_user = f"{PROXY_USER}-session-{session_id}"
-                
+                print(f"Attempt {attempt}/{max_retries} with Session ID: {session_id}")
                 proxy_plugin = create_proxy_auth_extension(
                     host=PROXY_HOST,
                     port=PROXY_PORT,
@@ -114,7 +114,7 @@ def scrape_amazon(brand, product):
                         #     time.sleep(random.uniform(0.5, 1.5))
                         
                         # driver.execute_script("window.scrollBy(0, -300);")
-                        # time.sleep(random.uniform(1, 2))
+                        time.sleep(2)
 
                         html = driver.page_source
                         
