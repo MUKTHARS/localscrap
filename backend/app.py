@@ -70,7 +70,7 @@ app.config.update({
     "REMEMBER_COOKIE_SAMESITE": "Lax",
     "REMEMBER_COOKIE_SECURE": True,
     "REMEMBER_COOKIE_DOMAIN": "tutomart.com",
-    "PERMANENT_SESSION_LIFETIME": timedelta(days=7) # Sessions last 7 days
+    "PERMANENT_SESSION_LIFETIME": timedelta(days=7)  # Sessions last 7 days
 })
 
 CORS(app,
