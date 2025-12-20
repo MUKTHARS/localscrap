@@ -89,8 +89,8 @@ def scrape_sharafdg(brand, product, oem_number=None, asin_number=None):
             try:
                 driver.get(url)
                 
-                driver.execute_script("window.scrollTo(0, 500);")
-                time.sleep(2)
+                # driver.execute_script("window.scrollTo(0, 500);")
+                # time.sleep(2)
 
                 soup = BeautifulSoup(driver.page_source, "html.parser")
                 product_cards = soup.select("div.product-wrapper")
