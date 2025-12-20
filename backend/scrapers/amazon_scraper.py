@@ -98,7 +98,7 @@ def scrape_amazon(brand, product):
                     options.add_argument("--disable-popup-blocking")
                     
                     driver = uc.Chrome(options=options)
-                    # driver.set_page_load_timeout(45)
+                    driver.set_page_load_timeout(45)
                                             
                     base_query = "+".join([k for k in [brand, product] if k])
                     
@@ -167,7 +167,6 @@ def scrape_amazon(brand, product):
                                 raw = raw_price.replace("\xa0", "").replace(" ", "")
                                 raw = re.sub(r'[^\d.,]', '', raw)
                                 
-                                # European decimal handling
                                 if re.search(r',\d{2}$', raw): 
                                     raw = raw.replace(".", "").replace(",", ".")
                                 else:
