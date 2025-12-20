@@ -95,7 +95,7 @@ def scrape_amitretail(brand, product, oem_number=None, asin_number=None):
                     print(f"Page {current_page} not found. Ending scrape.")
                     break
 
-                time.sleep(2)
+                # time.sleep(2)
 
                 soup = BeautifulSoup(driver.page_source, "html.parser")
                 product_cards = soup.select("li.product-col")
