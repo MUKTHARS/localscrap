@@ -161,7 +161,6 @@ def scrape_amazon(brand, product):
                                     currency = currency_match.group(0) if currency_match else "$"
                                     
                                     clean_price = re.sub(r'[^\d.,]', '', raw_price)
-                                    # Simple logic: if comma is last separator -> European
                                     if clean_price.rfind(',') > clean_price.rfind('.'):
                                         clean_price = clean_price.replace(".", "").replace(",", ".")
                                     else:
