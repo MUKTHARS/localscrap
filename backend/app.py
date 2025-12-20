@@ -519,12 +519,20 @@ def scrape_products():
     temp_file_path = None
 
     try:
+        # ==========================================
+        # 1. BULK SEARCH LOGIC
+        # ==========================================
         if 'file' in request.files:
             file = request.files['file']
             if file.filename == '':
                 return jsonify({"error": "No file selected"}), 400
 
             amazon_domain = request.form.get('amazon_country', 'amazon.com').strip().lower() or "amazon.com"
+            
+            # --- Capture exact_match from Form Data (String to Boolean) ---
+            exact_match_str = request.form.get('exact_match', 'false').lower()
+            exact_match = exact_match_str == 'true'
+            # -------------------------------------------------------------
 
             ext = os.path.splitext(file.filename)[1].lower()
             allowed = ['.csv', '.xlsx', '.xls']
@@ -581,11 +589,29 @@ def scrape_products():
                                 data = scraper(brand, product, oem, asin)
 
                             if isinstance(data, dict) and "error" in data:
-                                error = data["error"]
+                                # Don't stop bulk for one error
+                                pass 
                             else:
-                                for d in data.get("data", []):
-                                    d["WEBSITE"] = site_name.capitalize()
-                                    results.append(d)
+                                # --- BULK FILTERING: PER ROW ---
+                                # Because 'product' changes every row, we must filter here
+                                row_data = data.get("data", [])
+                                
+                                if exact_match and row_data:
+                                    search_terms = product.lower().split()
+                                    filtered_row_data = []
+                                    for item in row_data:
+                                        item_name = str(item.get('PRODUCT NAME', '')).lower()
+                                        if all(term in item_name for term in search_terms):
+                                            item["WEBSITE"] = site_name.capitalize()
+                                            filtered_row_data.append(item)
+                                    # Add filtered items
+                                    results.extend(filtered_row_data)
+                                else:
+                                    # Standard behavior
+                                    for d in row_data:
+                                        d["WEBSITE"] = site_name.capitalize()
+                                        results.append(d)
+                                # -------------------------------
 
                             if site_name == "amazon":
                                 time.sleep(random.uniform(10, 25))
@@ -600,6 +626,9 @@ def scrape_products():
                 if temp_file_path and os.path.exists(temp_file_path):
                     os.unlink(temp_file_path)
 
+        # ==========================================
+        # 2. MANUAL SEARCH LOGIC
+        # ==========================================
         else:
             data = request.get_json()
             if not data:
@@ -611,6 +640,10 @@ def scrape_products():
             oem = data.get("oem_number", "").strip()
             asin = data.get("asin_number", "").strip()
             amazon_domain = data.get("amazon_country", "amazon.com").strip() or "amazon.com"
+            
+            # --- Capture exact_match from JSON ---
+            exact_match = data.get("exact_match", False)
+            # -------------------------------------
 
             if brand and product:
                 search = SearchHistory(
@@ -651,7 +684,9 @@ def scrape_products():
                     if not isinstance(data, dict): continue
 
                     if isinstance(data, dict) and "error" in data:
-                        error = data["error"]
+                        # Log error but don't fail entire request if other sites might work
+                        # error = data["error"] 
+                        pass
                     else:
                         for d in data.get("data", []):
                             d["WEBSITE"] = site.capitalize()
@@ -663,6 +698,22 @@ def scrape_products():
                 except Exception as scrape_error:
                     logger.exception(f"Error scraping {site}: {scrape_error}")
                     continue
+
+            # --- MANUAL FILTERING: POST SCRAPE ---
+            if exact_match and results:
+                search_terms = product.lower().split()
+                filtered_results = []
+                for item in results:
+                    item_name = str(item.get('PRODUCT NAME', '')).lower()
+                    # Check if ALL words in search query exist in product title
+                    if all(term in item_name for term in search_terms):
+                        filtered_results.append(item)
+                
+                results = filtered_results
+                
+                if not results:
+                    error = "No exact matches found. Try disabling 'Exact Match'."
+            # -------------------------------------
 
         if not results and not error:
             error = "No results found."
