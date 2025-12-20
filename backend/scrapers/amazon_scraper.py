@@ -108,12 +108,12 @@ def scrape_amazon(brand, product):
                         search_url = f"https://www.{domain}/s?k={base_query}&page={current_page}"
                         driver.get(search_url)
 
-                        # for _ in range(random.randint(2, 4)):
-                        #     scroll_amount = random.randint(300, 800)
-                        #     driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
-                        #     time.sleep(random.uniform(0.5, 1.5))
+                        for _ in range(random.randint(2, 4)):
+                            scroll_amount = random.randint(300, 800)
+                            driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+                            time.sleep(random.uniform(0.5, 1.5))
                         
-                        # driver.execute_script("window.scrollBy(0, -300);")
+                        driver.execute_script("window.scrollBy(0, -300);")
                         time.sleep(2)
 
                         html = driver.page_source
