@@ -136,6 +136,7 @@ def scrape_amazon(brand, product):
                         
                         search_url = f"https://www.{domain}/s?k={base_query}&page={current_page}"
                         driver.get(search_url)
+                        time.sleep(2)
 
                         html = driver.page_source
                         if "Enter the characters you see below" in html or "automated access" in html:
