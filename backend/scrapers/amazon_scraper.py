@@ -29,24 +29,24 @@ AMAZON_DOMAINS = [
     "amazon.se", "amazon.pl", "amazon.co.jp", "amazon.cn"
 ]
 
-# def _stealth_hook(driver, user_agent):
-#     try:
-#         driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});")
-#         driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});")
-#         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
-#         driver.execute_script("window.chrome = { runtime: {}, loadTimes: function(){return {}} };")
-#         driver.execute_script("""
-#             const originalQuery = window.navigator.permissions.query;
-#             window.navigator.permissions.__query = originalQuery;
-#             window.navigator.permissions.query = (parameters) => (
-#               parameters.name === 'notifications' ?
-#                 Promise.resolve({ state: Notification.permission }) :
-#                 originalQuery(parameters)
-#             );
-#         """)
-#         driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
-#     except Exception:
-#         pass
+def _stealth_hook(driver, user_agent):
+    try:
+        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});")
+        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});")
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
+        driver.execute_script("window.chrome = { runtime: {}, loadTimes: function(){return {}} };")
+        driver.execute_script("""
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.__query = originalQuery;
+            window.navigator.permissions.query = (parameters) => (
+              parameters.name === 'notifications' ?
+                Promise.resolve({ state: Notification.permission }) :
+                originalQuery(parameters)
+            );
+        """)
+        driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});")
+    except Exception:
+        pass
 
 def create_proxy_auth_extension(host, port, user, password, scheme='http', plugin_path=None):
     if plugin_path is None:
@@ -127,7 +127,7 @@ def scrape_amazon(brand, product):
                     driver = uc.Chrome(options=options)
                     driver.set_page_load_timeout(45)
 
-                    # _stealth_hook(driver, ua)
+                    _stealth_hook(driver, ua)
                     
                     base_query = "+".join([k for k in [brand, product] if k])
                     
@@ -136,12 +136,22 @@ def scrape_amazon(brand, product):
                         
                         search_url = f"https://www.{domain}/s?k={base_query}&page={current_page}"
                         driver.get(search_url)
-                        time.sleep(2)
+                        time.sleep(3)
 
                         html = driver.page_source
-                        if "Enter the characters you see below" in html or "automated access" in html:
-                            print(f"Captcha detected on page {current_page}. Retrying domain...")
-                            raise Exception("Captcha detected")
+                        if "Enter the characters you see below" in html or "Type the characters" in html:
+                            print(f"⚠️ CAPTCHA detected on page {current_page}. ")
+                            
+                            print("Waiting 5 seconds to refresh...")
+                            time.sleep(3)
+                            driver.refresh()
+                            time.sleep(2)
+                            
+                            # Check again
+                            html = driver.page_source
+                            if "Enter the characters you see below" in html:
+                                print("Captcha persists. Switching proxy/session...")
+                                raise Exception("Captcha persistence")
 
                         soup = BeautifulSoup(html, "html.parser")
                         product_cards = soup.select("div[data-component-type='s-search-result']")
