@@ -91,14 +91,14 @@ def scrape_noon(brand, product, oem_number=None, asin_number=None):
             try:
                 driver.get(url)
                 
-                last_height = driver.execute_script("return document.body.scrollHeight")
-                for _ in range(2):
-                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                    time.sleep(1)
-                    new_height = driver.execute_script("return document.body.scrollHeight")
-                    if new_height == last_height:
-                        break
-                    last_height = new_height
+                # last_height = driver.execute_script("return document.body.scrollHeight")
+                # for _ in range(2):
+                #     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                #     time.sleep(1)
+                #     new_height = driver.execute_script("return document.body.scrollHeight")
+                #     if new_height == last_height:
+                #         break
+                #     last_height = new_height
                 
                 soup = BeautifulSoup(driver.page_source, "html.parser")
                 product_cards = soup.select('div[class*="linkWrapper"]')
