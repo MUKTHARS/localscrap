@@ -122,13 +122,13 @@ def scrape_amazon(brand, product):
                         if "Enter the characters" in html or "Type the characters" in html:
                             print(f"⚠️ CAPTCHA detected on page {current_page}. Dumping screenshot...")
                             
-                            # time.sleep(5)
-                            # driver.refresh()
-                            # time.sleep(5)
+                            time.sleep(3)
+                            driver.refresh()
+                            time.sleep(2)
                             
-                            # if "Enter the characters" in driver.page_source:
-                            #     print("Captcha persists. Switching session...")
-                            #     raise Exception("Captcha persistence")
+                            if "Enter the characters" in driver.page_source:
+                                print("Captcha persists. Switching session...")
+                                raise Exception("Captcha persistence")
 
                         soup = BeautifulSoup(html, "html.parser")
                         
