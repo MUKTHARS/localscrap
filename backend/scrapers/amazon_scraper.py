@@ -64,10 +64,6 @@ def scrape_amazon(brand, product):
     max_pages = 25
     all_scraped_data = []
     seen_urls = set()
-    
-    # Ensure debug directory exists for screenshots
-    if not os.path.exists("debug_logs"):
-        os.makedirs("debug_logs")
 
     selected_domain = os.environ.get("SELECTED_AMAZON_DOMAIN", "").strip() or None
     domains_to_try = [selected_domain] if selected_domain else AMAZON_DOMAINS
@@ -103,7 +99,7 @@ def scrape_amazon(brand, product):
                     options.add_argument("--disable-popup-blocking")
                     
                     driver = uc.Chrome(options=options)
-                    driver.set_page_load_timeout(60)
+                    driver.set_page_load_timeout(45)
                                             
                     base_query = "+".join([k for k in [brand, product] if k])
                     
@@ -113,27 +109,26 @@ def scrape_amazon(brand, product):
                         search_url = f"https://www.{domain}/s?k={base_query}&page={current_page}"
                         driver.get(search_url)
 
-                        for _ in range(random.randint(2, 4)):
-                            scroll_amount = random.randint(300, 800)
-                            driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
-                            time.sleep(random.uniform(0.5, 1.5))
+                        # for _ in range(random.randint(2, 4)):
+                        #     scroll_amount = random.randint(300, 800)
+                        #     driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+                        #     time.sleep(random.uniform(0.5, 1.5))
                         
-                        driver.execute_script("window.scrollBy(0, -300);")
-                        time.sleep(random.uniform(1, 2))
+                        # driver.execute_script("window.scrollBy(0, -300);")
+                        # time.sleep(random.uniform(1, 2)
 
                         html = driver.page_source
                         
                         if "Enter the characters" in html or "Type the characters" in html:
-                            print(f"⚠️ CAPTCHA detected on page {current_page}. Dumping screenshot...")
-                            driver.save_screenshot(f"debug_logs/captcha_{domain}_{attempt}.png")
+                            print(f"⚠️ CAPTCHA detected on page {current_page}.")
                             
-                            time.sleep(5)
-                            driver.refresh()
-                            time.sleep(5)
+                            # time.sleep(5)
+                            # driver.refresh()
+                            # time.sleep(5)
                             
-                            if "Enter the characters" in driver.page_source:
-                                print("Captcha persists. Switching session...")
-                                raise Exception("Captcha persistence")
+                            # if "Enter the characters" in driver.page_source:
+                            #     print("Captcha persists. Switching session...")
+                            #     raise Exception("Captcha persistence")
 
                         soup = BeautifulSoup(html, "html.parser")
                         
