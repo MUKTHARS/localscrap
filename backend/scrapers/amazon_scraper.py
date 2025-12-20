@@ -4,16 +4,21 @@ from bs4 import BeautifulSoup
 import time, random, re, zipfile, string
 from datetime import datetime
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from scrapers.utils import save_to_excel 
 import gc
+
 from pyvirtualdisplay import Display
 
 PROXY_HOST = "gate.decodo.com"
 PROXY_PORT = "10001"
 PROXY_USER = "sp7oukpich"
 PROXY_PASS = "oHz7RSjbv1W7cafe+7"
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+]
 
 AMAZON_DOMAINS = [
     "amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr", "amazon.it",
@@ -84,128 +89,146 @@ def scrape_amazon(brand, product):
             for attempt in range(1, max_retries + 1):
                 try:
                     options = uc.ChromeOptions()
-                    options.page_load_strategy = 'eager'
-                                        
+                    
                     options.add_argument("--no-sandbox") 
                     options.add_argument("--disable-dev-shm-usage")
                     options.add_argument("--disable-gpu")
                     options.add_argument("--start-maximized")
+                    
                     options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
                     options.add_argument("--disable-popup-blocking")
                     
                     driver = uc.Chrome(options=options)
-                    driver.set_page_load_timeout(45) 
+                    driver.set_page_load_timeout(45)
                                             
                     base_query = "+".join([k for k in [brand, product] if k])
                     
                     for current_page in range(1, max_pages + 1):
-                        print(f"Scraping {domain} Page {current_page}...")
+                        print(f"Scraping Amazon ({domain}) Page {current_page}...")
                         
                         search_url = f"https://www.{domain}/s?k={base_query}&page={current_page}"
                         driver.get(search_url)
 
-                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-                        time.sleep(0.5)
-                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                        time.sleep(1.0)
+                        for _ in range(random.randint(2, 4)):
+                            scroll_amount = random.randint(300, 800)
+                            driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+                            time.sleep(random.uniform(0.5, 1.5))
+                        
+                        driver.execute_script("window.scrollBy(0, -300);")
+                        # time.sleep(random.uniform(1, 2))
 
                         html = driver.page_source
                         
                         if "Enter the characters" in html or "Type the characters" in html:
-                            print(f"⚠️ CAPTCHA on page {current_page}. Retrying...")
-                            driver.refresh()
-                            try:
-                                WebDriverWait(driver, 10).until(
-                                    EC.presence_of_element_located((By.ID, "nav-logo-sprites"))
-                                )
-                            except: pass
+                            print(f"⚠️ CAPTCHA detected on page {current_page}. Dumping screenshot...")
                             
-                            if "Enter the characters" in driver.page_source:
-                                raise Exception("Captcha persistence")
+                            # time.sleep(5)
+                            # driver.refresh()
+                            # time.sleep(5)
+                            
+                            # if "Enter the characters" in driver.page_source:
+                            #     print("Captcha persists. Switching session...")
+                            #     raise Exception("Captcha persistence")
 
                         soup = BeautifulSoup(html, "html.parser")
                         
                         product_cards = soup.select("div[data-component-type='s-search-result']")
-                        if not product_cards:
-                            product_cards = soup.select(".s-result-item.s-asin")
 
                         if not product_cards:
                             print(f"❌ No products found on page {current_page}.")
-                            if current_page == 1: break
-                            else: break
+                            
+                            if current_page == 1:
+                                break
+                            else:
+                                break
 
                         page_new_items = 0
 
                         for card in product_cards:
-                            try:
-                                url_tag = card.select_one("a.a-link-normal.s-underline-text") or card.select_one("h2 a")
-                                if not url_tag: continue
+                            url_tag = card.select_one("a.a-link-normal.s-underline-text") or \
+                                      card.select_one("a.a-link-normal.s-no-outline") or \
+                                      card.select_one("h2 a")
+                            
+                            raw_product_url = f"https://www.{domain}" + url_tag["href"] if url_tag else "N/A"
+                            clean_url_key = raw_product_url.split("?")[0]
+                            
+                            if clean_url_key in seen_urls: continue
+                            seen_urls.add(clean_url_key)
 
-                                raw_product_url = f"https://www.{domain}" + url_tag["href"]
-                                clean_url_key = raw_product_url.split("?")[0]
+                            name_tag = card.select_one("h2 span") or card.select_one("h2")
+                            name = name_tag.get_text(strip=True) if name_tag else "N/A"
+
+                            price_tag = card.select_one("span.a-price > span.a-offscreen") or card.select_one("span.a-color-price")
+                            raw_price = price_tag.text.strip() if price_tag else "NA"
+
+                            price_value = "NA"
+                            currency = "NA"
+
+                            if raw_price and raw_price != "NA":
+                                raw = raw_price.replace("\xa0", "").replace(" ", "")
+                                raw = re.sub(r'[^\d.,]', '', raw)
                                 
-                                if clean_url_key in seen_urls: continue
-                                seen_urls.add(clean_url_key)
+                                # European decimal handling
+                                if re.search(r',\d{2}$', raw): 
+                                    raw = raw.replace(".", "").replace(",", ".")
+                                else:
+                                    raw = raw.replace(",", "")
+                                
+                                match = re.search(r'\d+(?:\.\d+)?', raw)
+                                if match:
+                                    price_value = round(float(match.group(0)), 2)
+                                
+                                currency_match = re.search(r'[\$€£₹¥]', raw_price)
+                                if currency_match:
+                                    currency = currency_match.group(0)
+                                else:
+                                    if "in" in domain: currency = "₹"
+                                    elif "uk" in domain: currency = "£"
+                                    elif "de" in domain or "fr" in domain: currency = "€"
+                                    else: currency = "$"
 
-                                name_tag = card.select_one("h2 span") or card.select_one("h2")
-                                name = name_tag.get_text(strip=True) if name_tag else "N/A"
+                            if price_value == "NA": continue
 
-                                price_tag = card.select_one(".a-price .a-offscreen")
-                                raw_price = price_tag.text.strip() if price_tag else "NA"
+                            rating_tag = card.select_one("span.a-icon-alt")
+                            rating = rating_tag.get_text(strip=True).split(" ")[0] if rating_tag else "N/A"
 
-                                price_value = "NA"
-                                currency = "NA"
-
-                                if raw_price != "NA":
-                                    currency_match = re.search(r'[\$€£₹¥]', raw_price)
-                                    currency = currency_match.group(0) if currency_match else "$"
-                                    
-                                    clean_price = re.sub(r'[^\d.,]', '', raw_price)
-                                    if clean_price.rfind(',') > clean_price.rfind('.'):
-                                        clean_price = clean_price.replace(".", "").replace(",", ".")
-                                    else:
-                                        clean_price = clean_price.replace(",", "")
-                                    
-                                    try: price_value = float(clean_price)
-                                    except: pass
-
-                                if price_value == "NA": continue
-
-                                all_scraped_data.append({
-                                    "BRAND": brand,
-                                    "PRODUCT": product,
-                                    "WEBSITE": f"Amazon ({domain})",
-                                    "PRODUCT NAME": name,
-                                    "PRICE": price_value,
-                                    "CURRENCY": currency,
-                                    "DATE": datetime.now().strftime("%Y-%m-%d"),
-                                    "URL": raw_product_url,
-                                })
-                                page_new_items += 1
-                            except: continue
+                            all_scraped_data.append({
+                                "BRAND": brand,
+                                "PRODUCT": product,
+                                "WEBSITE": f"Amazon ({domain})",
+                                "PRODUCT NAME": name,
+                                "PRICE": price_value,
+                                "CURRENCY": currency,
+                                "SELLER RATING": rating,
+                                "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "SOURCE URL": raw_product_url,
+                            })
+                            page_new_items += 1
                         
                         print(f"  > Added {page_new_items} items.")
                         if page_new_items == 0: break
                         
-                        time.sleep(random.uniform(1, 2))
+                        # time.sleep(random.uniform(2, 5))
 
                     if all_scraped_data: break
                 
                 except Exception as e:
-                    print(f"Error on {domain}: {e}")
-                    try: driver.quit()
-                    except: pass
+                    print(f"Error on {domain} attempt {attempt}: {e}")
+                    if driver:
+                        try: driver.quit()
+                        except: pass
                     continue
                 finally:
-                    try: driver.quit()
-                    except: pass
+                    if driver:
+                        try: driver.quit()
+                        except: pass
         
         if all_scraped_data:
             try: save_to_excel("Amazon", all_scraped_data)
             except: pass
             return {"data": all_scraped_data}
         else:
-            return {"error": "No products found."}
+            return {"error": "No products found across all domains."}
 
     except Exception as e:
         return {"error": str(e)}
@@ -214,8 +237,10 @@ def scrape_amazon(brand, product):
         if os.path.exists(proxy_plugin):
             try: os.remove(proxy_plugin)
             except: pass
+        
         try: display.stop()
         except: pass
+        
         gc.collect()
 
 # import os
