@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import api from '../utils/apiConfig'; 
+import api from '../utils/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/Dashboard.css';
 import '../styles/Table.css';
@@ -12,10 +12,10 @@ const Dashboard = () => {
     oem_number: '',
     asin_number: '',
     website: '',
-    amazon_country: 'amazon.com' 
+    amazon_country: 'amazon.com'
   });
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
-  
+
   // --- Data & UI State ---
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
@@ -85,7 +85,7 @@ const Dashboard = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       handleFileSelection(file);
@@ -101,7 +101,7 @@ const Dashboard = () => {
   const handleFileSelection = (file) => {
     const validTypes = ['.csv', '.xlsx', '.xls'];
     const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-    
+
     if (!validTypes.includes(fileExtension)) {
       setError('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
       return;
@@ -165,14 +165,14 @@ const Dashboard = () => {
     // We export filtered results to match what the user sees
     const headers = [
       'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
-      'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING', 
+      'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
       'DATE SCRAPED', 'SOURCE URL'
     ];
 
     const csvContent = [
       headers.join(','),
-      ...filteredResults.map(row => 
-        headers.map(header => 
+      ...filteredResults.map(row =>
+        headers.map(header =>
           `"${(row[header] || '').toString().replace(/"/g, '""')}"`
         ).join(',')
       )
@@ -194,13 +194,13 @@ const Dashboard = () => {
     return results.filter(item => {
       // 1. Keyword Filter (Brand or Product or Product Name)
       const searchTerm = filters.keyword.toLowerCase();
-      const matchesKeyword = 
+      const matchesKeyword =
         (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
         (item.PRODUCT?.toLowerCase() || '').includes(searchTerm) ||
         (item['PRODUCT NAME']?.toLowerCase() || '').includes(searchTerm);
 
       // 2. Website Filter
-      const matchesWebsite = filters.website === '' || 
+      const matchesWebsite = filters.website === '' ||
         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
       // 3. Price Filter (Clean currency symbols like $ or ₹ before comparing)
@@ -208,7 +208,7 @@ const Dashboard = () => {
       let priceValue = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
       // If parsing fails (NaN), treat as 0
       if (isNaN(priceValue)) priceValue = 0;
-      
+
       const maxPrice = parseFloat(filters.maxPrice);
       const matchesPrice = !filters.maxPrice || priceValue <= maxPrice;
 
@@ -253,7 +253,7 @@ const Dashboard = () => {
               <h3 className="card-title">Single Product Search</h3>
               <p className="card-description">Search for individual products across multiple platforms</p>
             </div>
-            
+
             <div className="card-body">
               <form onSubmit={handleScrape} className="premium-form">
                 <div className="form-group">
@@ -276,7 +276,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="form-group">
                   <label className="form-label">
                     <span>Product</span>
@@ -297,7 +297,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">OEM Number</label>
@@ -315,7 +315,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="form-group">
                     <label className="form-label">ASIN Number</label>
                     <div className="input-wrapper">
@@ -333,7 +333,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="form-group">
                   <label className="form-label">Website</label>
                   <div className="input-wrapper">
@@ -401,9 +401,9 @@ const Dashboard = () => {
                     </small>
                   </div>
                 )}
-                
-                <button 
-                  type="submit" 
+
+                <button
+                  type="submit"
                   className="btn btn-primary btn-full"
                   disabled={loading}
                 >
@@ -428,9 +428,9 @@ const Dashboard = () => {
               <h3 className="card-title">Bulk Product Analysis</h3>
               <p className="card-description">Upload multiple products at once for comprehensive comparison</p>
             </div>
-            
+
             <div className="card-body">
-              <div 
+              <div
                 className={`upload-zone ${dragActive ? 'drag-active' : ''} ${selectedFile ? 'has-file' : ''}`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -445,7 +445,7 @@ const Dashboard = () => {
                   accept=".csv,.xlsx,.xls"
                   onChange={handleFileInput}
                 />
-                
+
                 {selectedFile ? (
                   <div className="file-preview">
                     <div className="file-icon success">
@@ -457,7 +457,7 @@ const Dashboard = () => {
                         {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                       </div>
                     </div>
-                    <button 
+                    <button
                       className="file-remove"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -533,7 +533,7 @@ const Dashboard = () => {
                 </ul>
               </div>
 
-              <button 
+              <button
                 className="btn btn-success btn-full"
                 onClick={handleBulkUpload}
                 disabled={!selectedFile || bulkLoading}
@@ -563,7 +563,7 @@ const Dashboard = () => {
               <h5 className="alert-title">Operation Failed</h5>
               <p className="alert-message">{error}</p>
             </div>
-            <button 
+            <button
               className="alert-close"
               onClick={() => setError('')}
             >
@@ -586,7 +586,7 @@ const Dashboard = () => {
                 </p>
               </div>
               <div className="results-actions">
-                <button 
+                <button
                   className="btn btn-outline"
                   onClick={exportToCSV}
                 >
@@ -596,10 +596,10 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* --- NEW FILTER BAR (Added here) --- */}
+            {/* --- FILTER BAR --- */}
             <div className="feature-card filter-card" style={{ marginBottom: '20px', padding: '15px' }}>
               <div className="form-row" style={{ alignItems: 'flex-end', gap: '15px' }}>
-                
+
                 {/* Brand/Product Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label">Filter by Keyword</label>
@@ -639,7 +639,6 @@ const Dashboard = () => {
                       <option value="amitretail">Amit Retail</option>
                       <option value="noon">Noon</option>
                       <option value="sharafdg">Sharaf DG</option>
-                      {/* Add other specific options if they appear in results often */}
                     </select>
                   </div>
                 </div>
@@ -679,13 +678,13 @@ const Dashboard = () => {
                       <th>Product Name</th>
                       <th>Price</th>
                       <th>Currency</th>
-                      <th>Seller Rating</th> 
+                      <th>Seller Rating</th>
                       <th>Date Scraped</th>
                       <th>Source URL</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Render Filtered Results instead of raw Results */}
+                    {/* Render Filtered Results */}
                     {filteredResults.map((item, index) => (
                       <tr key={index}>
                         <td>
@@ -740,9 +739,9 @@ const Dashboard = () => {
                         </td>
                         <td>
                           <div className="action-cell">
-                            <a 
-                              href={item['SOURCE URL']} 
-                              target="_blank" 
+                            <a
+                              href={item['SOURCE URL']}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="action-btn view-btn"
                               title="View Product"
@@ -757,10 +756,10 @@ const Dashboard = () => {
                 </table>
                 {/* Message if filters hide all results */}
                 {results.length > 0 && filteredResults.length === 0 && (
-                   <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-                     <i className="bi bi-search" style={{ fontSize: '2rem', display: 'block', marginBottom: '10px', opacity: 0.5 }}></i>
-                     No products match your filters.
-                   </div>
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                    <i className="bi bi-search" style={{ fontSize: '2rem', display: 'block', marginBottom: '10px', opacity: 0.5 }}></i>
+                    No products match your filters.
+                  </div>
                 )}
               </div>
             </div>
