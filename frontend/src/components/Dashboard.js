@@ -321,7 +321,7 @@ const Dashboard = () => {
                 
                 {/* --- NEW: Match Type Toggle --- */}
                 <div className="form-group">
-                  <label className="form-label">Search Precision</label>
+                  <label className="form-label"></label>
                   <div className="match-toggle-wrapper">
                     <button 
                       type="button"
