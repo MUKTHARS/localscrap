@@ -18,8 +18,9 @@ const Dashboard = () => {
 
   // --- MATCH TYPE STATE ---
   // 'fuzzy': Show everything (Broad Search)
-  // 'smart': AI filtering (Industry Standard Match Engine)
-  const [matchType, setMatchType] = useState('smart'); // Default to Smart
+  // 'smart': AI filtering (Price Outlier Detection + Text Similarity)
+  // Removed 'exact' as requested.
+  const [matchType, setMatchType] = useState('smart'); // Default to Smart for best experience
 
   // --- Data & UI State ---
   const [results, setResults] = useState([]);
@@ -37,6 +38,7 @@ const Dashboard = () => {
     maxPrice: ''
   });
 
+  // Check if Amazon Region field should be shown
   const showAmazonRegion = formData.website === 'amazon' || formData.website === '' || formData.website === 'allwebsite';
 
   // --- Handlers ---
@@ -55,6 +57,7 @@ const Dashboard = () => {
     });
   };
 
+  // Handler for Match Type Toggle
   const handleMatchToggle = (type) => {
     setMatchType(type);
   };
@@ -170,6 +173,7 @@ const Dashboard = () => {
   };
 
   const exportToCSV = () => {
+    // We export filtered results to match what the user sees
     const headers = [
       'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
       'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
@@ -196,129 +200,95 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
-  // --- HELPER: Get Price ---
+  // --- SMART MATCH HELPER: Dice Coefficient ---
+  // Calculates string similarity between 0 and 1
+  const calculateSimilarity = (str1, str2) => {
+    if (!str1 || !str2) return 0;
+    const s1 = str1.toLowerCase().replace(/\s+/g, '');
+    const s2 = str2.toLowerCase().replace(/\s+/g, '');
+    
+    if (s1 === s2) return 1;
+    if (s1.length < 2 || s2.length < 2) return 0;
+
+    const bigrams1 = new Set();
+    for (let i = 0; i < s1.length - 1; i++) bigrams1.add(s1.substring(i, i + 2));
+
+    let intersection = 0;
+    for (let i = 0; i < s2.length - 1; i++) {
+      const bigram = s2.substring(i, i + 2);
+      if (bigrams1.has(bigram)) intersection++;
+    }
+
+    return (2.0 * intersection) / (s1.length + s2.length - 2);
+  };
+
+  // Helper to get clean price number
   const getPrice = (item) => {
     const p = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
     return isNaN(p) ? 0 : p;
   };
 
-  // --- 1. Improved Dice Coefficient Similarity ---
-  const calculateSimilarity = (str1, str2) => {
-    if (!str1 || !str2) return 0;
-
-    const s1 = str1.toLowerCase().replace(/\s+/g, "");
-    const s2 = str2.toLowerCase().replace(/\s+/g, "");
-
-    if (s1 === s2) return 1;
-    if (s1.length < 2 || s2.length < 2) return 0;
-
-    const bigrams1 = new Set();
-    for (let i = 0; i < s1.length - 1; i++) {
-      bigrams1.add(s1.substring(i, i + 2));
-    }
-
-    let intersection = 0;
-    for (let i = 0; i < s2.length - 1; i++) {
-      if (bigrams1.has(s2.substring(i, i + 2))) intersection++;
-    }
-
-    return (2 * intersection) / (s1.length + s2.length - 2);
-  };
-
-  // --- 2. Industry-Standard Smart Matching Engine ---
-  const smartMatch = (list, query, getPriceFn) => {
-    if (!query.trim()) return list;
-
-    const normalizedQuery = query.toLowerCase().trim();
-
-    // ---- A. Compute Median Price ----
-    const prices = list
-      .map(getPriceFn)
-      .filter((p) => p > 0)
-      .sort((a, b) => a - b);
-
-    let medianPrice = 0;
-    if (prices.length > 0) {
-      const mid = Math.floor(prices.length / 2);
-      medianPrice =
-        prices.length % 2 !== 0
-          ? prices[mid]
-          : (prices[mid - 1] + prices[mid]) / 2;
-    }
-
-    // ---- B. Smart Filtering ----
-    return list.filter((item) => {
-      const title = (item["PRODUCT NAME"] || "").toLowerCase();
-      const price = getPriceFn(item);
-
-      // 1. Price-based accessory filtering (strong: 50% of median)
-      // This kills cases/chargers if their price is outlier low
-      if (medianPrice > 0 && price < medianPrice * 0.5) {
-        return false;
-      }
-
-      // 2. Token-based matching
-      const titleTokens = new Set(
-        title.split(/[^a-z0-9]+/g).filter(Boolean)
-      );
-      const queryTokens = new Set(
-        normalizedQuery.split(/[^a-z0-9]+/g).filter(Boolean)
-      );
-
-      let hits = 0;
-      queryTokens.forEach((tok) => {
-        if (titleTokens.has(tok)) hits++;
-      });
-
-      const tokenScore = hits / Math.max(queryTokens.size, 1);
-
-      // 3. Fuzzy (Dice) similarity
-      const fuzzyScore = calculateSimilarity(normalizedQuery, title);
-
-      // 4. Length ratio (accessory title spam blocker)
-      const lengthRatio =
-        title.length / Math.max(normalizedQuery.length, 1);
-
-      // ---- FINAL Smart-Match Conditions ----
-      return (
-        tokenScore >= 0.55 && // majority tokens match
-        fuzzyScore >= 0.28 && // soft fuzzy threshold
-        lengthRatio <= 3.2    // remove spammy long titles
-      );
-    });
-  };
-
-  // --- 3. MAIN FILTERING LOGIC ---
+  // --- Filtering Logic (Memoized for Performance) ---
   const filteredResults = useMemo(() => {
-    // ---- STEP 1: Standard UI Filters ----
-    let list = results.filter((item) => {
-      const matchesWebsite =
-        filters.website === "" ||
-        item.WEBSITE?.toLowerCase() === filters.website.toLowerCase();
+    // 1. First Pass: Apply Standard UI Filters
+    let list = results.filter(item => {
+      // Website Filter
+      const matchesWebsite = filters.website === '' || 
+        (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
+      // Price Filter
       const priceValue = getPrice(item);
       const maxPrice = parseFloat(filters.maxPrice);
-
       const matchesPrice = !filters.maxPrice || priceValue <= maxPrice;
 
+      // Keyword Filter
       const searchTerm = filters.keyword.toLowerCase();
-
-      const matchesKeywordFilter =
-        (item.BRAND?.toLowerCase() || "").includes(searchTerm) ||
-        (item.PRODUCT?.toLowerCase() || "").includes(searchTerm) ||
-        (item["PRODUCT NAME"]?.toLowerCase() || "").includes(searchTerm);
+      const matchesKeywordFilter = 
+        (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
+        (item.PRODUCT?.toLowerCase() || '').includes(searchTerm) ||
+        (item['PRODUCT NAME']?.toLowerCase() || '').includes(searchTerm);
 
       return matchesWebsite && matchesPrice && matchesKeywordFilter;
     });
 
-    // ---- STEP 2: Smart Matching ----
-    if (matchType === "smart" && list.length > 0) {
+    // 2. Second Pass: Smart Matching (AI Logic)
+    if (matchType === 'smart' && list.length > 0) {
       const query = `${formData.brand} ${formData.product}`.toLowerCase();
-      list = smartMatch(list, query, getPrice);
+      
+      // Calculate Median Price (Generic Solution for Noise/Accessories)
+      const prices = list.map(getPrice).filter(p => p > 0).sort((a, b) => a - b);
+      let medianPrice = 0;
+      if (prices.length > 0) {
+        const mid = Math.floor(prices.length / 2);
+        medianPrice = prices.length % 2 !== 0 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
+      }
+
+      list = list.filter(item => {
+        const title = (item['PRODUCT NAME'] || '').toLowerCase();
+        
+        // A. Price Logic: Filter out items < 35% of median price
+        const itemPrice = getPrice(item);
+        if (medianPrice > 0 && itemPrice < (medianPrice * 0.35)) {
+          return false; 
+        }
+
+        // B. Text Similarity Logic
+        const score = calculateSimilarity(query, title);
+        
+        // C. Noise Factor (Length Check)
+        // If result title is significantly longer than query, it is likely an accessory description.
+        // E.g., Query: "iPhone 16" (9 chars). Noise: "Shockproof Case for iPhone 16..." (60 chars). Ratio = 6.6.
+        const lengthRatio = title.length / Math.max(query.length, 1);
+
+        // REFINED THRESHOLDS:
+        // 1. Similarity > 0.35: Ensures title looks very close to search query.
+        // 2. LengthRatio < 3.0: Aggressively cuts off long titles (accessories), solving the 'Case' problem.
+        return score > 0.35 && lengthRatio < 3.0; 
+      });
     }
 
     return list;
-  }, [results, filters, matchType, formData]);
+  }, [results, filters, matchType, formData.brand, formData.product]);
 
   return (
     <div className="premium-dashboard">
@@ -361,7 +331,7 @@ const Dashboard = () => {
             <div className="card-body">
               <form onSubmit={handleScrape} className="premium-form">
                 
-                {/* --- Match Type Toggle --- */}
+                {/* --- UPDATED: Match Type Toggle (Removed Exact) --- */}
                 <div className="form-group">
                   <label className="form-label">Search Precision</label>
                   <div className="match-toggle-wrapper">
