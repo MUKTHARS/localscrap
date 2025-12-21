@@ -275,7 +275,7 @@ const Dashboard = () => {
 
         // Require decent similarity (> 0.3) AND check title isn't excessively long (> 4.5x query)
         // Main products usually have shorter, cleaner titles than accessories on Amazon
-        return score > 0.3 && lengthRatio < 4.5; 
+        return score > 0.35 && lengthRatio < 3.0; 
       });
     }
 
