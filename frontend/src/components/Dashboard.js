@@ -16,11 +16,10 @@ const Dashboard = () => {
   });
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
-  // --- NEW: Match Type State ---
-  // 'fuzzy': Show everything (Default)
-  // 'smart': AI filtering (Removes noise/accessories based on text density & similarity)
-  // 'exact': Strict word-for-word matching
-  const [matchType, setMatchType] = useState('fuzzy');
+  // --- MATCH TYPE STATE ---
+  // 'fuzzy': Show everything (Broad Search)
+  // 'smart': AI filtering (Price Outlier Detection + Text Similarity)
+  const [matchType, setMatchType] = useState('smart'); // Default to Smart
 
   // --- Data & UI State ---
   const [results, setResults] = useState([]);
@@ -200,13 +199,17 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
-  // --- SMART MATCH HELPER: Dice Coefficient ---
-  // Calculates string similarity between 0 and 1
+  // --- UTILS ---
+  const getPrice = (item) => {
+    const p = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
+    return isNaN(p) ? 0 : p;
+  };
+
+  // Dice Coefficient Algorithm for string similarity
   const calculateSimilarity = (str1, str2) => {
     if (!str1 || !str2) return 0;
     const s1 = str1.toLowerCase().replace(/\s+/g, '');
     const s2 = str2.toLowerCase().replace(/\s+/g, '');
-    
     if (s1 === s2) return 1;
     if (s1.length < 2 || s2.length < 2) return 0;
 
@@ -215,23 +218,15 @@ const Dashboard = () => {
 
     let intersection = 0;
     for (let i = 0; i < s2.length - 1; i++) {
-      const bigram = s2.substring(i, i + 2);
-      if (bigrams1.has(bigram)) intersection++;
+      if (bigrams1.has(s2.substring(i, i + 2))) intersection++;
     }
-
     return (2.0 * intersection) / (s1.length + s2.length - 2);
   };
 
-  // Helper to get clean price number
-  const getPrice = (item) => {
-    const p = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
-    return isNaN(p) ? 0 : p;
-  };
-
-  // --- Filtering Logic (Memoized for Performance) ---
+  // --- FILTERING LOGIC (SMART vs BROAD) ---
   const filteredResults = useMemo(() => {
-    return results.filter(item => {
-      // 1. Basic Filters (Website, UI Keyword, Max Price)
+    // 1. First Pass: Apply Standard UI Filters
+    let list = results.filter(item => {
       const matchesWebsite = filters.website === '' || 
         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
@@ -245,38 +240,47 @@ const Dashboard = () => {
         (item.PRODUCT?.toLowerCase() || '').includes(searchTerm) ||
         (item['PRODUCT NAME']?.toLowerCase() || '').includes(searchTerm);
 
-      if (!matchesWebsite || !matchesPrice || !matchesKeywordFilter) return false;
+      return matchesWebsite && matchesPrice && matchesKeywordFilter;
+    });
 
-      // 2. MATCH TYPE LOGIC
-      if (matchType === 'fuzzy') return true; // Show everything found
-
-      const title = (item['PRODUCT NAME'] || '').toLowerCase();
+    // 2. Second Pass: Smart Matching (AI Logic)
+    if (matchType === 'smart' && list.length > 0) {
       const query = `${formData.brand} ${formData.product}`.toLowerCase();
-
-      // --- EXACT MATCH ---
-      // Strict: Must contain every single word from the query
-      if (matchType === 'exact') {
-        const queryWords = query.split(/\s+/).filter(w => w.length > 1);
-        return queryWords.every(word => title.includes(word));
+      
+      // Calculate Median Price of the current result set
+      // This is the "Generic Solution" for accessories/noise
+      const prices = list.map(getPrice).filter(p => p > 0).sort((a, b) => a - b);
+      let medianPrice = 0;
+      if (prices.length > 0) {
+        const mid = Math.floor(prices.length / 2);
+        medianPrice = prices.length % 2 !== 0 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
       }
 
-      // --- SMART MATCH (AI) ---
-      // Uses Similarity Score + Length Penalty to filter "Noise"
-      if (matchType === 'smart') {
-        // A. Score the similarity (0 to 1)
+      list = list.filter(item => {
+        const title = (item['PRODUCT NAME'] || '').toLowerCase();
+        
+        // A. Price Logic: Filter out items < 35% of median price
+        // (E.g. If median phone price is 500, filter out anything < 175, like cases/tempers)
+        const itemPrice = getPrice(item);
+        if (medianPrice > 0 && itemPrice < (medianPrice * 0.35)) {
+          return false; 
+        }
+
+        // B. Text Similarity Logic
         const score = calculateSimilarity(query, title);
         
-        // B. Calculate "Noise Factor"
-        // If result title is > 4x longer than query, it's likely description spam/accessory
+        // If query is "iPhone 16", results like "iPhone 16 Case" score high on similarity.
+        // We use Length Ratio to catch "Keyword Stuffed" accessory titles.
         const lengthRatio = title.length / Math.max(query.length, 1);
-        
-        // Thresholds: Matches enough chars AND isn't too long
-        return score > 0.25 && lengthRatio < 4.0;
-      }
 
-      return true;
-    });
-  }, [results, filters, matchType, formData.brand, formData.product]);
+        // Require decent similarity (> 0.3) AND check title isn't excessively long (> 4.5x query)
+        // Main products usually have shorter, cleaner titles than accessories on Amazon
+        return score > 0.3 && lengthRatio < 4.5; 
+      });
+    }
+
+    return list;
+  }, [results, filters, matchType, formData]);
 
   return (
     <div className="premium-dashboard">
@@ -319,7 +323,7 @@ const Dashboard = () => {
             <div className="card-body">
               <form onSubmit={handleScrape} className="premium-form">
                 
-                {/* --- NEW: Match Type Toggle --- */}
+                {/* --- Match Type Toggle (Updated) --- */}
                 <div className="form-group">
                   <label className="form-label"></label>
                   <div className="match-toggle-wrapper">
@@ -329,7 +333,7 @@ const Dashboard = () => {
                       onClick={() => handleMatchToggle('fuzzy')}
                     >
                       <i className="bi bi-grid"></i> All Results
-                      <span className="match-desc">Broad Search</span>
+                      <span className="match-desc">Raw Scraper Data</span>
                     </button>
                     <button 
                       type="button"
@@ -337,15 +341,7 @@ const Dashboard = () => {
                       onClick={() => handleMatchToggle('smart')}
                     >
                       <i className="bi bi-cpu"></i> Smart Match
-                      <span className="match-desc">AI Filtered</span>
-                    </button>
-                    <button 
-                      type="button"
-                      className={`match-btn ${matchType === 'exact' ? 'active' : ''}`}
-                      onClick={() => handleMatchToggle('exact')}
-                    >
-                      <i className="bi bi-bullseye"></i> Exact Text
-                      <span className="match-desc">Strict Words</span>
+                      <span className="match-desc">Auto-Filter Noise (Best)</span>
                     </button>
                   </div>
                 </div>
@@ -457,7 +453,6 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Amazon Region Field - Conditionally Rendered */}
                 {showAmazonRegion && (
                   <div className="form-group">
                     <label className="form-label">Amazon Region</label>
