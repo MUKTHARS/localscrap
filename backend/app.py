@@ -12,8 +12,10 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 import uuid
 
-from openai import OpenAI
+# --- AI Integration: Google Gemini ---
+import google.generativeai as genai
 
+# --- Scrapers ---
 from scrapers.amazon_scraper import scrape_amazon
 from scrapers.flipkart_scraper import scrape_flipkart
 from scrapers.ebay_scraper import scrape_ebay
@@ -34,7 +36,12 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 UPLOAD_FOLDER = 'static/uploads/tickets'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# --- Configure Gemini ---
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+else:
+    logger.warning("GOOGLE_API_KEY not found. AI features will be disabled.")
 
 SCRAPERS = {
     "amazon": scrape_amazon,
@@ -101,70 +108,91 @@ def load_user(user_id):
 def unauthorized_callback():
     return jsonify({"error": "Unauthorized"}), 401
 
+# --- AI HELPER FUNCTION (GEMINI VERSION) ---
 def enrich_results_with_ai(user_query, results):
-    if not results:
-        return []
-    
-    if not os.environ.get("OPENAI_API_KEY"):
-        logger.warning("OPENAI_API_KEY not found. Skipping AI enrichment.")
-        for r in results:
-            r['relevance_score'] = 100
+    """
+    Sends scraped titles to Gemini to determine relevance.
+    Uses batching to handle large lists (e.g. 300+ items).
+    """
+    if not results: return []
+    if not os.environ.get("GOOGLE_API_KEY"):
+        logger.warning("Skipping AI enrichment (No API Key)")
+        for r in results: r['relevance_score'] = 100
         return results
 
-    try:
-        items_to_check = [
-            {"id": i, "title": item.get('PRODUCT NAME', ''), "price": item.get('PRICE', '')} 
-            for i, item in enumerate(results)
-        ]
+    # Configuration for Gemini 1.5 Flash (Fast & Cheap)
+    generation_config = {
+        "temperature": 0.1,
+        "top_p": 0.95,
+        "top_k": 64,
+        "max_output_tokens": 8192,
+        "response_mime_type": "application/json",
+    }
+    
+    model = genai.GenerativeModel(
+        model_name="gemini-2.5-flash",
+        generation_config=generation_config,
+    )
 
-        prompt = f"""
-        User Query: "{user_query}"
-        
-        Task: Analyze the list of products below. Assign a 'relevance_score' (0-100) to each item based on how well it matches the user query.
-        
-        Scoring Guide:
-        - 90-100: Exact match (Correct Product + Correct Specs).
-        - 70-89: High match (Correct Product, slightly different specs/color).
-        - 40-69: Related but not exact (e.g. older model, or refurbished if not specified).
-        - 10-39: Accessory (Case, Cover, Charger, Skin, Box) - UNLESS query specifically asked for an accessory.
-        - 0-9: Completely irrelevant.
-
-        Return ONLY valid JSON in this structure:
-        {{
-            "evaluations": [
-                {{"id": 0, "score": 95}},
-                {{"id": 1, "score": 20}}
-            ]
-        }}
-
-        Products List:
-        {json.dumps(items_to_check)}
-        """
-
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            response_format={ "type": "json_object" },
-            messages=[
-                {"role": "system", "content": "You are a precise e-commerce relevance scoring assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.1 # Low temperature for consistent results
-        )
-
-        ai_content = response.choices[0].message.content
-        ai_data = json.loads(ai_content)
-        evaluations = {item['id']: item['score'] for item in ai_data.get('evaluations', [])}
-
-        for i, item in enumerate(results):
-            item['relevance_score'] = evaluations.get(i, 50) 
+    # Helper function to process a specific chunk of items
+    def process_chunk(chunk_items):
+        try:
+            # Create prompt
+            prompt = f"""
+            User Query: "{user_query}"
             
-    except Exception as e:
-        logger.error(f"AI Enrichment Failed: {e}")
-        for item in results:
-            item['relevance_score'] = 100
+            Task: Analyze these products. Assign a 'relevance_score' (0-100).
+            - 90-100: Exact match.
+            - 70-89: Good match (variant/color).
+            - 10-39: Accessory (Case/Cover) unless queried.
+            - 0-9: Irrelevant.
+
+            Return JSON: {{ "evaluations": [ {{ "id": 123, "score": 90 }} ] }}
             
+            Products: {json.dumps(chunk_items)}
+            """
+            
+            response = model.generate_content(prompt)
+            return json.loads(response.text)
+        except Exception as e:
+            logger.error(f"Gemini chunk failed: {e}")
+            return None
+
+    # Prepare list with global IDs to maintain order/mapping
+    # 
+
+[Image of Batch Processing Flow]
+
+    # We assign a unique ID (the index) to every item before splitting
+    items_to_check = [
+        {"id": i, "title": item.get('PRODUCT NAME', ''), "price": item.get('PRICE', '')} 
+        for i, item in enumerate(results)
+    ]
+
+    BATCH_SIZE = 50
+    total_evaluations = {}
+    
+    # Process in batches
+    for i in range(0, len(items_to_check), BATCH_SIZE):
+        batch = items_to_check[i:i + BATCH_SIZE]
+        logger.info(f"Processing AI batch {i} to {i + len(batch)}...")
+        
+        ai_response = process_chunk(batch)
+        
+        if ai_response and "evaluations" in ai_response:
+            for eval_item in ai_response["evaluations"]:
+                total_evaluations[eval_item['id']] = eval_item['score']
+        
+        # Short sleep to prevent rate limiting issues
+        time.sleep(1) 
+
+    # Merge scores back into the original results list
+    for i, item in enumerate(results):
+        item['relevance_score'] = total_evaluations.get(i, 50) # Default to 50 if AI failed for a specific item
+
     return results
 
+# --- AUTH HELPERS ---
 def check_admin_auth():
     if 'admin_user' in session:
         return session['admin_user']
@@ -174,6 +202,7 @@ def is_super_admin():
     admin = check_admin_auth()
     return admin and admin.get('role') == 'admin'
 
+# --- ADMIN ROUTES ---
 @app.route('/api/admin/employees', methods=['POST'])
 def create_employee():
     if not is_super_admin():
@@ -565,6 +594,7 @@ def get_user():
         'authenticated': True
     })
 
+# --- SEARCH AND SCRAPE ROUTES ---
 @app.route("/api/scrape", methods=["POST"])
 @login_required
 def scrape_products():
@@ -719,6 +749,7 @@ def scrape_products():
                     logger.exception(f"Error scraping {site}: {scrape_error}")
                     continue
             
+            # --- AI SMART FILTER INTEGRATION (GEMINI) ---
             if results:
                 logger.info(f"Enriching {len(results)} scraped items with AI scores...")
                 query_context = f"{brand} {product}"
