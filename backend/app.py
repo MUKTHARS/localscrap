@@ -12,10 +12,8 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 import uuid
 
-# --- AI Integration: Google Gemini ---
 import google.generativeai as genai
 
-# --- Scrapers ---
 from scrapers.amazon_scraper import scrape_amazon
 from scrapers.flipkart_scraper import scrape_flipkart
 from scrapers.ebay_scraper import scrape_ebay
@@ -32,11 +30,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt'}
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILE_SIZE = 10 * 1024 * 1024
 UPLOAD_FOLDER = 'static/uploads/tickets'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- Configure Gemini ---
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
@@ -108,7 +105,6 @@ def load_user(user_id):
 def unauthorized_callback():
     return jsonify({"error": "Unauthorized"}), 401
 
-# --- AI HELPER FUNCTION (GEMINI VERSION) ---
 def enrich_results_with_ai(user_query, results):
     """
     Sends scraped titles to Gemini to determine relevance.
@@ -120,7 +116,6 @@ def enrich_results_with_ai(user_query, results):
         for r in results: r['relevance_score'] = 100
         return results
 
-    # Configuration for Gemini 1.5 Flash (Fast & Cheap)
     generation_config = {
         "temperature": 0.1,
         "top_p": 0.95,
@@ -134,10 +129,8 @@ def enrich_results_with_ai(user_query, results):
         generation_config=generation_config,
     )
 
-    # Helper function to process a specific chunk of items
     def process_chunk(chunk_items):
         try:
-            # Create prompt
             prompt = f"""
             User Query: "{user_query}"
             
@@ -158,12 +151,6 @@ def enrich_results_with_ai(user_query, results):
             logger.error(f"Gemini chunk failed: {e}")
             return None
 
-    # Prepare list with global IDs to maintain order/mapping
-    # 
-
-[Image of Batch Processing Flow]
-
-    # We assign a unique ID (the index) to every item before splitting
     items_to_check = [
         {"id": i, "title": item.get('PRODUCT NAME', ''), "price": item.get('PRICE', '')} 
         for i, item in enumerate(results)
@@ -172,7 +159,6 @@ def enrich_results_with_ai(user_query, results):
     BATCH_SIZE = 50
     total_evaluations = {}
     
-    # Process in batches
     for i in range(0, len(items_to_check), BATCH_SIZE):
         batch = items_to_check[i:i + BATCH_SIZE]
         logger.info(f"Processing AI batch {i} to {i + len(batch)}...")
@@ -183,16 +169,13 @@ def enrich_results_with_ai(user_query, results):
             for eval_item in ai_response["evaluations"]:
                 total_evaluations[eval_item['id']] = eval_item['score']
         
-        # Short sleep to prevent rate limiting issues
         time.sleep(1) 
 
-    # Merge scores back into the original results list
     for i, item in enumerate(results):
         item['relevance_score'] = total_evaluations.get(i, 50) # Default to 50 if AI failed for a specific item
 
     return results
 
-# --- AUTH HELPERS ---
 def check_admin_auth():
     if 'admin_user' in session:
         return session['admin_user']
@@ -202,7 +185,6 @@ def is_super_admin():
     admin = check_admin_auth()
     return admin and admin.get('role') == 'admin'
 
-# --- ADMIN ROUTES ---
 @app.route('/api/admin/employees', methods=['POST'])
 def create_employee():
     if not is_super_admin():
@@ -594,7 +576,6 @@ def get_user():
         'authenticated': True
     })
 
-# --- SEARCH AND SCRAPE ROUTES ---
 @app.route("/api/scrape", methods=["POST"])
 @login_required
 def scrape_products():
@@ -749,7 +730,6 @@ def scrape_products():
                     logger.exception(f"Error scraping {site}: {scrape_error}")
                     continue
             
-            # --- AI SMART FILTER INTEGRATION (GEMINI) ---
             if results:
                 logger.info(f"Enriching {len(results)} scraped items with AI scores...")
                 query_context = f"{brand} {product}"
