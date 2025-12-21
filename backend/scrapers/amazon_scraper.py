@@ -195,8 +195,6 @@ def scrape_amazon(brand, product):
                                 price_tag = card.select_one("span.a-price > span.a-offscreen") or card.select_one("span.a-color-price")
                                 raw_price = price_tag.text.strip() if price_tag else "NA"
 
-                                price_value = "NA"
-                                currency = "NA"
                                 if raw_price and raw_price != "NA":
                                     raw = raw_price.replace("\xa0", "").replace(" ", "")
                                     raw = re.sub(r'[^\d.,]', '', raw)
@@ -208,13 +206,16 @@ def scrape_amazon(brand, product):
                                     match = re.search(r'\d+(?:\.\d+)?', raw)
                                     if match: price_value = round(float(match.group(0)), 2)
 
-                                    currency_match = re.search(r'[\$€£₹¥]', raw_price)
-                                    if currency_match: currency = currency_match.group(0)
-                                    else:
-                                        if "in" in domain: currency = "₹"
-                                        elif "uk" in domain: currency = "£"
-                                        elif "de" in domain or "fr" in domain: currency = "€"
-                                        else: currency = "$"
+                                currency_match = re.search(
+                                    r'(?:'
+                                    r'[\$€£₹¥₩₽₺₫₴₦₱₵₲₡₸₭₣₥₧₯₰₳₢₣₤₥₦₧₩₫₭₮₯₱₲₳₴₺₼₾₿]|'  # Common currency symbols
+                                    r'د\.إ|ر\.س|ج\.م|₨|'                          # Arabic / Indian symbols
+                                    r'S\$|zł|kr|R\$|'                             # Singapore, Poland, Sweden, Brazil
+                                    r'[A-Z]{3}'                                   # ISO codes like USD, AED, INR
+                                    r')',
+                                    raw_price
+                                )
+                                currency = currency_match.group(0) if currency_match else "NA"
                                 
                                 if price_value == "NA": continue
 
