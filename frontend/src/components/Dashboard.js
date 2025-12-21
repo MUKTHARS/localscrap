@@ -15,6 +15,7 @@ const Dashboard = () => {
   });
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
+  // 'smart' = Filter by AI score | 'fuzzy' = Show everything
   const [matchType, setMatchType] = useState('smart');
 
   const [results, setResults] = useState([]);
@@ -163,18 +164,34 @@ const Dashboard = () => {
 
   const exportToCSV = () => {
     const headers = [
-      'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
+      'MATCH SCORE', 'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
       'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
       'DATE SCRAPED', 'SOURCE URL'
     ];
 
     const csvContent = [
       headers.join(','),
-      ...filteredResults.map(row =>
-        headers.map(header =>
-          `"${(row[header] || '').toString().replace(/"/g, '""')}"`
-        ).join(',')
-      )
+      ...filteredResults.map(row => {
+        // Map backend keys to CSV columns
+        const rowData = {
+          'MATCH SCORE': row.relevance_score || 'N/A',
+          'BRAND': row.BRAND,
+          'PRODUCT': row.PRODUCT,
+          'OEM NUMBER': row['OEM NUMBER'],
+          'ASIN NUMBER': row['ASIN NUMBER'],
+          'WEBSITE': row.WEBSITE,
+          'PRODUCT NAME': row['PRODUCT NAME'],
+          'PRICE': row.PRICE,
+          'CURRENCY': row.CURRENCY,
+          'SELLER RATING': row['SELLER RATING'],
+          'DATE SCRAPED': row['DATE SCRAPED'],
+          'SOURCE URL': row['SOURCE URL']
+        };
+
+        return headers.map(header =>
+          `"${(rowData[header] || '').toString().replace(/"/g, '""')}"`
+        ).join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -193,24 +210,9 @@ const Dashboard = () => {
     return isNaN(p) ? 0 : p;
   };
 
-  const calculateSimilarity = (str1, str2) => {
-    if (!str1 || !str2) return 0;
-    const s1 = str1.toLowerCase().replace(/\s+/g, '');
-    const s2 = str2.toLowerCase().replace(/\s+/g, '');
-    if (s1 === s2) return 1;
-    if (s1.length < 2 || s2.length < 2) return 0;
-
-    const bigrams1 = new Set();
-    for (let i = 0; i < s1.length - 1; i++) bigrams1.add(s1.substring(i, i + 2));
-
-    let intersection = 0;
-    for (let i = 0; i < s2.length - 1; i++) {
-      if (bigrams1.has(s2.substring(i, i + 2))) intersection++;
-    }
-    return (2.0 * intersection) / (s1.length + s2.length - 2);
-  };
-
+  // --- REVISED FILTERING LOGIC (AI BASED) ---
   const filteredResults = useMemo(() => {
+    // 1. First apply basic Client-Side filters (Website, Keyword, Price)
     let list = results.filter(item => {
       const matchesWebsite = filters.website === '' || 
         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
@@ -228,42 +230,21 @@ const Dashboard = () => {
       return matchesWebsite && matchesPrice && matchesKeywordFilter;
     });
 
-    if (matchType === 'smart' && list.length > 0) {
-      const query = `${formData.brand} ${formData.product}`.toLowerCase();
-      
-      const prices = list.map(getPrice).filter(p => p > 0).sort((a, b) => a - b);
-      let medianPrice = 0;
-      if (prices.length > 0) {
-        const mid = Math.floor(prices.length / 2);
-        medianPrice = prices.length % 2 !== 0 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
-      }
-
+    // 2. Then apply "Smart Match" based on Backend AI Score
+    if (matchType === 'smart') {
       list = list.filter(item => {
-        const title = (item['PRODUCT NAME'] || '').toLowerCase();
-        
-        const itemPrice = getPrice(item);
-        if (medianPrice > 0 && itemPrice < (medianPrice * 0.35)) {
-          return false; 
+        // Use the score provided by backend (0-100)
+        // If score is missing (e.g. bulk upload without AI), allow it by default
+        if (item.relevance_score !== undefined && item.relevance_score !== null) {
+          // THRESHOLD: 60 (Adjust if you want stricter filtering)
+          return item.relevance_score >= 60; 
         }
-
-        const badWords = ['case', 'cover', 'glass', 'guard', 'protector', 'film', 'skin', 'pouch', 'bumper', 'back cover', 'screen protector', 'holster', 'armband', 'clip', 'wallet', 'charger', 'cable', 'adapter', 'mount', 'stand', 'stylus'];
-        const userProductQuery = formData.product.toLowerCase();
-        const isAccessory = badWords.some(word => title.includes(word));
-        const userSearchedAccessory = badWords.some(word => userProductQuery.includes(word));
-        
-        if (isAccessory && !userSearchedAccessory) {
-          return false;
-        }
-
-        const score = calculateSimilarity(query, title);
-        const lengthRatio = title.length / Math.max(query.length, 1);
-
-        return score > 0.35 && lengthRatio < 3.0; 
+        return true; 
       });
     }
 
     return list;
-  }, [results, filters, matchType, formData]);
+  }, [results, filters, matchType]);
 
   return (
     <div className="premium-dashboard">
@@ -307,20 +288,20 @@ const Dashboard = () => {
                   <label className="form-label"></label>
                   <div className="match-toggle-wrapper">
                     <button 
-                      type="button"
-                      className={`match-btn ${matchType === 'fuzzy' ? 'active' : ''}`}
+                      type="button" 
+                      className={`match-btn ${matchType === 'fuzzy' ? 'active' : ''}`} 
                       onClick={() => handleMatchToggle('fuzzy')}
                     >
                       <i className="bi bi-grid"></i> All Results
                       <span className="match-desc">Broad Search</span>
                     </button>
                     <button 
-                      type="button"
-                      className={`match-btn ${matchType === 'smart' ? 'active' : ''}`}
+                      type="button" 
+                      className={`match-btn ${matchType === 'smart' ? 'active' : ''}`} 
                       onClick={() => handleMatchToggle('smart')}
                     >
-                      <i className="bi bi-cpu"></i> Smart Match
-                      <span className="match-desc">Filtered (Best)</span>
+                      <i className="bi bi-stars"></i> AI Smart Match
+                      <span className="match-desc">High Relevance</span>
                     </button>
                   </div>
                 </div>
@@ -478,7 +459,7 @@ const Dashboard = () => {
                   {loading ? (
                     <>
                       <div className="btn-spinner"></div>
-                      Searching Products...
+                      Analyzing with AI...
                     </>
                   ) : (
                     <>
@@ -743,6 +724,7 @@ const Dashboard = () => {
                 <table className="premium-table">
                   <thead>
                     <tr>
+                      <th>Match</th> {/* New Score Column */}
                       <th>Brand</th>
                       <th>Product</th>
                       <th>OEM Number</th>
@@ -759,6 +741,17 @@ const Dashboard = () => {
                   <tbody>
                     {filteredResults.map((item, index) => (
                       <tr key={index}>
+                        {/* New Match Score Cell */}
+                        <td>
+                          {item.relevance_score !== undefined && item.relevance_score !== null ? (
+                            <div className={`badge ${item.relevance_score > 80 ? 'badge-success' : (item.relevance_score > 50 ? 'badge-warning' : 'badge-danger')}`} 
+                                 style={{padding: '5px 10px', borderRadius: '4px', textAlign: 'center', color: '#fff', fontSize: '0.8rem', backgroundColor: item.relevance_score > 80 ? '#28a745' : (item.relevance_score > 50 ? '#ffc107' : '#dc3545')}}>
+                              {item.relevance_score}%
+                            </div>
+                          ) : (
+                            <span style={{color: '#999', fontSize: '0.8rem'}}>N/A</span>
+                          )}
+                        </td>
                         <td>
                           <div className="brand-cell">
                             <div className="brand-avatar">
