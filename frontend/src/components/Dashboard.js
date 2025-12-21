@@ -13,7 +13,6 @@ const Dashboard = () => {
     website: '',
     amazon_country: 'amazon.com'
   });
-  
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
   const [matchType, setMatchType] = useState('smart');
@@ -189,11 +188,15 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
+  const getPrice = (item) => {
+    const p = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
+    return isNaN(p) ? 0 : p;
+  };
+
   const calculateSimilarity = (str1, str2) => {
     if (!str1 || !str2) return 0;
     const s1 = str1.toLowerCase().replace(/\s+/g, '');
     const s2 = str2.toLowerCase().replace(/\s+/g, '');
-    
     if (s1 === s2) return 1;
     if (s1.length < 2 || s2.length < 2) return 0;
 
@@ -202,16 +205,9 @@ const Dashboard = () => {
 
     let intersection = 0;
     for (let i = 0; i < s2.length - 1; i++) {
-      const bigram = s2.substring(i, i + 2);
-      if (bigrams1.has(bigram)) intersection++;
+      if (bigrams1.has(s2.substring(i, i + 2))) intersection++;
     }
-
     return (2.0 * intersection) / (s1.length + s2.length - 2);
-  };
-  
-  const getPrice = (item) => {
-    const p = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
-    return isNaN(p) ? 0 : p;
   };
 
   const filteredResults = useMemo(() => {
@@ -250,8 +246,16 @@ const Dashboard = () => {
           return false; 
         }
 
+        const badWords = ['case', 'cover', 'glass', 'guard', 'protector', 'film', 'skin', 'pouch', 'bumper', 'back cover', 'screen protector', 'holster', 'armband', 'clip', 'wallet', 'charger', 'cable', 'adapter', 'mount', 'stand', 'stylus'];
+        const userProductQuery = formData.product.toLowerCase();
+        const isAccessory = badWords.some(word => title.includes(word));
+        const userSearchedAccessory = badWords.some(word => userProductQuery.includes(word));
+        
+        if (isAccessory && !userSearchedAccessory) {
+          return false;
+        }
+
         const score = calculateSimilarity(query, title);
- 
         const lengthRatio = title.length / Math.max(query.length, 1);
 
         return score > 0.35 && lengthRatio < 3.0; 
@@ -259,7 +263,7 @@ const Dashboard = () => {
     }
 
     return list;
-  }, [results, filters, matchType, formData.brand, formData.product]);
+  }, [results, filters, matchType, formData]);
 
   return (
     <div className="premium-dashboard">
@@ -316,7 +320,7 @@ const Dashboard = () => {
                       onClick={() => handleMatchToggle('smart')}
                     >
                       <i className="bi bi-cpu"></i> Smart Match
-                      <span className="match-desc">AI Filtered (Best)</span>
+                      <span className="match-desc">Filtered (Best)</span>
                     </button>
                   </div>
                 </div>
