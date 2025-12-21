@@ -5,7 +5,6 @@ import '../styles/Dashboard.css';
 import '../styles/Table.css';
 
 const Dashboard = () => {
-  // --- Form State ---
   const [formData, setFormData] = useState({
     brand: '',
     product: '',
@@ -14,15 +13,11 @@ const Dashboard = () => {
     website: '',
     amazon_country: 'amazon.com'
   });
+  
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
-  // --- MATCH TYPE STATE ---
-  // 'fuzzy': Show everything (Broad Search)
-  // 'smart': AI filtering (Price Outlier Detection + Text Similarity)
-  // Removed 'exact' as requested.
-  const [matchType, setMatchType] = useState('smart'); // Default to Smart for best experience
+  const [matchType, setMatchType] = useState('smart');
 
-  // --- Data & UI State ---
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,17 +26,13 @@ const Dashboard = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const { user } = useAuth();
 
-  // --- Filter State ---
   const [filters, setFilters] = useState({
     keyword: '',
     website: '',
     maxPrice: ''
   });
 
-  // Check if Amazon Region field should be shown
   const showAmazonRegion = formData.website === 'amazon' || formData.website === '' || formData.website === 'allwebsite';
-
-  // --- Handlers ---
 
   const handleChange = (e) => {
     setFormData({
@@ -57,7 +48,6 @@ const Dashboard = () => {
     });
   };
 
-  // Handler for Match Type Toggle
   const handleMatchToggle = (type) => {
     setMatchType(type);
   };
@@ -148,7 +138,7 @@ const Dashboard = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 300000 // 5 minute timeout for bulk upload
+        timeout: 300000
       });
 
       if (response.data.error) {
@@ -173,7 +163,6 @@ const Dashboard = () => {
   };
 
   const exportToCSV = () => {
-    // We export filtered results to match what the user sees
     const headers = [
       'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
       'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
@@ -200,8 +189,6 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
-  // --- SMART MATCH HELPER: Dice Coefficient ---
-  // Calculates string similarity between 0 and 1
   const calculateSimilarity = (str1, str2) => {
     if (!str1 || !str2) return 0;
     const s1 = str1.toLowerCase().replace(/\s+/g, '');
@@ -221,27 +208,21 @@ const Dashboard = () => {
 
     return (2.0 * intersection) / (s1.length + s2.length - 2);
   };
-
-  // Helper to get clean price number
+  
   const getPrice = (item) => {
     const p = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
     return isNaN(p) ? 0 : p;
   };
 
-  // --- Filtering Logic (Memoized for Performance) ---
   const filteredResults = useMemo(() => {
-    // 1. First Pass: Apply Standard UI Filters
     let list = results.filter(item => {
-      // Website Filter
       const matchesWebsite = filters.website === '' || 
         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
-      // Price Filter
       const priceValue = getPrice(item);
       const maxPrice = parseFloat(filters.maxPrice);
       const matchesPrice = !filters.maxPrice || priceValue <= maxPrice;
 
-      // Keyword Filter
       const searchTerm = filters.keyword.toLowerCase();
       const matchesKeywordFilter = 
         (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
@@ -251,11 +232,9 @@ const Dashboard = () => {
       return matchesWebsite && matchesPrice && matchesKeywordFilter;
     });
 
-    // 2. Second Pass: Smart Matching (AI Logic)
     if (matchType === 'smart' && list.length > 0) {
       const query = `${formData.brand} ${formData.product}`.toLowerCase();
       
-      // Calculate Median Price (Generic Solution for Noise/Accessories)
       const prices = list.map(getPrice).filter(p => p > 0).sort((a, b) => a - b);
       let medianPrice = 0;
       if (prices.length > 0) {
@@ -266,23 +245,15 @@ const Dashboard = () => {
       list = list.filter(item => {
         const title = (item['PRODUCT NAME'] || '').toLowerCase();
         
-        // A. Price Logic: Filter out items < 35% of median price
         const itemPrice = getPrice(item);
         if (medianPrice > 0 && itemPrice < (medianPrice * 0.35)) {
           return false; 
         }
 
-        // B. Text Similarity Logic
         const score = calculateSimilarity(query, title);
-        
-        // C. Noise Factor (Length Check)
-        // If result title is significantly longer than query, it is likely an accessory description.
-        // E.g., Query: "iPhone 16" (9 chars). Noise: "Shockproof Case for iPhone 16..." (60 chars). Ratio = 6.6.
+ 
         const lengthRatio = title.length / Math.max(query.length, 1);
 
-        // REFINED THRESHOLDS:
-        // 1. Similarity > 0.35: Ensures title looks very close to search query.
-        // 2. LengthRatio < 3.0: Aggressively cuts off long titles (accessories), solving the 'Case' problem.
         return score > 0.35 && lengthRatio < 3.0; 
       });
     }
@@ -292,7 +263,6 @@ const Dashboard = () => {
 
   return (
     <div className="premium-dashboard">
-      {/* Header Section */}
       <div className="dashboard-hero">
         <div className="hero-content">
           <h1 className="hero-title">
@@ -318,10 +288,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="dashboard-content">
         <div className="content-grid">
-          {/* Manual Entry Card */}
           <div className="feature-card">
             <div className="card-header">
               <h3 className="card-title">Single Product Search</h3>
@@ -331,9 +299,8 @@ const Dashboard = () => {
             <div className="card-body">
               <form onSubmit={handleScrape} className="premium-form">
                 
-                {/* --- UPDATED: Match Type Toggle (Removed Exact) --- */}
                 <div className="form-group">
-                  <label className="form-label">Search Precision</label>
+                  <label className="form-label"></label>
                   <div className="match-toggle-wrapper">
                     <button 
                       type="button"
@@ -353,7 +320,6 @@ const Dashboard = () => {
                     </button>
                   </div>
                 </div>
-                {/* --- End Toggle --- */}
 
                 <div className="form-group">
                   <label className="form-label">
@@ -520,7 +486,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Bulk Upload Card */}
           <div className="feature-card">
             <div className="card-header">
               <h3 className="card-title">Bulk Product Analysis</h3>
@@ -583,7 +548,6 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {/* Amazon Region for Bulk Upload */}
               <div className="form-group">
                 <label className="form-label">Amazon Region</label>
                 <div className="input-wrapper">
@@ -651,7 +615,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Error Display */}
         {error && (
           <div className="error-alert">
             <div className="alert-icon">
@@ -670,7 +633,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Results Section with Filters */}
         {results.length > 0 && (
           <div className="results-section">
             <div className="results-header">
@@ -695,11 +657,9 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* --- FILTER BAR --- */}
             <div className="feature-card filter-card" style={{ marginBottom: '20px', padding: '12px 20px' }}>
               <div className="form-row" style={{ alignItems: 'flex-end', gap: '15px', margin: 0 }}>
 
-                {/* 1. Keyword Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
                     Keyword
@@ -720,7 +680,6 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* 2. Website Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
                     Website
@@ -752,7 +711,6 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* 3. Price Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
                     Max Price
@@ -775,7 +733,6 @@ const Dashboard = () => {
 
               </div>
             </div>
-            {/* --- END FILTER BAR --- */}
 
             <div className="table-container">
               <div className="table-scroll">
@@ -796,7 +753,6 @@ const Dashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Render Filtered Results */}
                     {filteredResults.map((item, index) => (
                       <tr key={index}>
                         <td>
@@ -866,7 +822,6 @@ const Dashboard = () => {
                     ))}
                   </tbody>
                 </table>
-                {/* Message if filters hide all results */}
                 {results.length > 0 && filteredResults.length === 0 && (
                   <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
                     <i className="bi bi-search" style={{ fontSize: '2rem', display: 'block', marginBottom: '10px', opacity: 0.5 }}></i>
