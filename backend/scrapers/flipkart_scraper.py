@@ -77,43 +77,65 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         with BROWSER_START_LOCK:
             print(f"[{session_id}] Acquire Lock: Starting Flipkart Browser...")
             
-            display = Display(visible=0, size=(1920, 1080))
-            display.start()
-
-            options = uc.ChromeOptions()
-            options.add_argument(f"--user-data-dir={temp_user_data_dir}")
-            options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-            options.add_argument("--disable-gpu")
-            options.add_argument("--start-maximized")
-            options.add_argument("--disable-popup-blocking")
-
+            # Start virtual display once
             try:
-                patcher = uc.Patcher()
-                patcher.auto()
-                src_driver = patcher.executable_path
-                
-                unique_driver_name = f"chromedriver_{session_id}"
-                unique_driver_path = os.path.join(temp_user_data_dir, unique_driver_name)
-                shutil.copy2(src_driver, unique_driver_path)
-                os.chmod(unique_driver_path, 0o755)
-            except Exception as e:
-                print(f"[{session_id}] Driver copy failed: {e}")
-                unique_driver_path = None
+                display = Display(visible=0, size=(1920, 1080))
+                display.start()
+            except Exception as disp_e:
+                print(f"[{session_id}] Error starting display: {disp_e}")
 
-            if unique_driver_path:
-                driver = uc.Chrome(
-                    options=options, 
-                    driver_executable_path=unique_driver_path,
-                    use_subprocess=True,
-                    version_main=None
-                )
-            else:
-                driver = uc.Chrome(options=options, use_subprocess=True)
-            
-            print(f"[{session_id}] Browser started. Stabilizing...")
-            time.sleep(2)
+            # RETRY LOGIC: Try to start browser up to 3 times
+            browser_started = False
+            for attempt in range(1, 4):
+                try:
+                    options = uc.ChromeOptions()
+                    options.add_argument(f"--user-data-dir={temp_user_data_dir}")
+                    options.add_argument(f"--load-extension={os.path.abspath(proxy_plugin)}")
+                    options.add_argument("--no-sandbox")
+                    options.add_argument("--disable-dev-shm-usage")
+                    options.add_argument("--disable-gpu")
+                    options.add_argument("--start-maximized")
+                    options.add_argument("--disable-popup-blocking")
+                    
+                    # Extra stability options
+                    options.add_argument("--disable-infobars")
+                    options.add_argument("--disable-extensions-file-access-check")
+
+                    # Driver patching
+                    patcher = uc.Patcher()
+                    patcher.auto()
+                    src_driver = patcher.executable_path
+                    
+                    unique_driver_name = f"chromedriver_{session_id}_{attempt}"
+                    unique_driver_path = os.path.join(temp_user_data_dir, unique_driver_name)
+                    shutil.copy2(src_driver, unique_driver_path)
+                    os.chmod(unique_driver_path, 0o755)
+
+                    driver = uc.Chrome(
+                        options=options, 
+                        driver_executable_path=unique_driver_path,
+                        use_subprocess=True,
+                        version_main=None
+                    )
+                    
+                    # If we get here, browser started successfully
+                    print(f"[{session_id}] Browser started on attempt {attempt}. Stabilizing...")
+                    browser_started = True
+                    time.sleep(2)
+                    break 
+
+                except Exception as e:
+                    print(f"[{session_id}] Browser launch attempt {attempt} failed: {e}")
+                    # Clean up failed driver before retrying
+                    if driver:
+                        try: driver.quit()
+                        except: pass
+                    driver = None
+                    time.sleep(3) # Wait before retry
+
+            if not browser_started:
+                raise Exception("Failed to start Chrome browser after 3 attempts")
+
             print(f"[{session_id}] Lock Released.")
 
         if asin_number:
@@ -205,8 +227,8 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                 print(f"[{session_id}] > Added {page_new_items} items.")
 
                 if page_new_items == 0 and len(product_cards) > 0:
-                     print(f"[{session_id}] Page contained only duplicates. Stopping.")
-                     break
+                      print(f"[{session_id}] Page contained only duplicates. Stopping.")
+                      break
 
             except Exception as e:
                 print(f"[{session_id}] Error scraping page {current_page}: {str(e)}")
