@@ -121,7 +121,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                     # If we get here, browser started successfully
                     print(f"[{session_id}] Browser started on attempt {attempt}. Stabilizing...")
                     browser_started = True
-                    time.sleep(2)
+                    # time.sleep(2)
                     break 
 
                 except Exception as e:
@@ -131,7 +131,7 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                         try: driver.quit()
                         except: pass
                     driver = None
-                    time.sleep(3) # Wait before retry
+                    # time.sleep(3) # Wait before retry
 
             if not browser_started:
                 raise Exception("Failed to start Chrome browser after 3 attempts")
