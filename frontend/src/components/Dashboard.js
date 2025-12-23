@@ -215,15 +215,16 @@ const Dashboard = () => {
       const matchesPrice = !filters.maxPrice || priceValue <= maxPrice;
 
       // 4. Match Type Filter (Fuzzy vs Exact)
-      // Only apply this logic if NOT using Shopify mode
       let matchesType = true;
-      if (formData.website !== 'shopify' && matchType === 'exact') {
+      if (matchType === 'exact') {
         const productName = (item['PRODUCT NAME'] || '').toLowerCase();
         // Use the brand/product from the specific row data
         const brandQuery = (item.BRAND || '').toLowerCase();
         const productQuery = (item.PRODUCT || '').toLowerCase();
 
         // Split queries into words to allow flexibility
+        // e.g. Brand: "Apple", Product: "iPhone 15" -> Words: ["apple", "iphone", "15"]
+        // The result title must contain ALL these words to be an exact match
         const brandWords = brandQuery.split(/\s+/).filter(w => w);
         const productWords = productQuery.split(/\s+/).filter(w => w);
 
@@ -235,7 +236,7 @@ const Dashboard = () => {
 
       return matchesKeyword && matchesWebsite && matchesPrice && matchesType;
     });
-  }, [results, filters, matchType, formData.website]);
+  }, [results, filters, matchType]);
 
   return (
     <div className="premium-dashboard">
@@ -644,25 +645,23 @@ const Dashboard = () => {
                 </p>
               </div>
 
-              {/* Match Type Toggle Buttons - HIDE FOR SHOPIFY */}
-              {formData.website !== 'shopify' && (
-                <div className="match-toggle-group" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginRight: '20px' }}>
-                  <button
-                    className={`btn btn-sm ${matchType === 'fuzzy' ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => setMatchType('fuzzy')}
-                    title="Show all related results (includes accessories/similar items)"
-                  >
-                    <i className="bi bi-share"></i> Fuzzy Match
-                  </button>
-                  <button
-                    className={`btn btn-sm ${matchType === 'exact' ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => setMatchType('exact')}
-                    title="Show only results that contain Brand + Product Name"
-                  >
-                    <i className="bi bi-check-circle"></i> Exact Match
-                  </button>
-                </div>
-              )}
+              {/* Match Type Toggle Buttons */}
+              <div className="match-toggle-group" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginRight: '20px' }}>
+                <button
+                  className={`btn btn-sm ${matchType === 'fuzzy' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setMatchType('fuzzy')}
+                  title="Show all related results (includes accessories/similar items)"
+                >
+                  <i className="bi bi-share"></i> Fuzzy Match
+                </button>
+                <button
+                  className={`btn btn-sm ${matchType === 'exact' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setMatchType('exact')}
+                  title="Show only results that contain Brand + Product Name"
+                >
+                  <i className="bi bi-check-circle"></i> Exact Match
+                </button>
+              </div>
 
               <div className="results-actions">
                 <button
