@@ -142,7 +142,7 @@ def scrape_amazon(brand, product):
                         driver.set_page_load_timeout(45)
 
                         print(f"[{session_id}] Browser started. Stabilizing...")
-                        # time.sleep(2) 
+                        time.sleep(2) 
                         print(f"[{session_id}] Lock Released.")
 
                     base_query = "+".join([k for k in [brand, product] if k])
