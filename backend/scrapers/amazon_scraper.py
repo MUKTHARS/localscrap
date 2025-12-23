@@ -142,7 +142,7 @@ def scrape_amazon(brand, product):
                         driver.set_page_load_timeout(45)
 
                         print(f"[{session_id}] Browser started. Stabilizing...")
-                        time.sleep(2) 
+                        # time.sleep(2) 
                         print(f"[{session_id}] Lock Released.")
 
                     base_query = "+".join([k for k in [brand, product] if k])
@@ -156,16 +156,16 @@ def scrape_amazon(brand, product):
                         for _ in range(random.randint(2, 4)):
                             scroll_amount = random.randint(300, 800)
                             driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
-                            time.sleep(random.uniform(0.5, 1.5))
+                            # time.sleep(random.uniform(0.5, 1.5))
                         driver.execute_script("window.scrollBy(0, -300);")
 
                         html = driver.page_source
 
                         if "Enter the characters" in html or "Type the characters" in html:
                             print(f"[{session_id}] ⚠️ CAPTCHA detected.")
-                            time.sleep(5)
+                            # time.sleep(5)
                             driver.refresh()
-                            time.sleep(5)
+                            # time.sleep(5)
                             if "Enter the characters" in driver.page_source:
                                 raise Exception("Captcha persistence")
 
