@@ -112,7 +112,7 @@ def scrape_ntsuae(brand, product, oem_number=None, asin_number=None):
                 driver = uc.Chrome(options=options, use_subprocess=True)
 
             print(f"[{session_id}] Browser started. Stabilizing...")
-            time.sleep(2)
+            # time.sleep(2)
             print(f"[{session_id}] Lock Released.")
 
         # Build URL
