@@ -77,14 +77,12 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
         with BROWSER_START_LOCK:
             print(f"[{session_id}] Acquire Lock: Starting Flipkart Browser...")
             
-            # Start virtual display once
             try:
                 display = Display(visible=0, size=(1920, 1080))
                 display.start()
             except Exception as disp_e:
                 print(f"[{session_id}] Error starting display: {disp_e}")
 
-            # RETRY LOGIC: Try to start browser up to 3 times
             browser_started = False
             for attempt in range(1, 4):
                 try:
@@ -97,11 +95,9 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                     options.add_argument("--start-maximized")
                     options.add_argument("--disable-popup-blocking")
                     
-                    # Extra stability options
                     options.add_argument("--disable-infobars")
                     options.add_argument("--disable-extensions-file-access-check")
 
-                    # Driver patching
                     patcher = uc.Patcher()
                     patcher.auto()
                     src_driver = patcher.executable_path
@@ -118,7 +114,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
                         version_main=None
                     )
                     
-                    # If we get here, browser started successfully
                     print(f"[{session_id}] Browser started on attempt {attempt}. Stabilizing...")
                     browser_started = True
                     # time.sleep(2)
@@ -126,7 +121,6 @@ def scrape_flipkart(brand, product, oem_number=None, asin_number=None):
 
                 except Exception as e:
                     print(f"[{session_id}] Browser launch attempt {attempt} failed: {e}")
-                    # Clean up failed driver before retrying
                     if driver:
                         try: driver.quit()
                         except: pass
