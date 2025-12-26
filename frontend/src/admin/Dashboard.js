@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { Card, Row, Col, Table, Badge, Button, Spinner, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { formatToAccountTime } from '../utils/dateUtils';
 
 ChartJS.register(
   CategoryScale, 
@@ -448,10 +449,7 @@ const Dashboard = ({ user }) => {
                         </Badge>
                       </td>
                       <td>
-                        {new Date(ticket.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric'
-                        })}
+                        {formatToAccountTime(ticket.created_at, user?.timezone)}
                       </td>
                       <td>
                         <Button
