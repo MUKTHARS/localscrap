@@ -567,6 +567,7 @@ def get_user():
         'id': current_user.id,
         'name': current_user.name,
         'email': current_user.email,
+        'timezone': current_user.timezone,
         'authenticated': True
     })
 
@@ -807,6 +808,7 @@ def get_profile():
             "user": {
                 "name": current_user.name,
                 "email": current_user.email,
+                "timezone": current_user.timezone,
                 "created_at": user_created_at.isoformat()
             },
             "search_history": history_data
@@ -814,6 +816,23 @@ def get_profile():
     except Exception as e:
         logger.exception("Error getting profile")
         return jsonify({"error": "Failed to get profile"}), 500
+
+@app.route('/api/user/timezone', methods=['PUT'])
+@login_required
+def update_timezone():
+    data = request.get_json()
+    new_tz = data.get('timezone')
+    
+    if not new_tz:
+        return jsonify({"error": "Timezone required"}), 400
+        
+    try:
+        current_user.timezone = new_tz
+        db.session.commit()
+        return jsonify({"message": "Timezone updated", "timezone": new_tz})
+    except Exception as e:
+        logger.error(f"Error updating timezone: {e}")
+        return jsonify({"error": "Failed to update"}), 500
 
 @app.route('/api/delete-search/<string:search_id>', methods=['DELETE'])
 @login_required
