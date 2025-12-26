@@ -10,6 +10,7 @@ import UserDashboard from './components/Dashboard';
 import UserProfile from './components/Profile';
 import UserNavbar from './components/Navbar';
 import SupportTickets from './components/SupportTickets';
+import UserTicketDetail from './components/UserTicketDetail'; // <--- FIX 1: Import this
 
 // --- ADMIN IMPORTS ---
 import AdminLogin from './admin/Login';
@@ -39,15 +40,20 @@ function ProtectedUserRoute({ children }) {
   return user ? children : <Navigate to="/login" />;
 }
 
+// FIX 2: Wrapper to safely pass user prop
+function UserTicketRoute() {
+  const { user } = useAuth();
+  return <UserTicketDetail user={user} />;
+}
+
 // Admin Protected Route
 function ProtectedAdminRoute({ children, requiredRole }) {
-  // Check LocalStorage for UI state safely
   let adminUser = null;
   try {
     const stored = localStorage.getItem('admin_user');
     if (stored) adminUser = JSON.parse(stored);
   } catch (e) {
-    localStorage.removeItem('admin_user'); // Clear corrupted data
+    localStorage.removeItem('admin_user');
   }
   
   if (!adminUser) {
@@ -55,7 +61,6 @@ function ProtectedAdminRoute({ children, requiredRole }) {
   }
   
   if (requiredRole && adminUser.role !== requiredRole) {
-    // If employee tries to access admin-only route, send to dashboard
     return <Navigate to="/admin/dashboard" replace />;
   }
 
@@ -72,11 +77,10 @@ const AdminLayout = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Use relative path so it works on localhost AND production
       await fetch('/api/admin/logout', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include' // Critical for HttpOnly Cookies
+        credentials: 'include'
       });
     } catch (e) {
       console.error("Logout failed", e);
@@ -104,9 +108,6 @@ function App() {
           <DebugAuth />
           <Routes>
             {/* === USER ROUTES === */}
-            {/* REMOVED: isAdminLoggedIn logic. 
-                Now, if an admin visits /, they see the user homepage. 
-                If they want the dashboard, they must go to /admin */}
             
             <Route path="/login" element={<UserLogin />} />
             
@@ -126,15 +127,19 @@ function App() {
               </ProtectedUserRoute>
             } />
 
-            <Route path="/support/tickets/:id" element={<UserTicketDetail user={user} />} />
+            {/* FIX 3: Use the wrapper here */}
+            <Route path="/support/tickets/:id" element={
+              <ProtectedUserRoute>
+                 <UserNavbar />
+                 <UserTicketRoute />
+              </ProtectedUserRoute>
+            } />
 
             {/* === ADMIN ROUTES === */}
-            {/* Login */}
             <Route path="/admin/login" element={
                 <AdminLogin onLogin={() => window.location.href = '/admin/dashboard'} />
             } />
 
-            {/* Dashboard */}
             <Route path="/admin/dashboard" element={
               <ProtectedAdminRoute>
                 <AdminLayout>
@@ -143,18 +148,14 @@ function App() {
               </ProtectedAdminRoute>
             } />
 
-            {/* ... Keep all other Admin Routes exactly as they are ... */}
             <Route path="/tickets" element={<ProtectedAdminRoute><AdminLayout><AdminTickets user={JSON.parse(localStorage.getItem('admin_user'))} /></AdminLayout></ProtectedAdminRoute>} />
-            <Route path="/tickets/:id" element={<ProtectedAdminRoute><AdminLayout><AdminTicketDetail /></AdminLayout></ProtectedAdminRoute>} />
-            <Route path="/users" element={<ProtectedAdminRoute><AdminLayout><AdminUsers /></AdminLayout></ProtectedAdminRoute>} />
+            <Route path="/tickets/:id" element={<ProtectedAdminRoute><AdminLayout><AdminTicketDetail user={JSON.parse(localStorage.getItem('admin_user'))} /></AdminLayout></ProtectedAdminRoute>} />
+            <Route path="/users" element={<ProtectedAdminRoute><AdminLayout><AdminUsers user={JSON.parse(localStorage.getItem('admin_user'))} /></AdminLayout></ProtectedAdminRoute>} />
             <Route path="/assign" element={<ProtectedAdminRoute requiredRole="admin"><AdminLayout><AssignTickets /></AdminLayout></ProtectedAdminRoute>} />
-            <Route path="/employees" element={<ProtectedAdminRoute requiredRole="admin"><AdminLayout><Employees /></AdminLayout></ProtectedAdminRoute>} />
+            <Route path="/employees" element={<ProtectedAdminRoute requiredRole="admin"><AdminLayout><Employees user={JSON.parse(localStorage.getItem('admin_user'))} /></AdminLayout></ProtectedAdminRoute>} />
 
             {/* Catch All */}
-            {/* If they type /admin and nothing else, send to admin login or dashboard */}
             <Route path="/admin" element={<Navigate to="/admin/dashboard" />} />
-            
-            {/* General Catch All: Send to User Dashboard */}
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
         </div>
