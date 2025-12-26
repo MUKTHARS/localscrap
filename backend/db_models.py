@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 import uuid
 import time
 
+from sqlalchemy import text
+
 db = SQLAlchemy()
 
 # --- 1. USER MODEL (For Customers) ---
@@ -66,7 +68,7 @@ class SupportTicket(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
 
     # 1. SEQUENCE COLUMN: Handled by DB (SERIAL/SEQUENCE)
-    ticket_sequence = db.Column(db.Integer, autoincrement=True)
+    ticket_sequence = db.Column(db.Integer, db.Sequence('support_tickets_seq'), server_default=text("nextval('support_tickets_seq')"))
     
     # 2. FORMATTED NUMBER: Nullable initially (e.g. TH-0001)
     ticket_number = db.Column(db.String(20), unique=True, nullable=True)
