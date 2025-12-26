@@ -20,7 +20,7 @@ const Navigation = ({ user, onLogout }) => {
   const dashboardLink = isStaff ? '/admin/dashboard' : '/dashboard';
 
   // Define Base URL (Relative path)
-  const API_BASE_URL = ''; 
+  const API_BASE_URL = 'https://tutomart.com'; 
 
   const handleLogout = async () => {
     try {
