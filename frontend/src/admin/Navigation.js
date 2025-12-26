@@ -1,47 +1,71 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, Dropdown } from 'react-bootstrap';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(user);
 
-  // --- 1. DETERMINE USER TYPE ---
-  // Normalize role to ensure case-insensitivity
-  const role = user?.role?.toLowerCase() || '';
-  const isStaff = role === 'admin' || role === 'employee'; // Both are staff
-  const isAdmin = role === 'admin'; // Only Super Admin
+  // --- 1. ROBUST USER LOADING ---
+  // If 'user' prop is missing or incomplete, try to load from localStorage as fallback
+  useEffect(() => {
+    if (user && user.role) {
+      setCurrentUser(user);
+    } else {
+      const stored = localStorage.getItem('admin_user');
+      if (stored) {
+        try {
+          setCurrentUser(JSON.parse(stored));
+        } catch (e) {
+          console.error("Failed to parse stored user");
+        }
+      }
+    }
+  }, [user]);
 
-  // --- 2. DYNAMIC LINKS ---
-  // Staff go to Admin Dashboard, Customers go to User Dashboard
+  // --- 2. PRECISE ROLE CHECKING ---
+  // .trim() removes accidental spaces from DB (e.g. "employee ")
+  // .toLowerCase() ensures "Employee" matches "employee"
+  const rawRole = currentUser?.role || '';
+  const role = rawRole.trim().toLowerCase();
+
+  // Debugging: Check your console to see exactly what the role is
+  // console.log("Navigation User:", currentUser, "Detected Role:", role);
+
+  const isAdmin = role === 'admin';
+  const isEmployee = role === 'employee';
+  const isStaff = isAdmin || isEmployee;
+
+  // --- 3. DYNAMIC LINKS ---
+  // Staff -> Admin Dashboard (/admin/dashboard)
+  // Customers -> User Dashboard (/dashboard)
   const dashboardLink = isStaff ? '/admin/dashboard' : '/dashboard';
-  // Staff go to Admin Login, Customers go to User Login
-  const loginLink = isStaff ? '/admin/login' : '/login';
-
-  const API_BASE_URL = 'https://tutomart.com'; 
+  
+  const API_BASE_URL = ''; 
 
   const handleLogout = async () => {
     try {
-      // Choose the correct logout endpoint
       const endpoint = isStaff ? '/api/admin/logout' : '/api/auth/logout';
-
       await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include' // Essential for clearing the session cookie
+        credentials: 'include'
       });
     } catch (error) {
       console.error("Logout API failed", error);
     } finally {
       if (onLogout) onLogout();
-      navigate(loginLink);
+      // Remove specific storage keys
+      localStorage.removeItem('admin_user');
+      navigate(isStaff ? '/admin/login' : '/login');
     }
   };
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg" className="mb-3 shadow">
       <Container fluid>
-        {/* --- BRAND LOGO (Dynamic Link) --- */}
+        {/* --- BRAND LOGO --- */}
         <Navbar.Brand as={Link} to={dashboardLink} className="d-flex align-items-center">
           <div className="me-2">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" className="text-primary">
@@ -60,7 +84,8 @@ const Navigation = ({ user, onLogout }) => {
 
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
-            {/* --- DASHBOARD LINK (Dynamic Link) --- */}
+            {/* --- DASHBOARD LINK --- */}
+            {/* This checks if you are staff. If yes, it sends you to /admin/dashboard */}
             <Nav.Link 
               as={Link} 
               to={dashboardLink} 
@@ -86,7 +111,7 @@ const Navigation = ({ user, onLogout }) => {
               Tickets
             </Nav.Link>
             
-            {/* --- ADMIN ONLY LINKS --- */}
+            {/* --- ADMIN ONLY MENU --- */}
             {isAdmin && (
               <Dropdown as={Nav.Item}>
                 <Dropdown.Toggle as={Nav.Link} className="d-flex align-items-center">
@@ -96,13 +121,17 @@ const Navigation = ({ user, onLogout }) => {
                   Management
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  <Dropdown.Item as={Link} to="/users">Users</Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/employees">Employees</Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/users">
+                    <i className="bi bi-people me-2"></i>Users
+                  </Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/employees">
+                    <i className="bi bi-person-badge me-2"></i>Employees
+                  </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
             )}
 
-            {/* --- ASSIGN TICKETS (All Staff) --- */}
+            {/* --- ASSIGN TICKETS (Staff Only) --- */}
             {isStaff && (
                <Nav.Link 
                  as={Link} 
@@ -118,7 +147,7 @@ const Navigation = ({ user, onLogout }) => {
             )}
           </Nav>
 
-          {/* --- USER PROFILE SECTION --- */}
+          {/* --- USER PROFILE --- */}
           <Nav className="align-items-center">
             <Dropdown align="end">
               <Dropdown.Toggle 
@@ -131,12 +160,12 @@ const Navigation = ({ user, onLogout }) => {
                   <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
                        style={{ width: '32px', height: '32px' }}>
                     <span className="text-white fw-bold">
-                      {user?.name?.charAt(0).toUpperCase()}
+                      {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   </div>
                 </div>
                 <div className="text-start d-none d-md-block">
-                  <div className="small fw-bold">{user?.name}</div>
+                  <div className="small fw-bold">{currentUser?.name}</div>
                   <div className="small text-light opacity-75" style={{ fontSize: '0.7rem' }}>
                     {isAdmin ? 'Administrator' : isStaff ? 'Support Staff' : 'User'}
                   </div>
@@ -145,45 +174,37 @@ const Navigation = ({ user, onLogout }) => {
 
               <Dropdown.Menu>
                 <Dropdown.Header>
-                  <div className="fw-bold">{user?.name}</div>
-                  <small className="text-muted">{user?.email}</small>
+                  <div className="fw-bold">{currentUser?.name}</div>
+                  <small className="text-muted">{currentUser?.email}</small>
                 </Dropdown.Header>
                 <Dropdown.Divider />
                 
-                {/* Dynamic Dashboard Link inside Dropdown */}
                 <Dropdown.Item as={Link} to={dashboardLink}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="me-2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                  </svg>
-                  Dashboard
+                  <i className="bi bi-speedometer2 me-2"></i> Dashboard
                 </Dropdown.Item>
                 
                 <Dropdown.Item as={Link} to="/tickets">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="me-2">
-                    <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
-                  </svg>
-                  My Tickets
+                  <i className="bi bi-ticket-perforated me-2"></i> My Tickets
                 </Dropdown.Item>
                 
                 <Dropdown.Divider />
+                
                 <Dropdown.Item onClick={handleLogout} className="text-danger">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="me-2">
-                    <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-                  </svg>
-                  Logout
+                  <i className="bi bi-box-arrow-right me-2"></i> Logout
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
 
-            {/* Quick Action Button for Admins Only */}
-            {isAdmin && (
+            {/* --- QUICK ACTION (Staff Only) --- */}
+            {isStaff && (
               <Button 
+                as={Link}
+                to="/tickets"
                 variant="primary" 
                 size="sm" 
                 className="ms-3 d-none d-md-block"
-                onClick={() => navigate('/tickets')}
               >
-                View All Tickets
+                View Queue
               </Button>
             )}
 
