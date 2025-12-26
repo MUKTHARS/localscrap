@@ -988,10 +988,13 @@ def get_ticket_details(ticket_id):
         logger.exception("Error fetching ticket details")
         return jsonify({"error": "Failed to fetch ticket details"}), 500
 
-@app.route('/static/uploads/tickets/<filename>')
+# --- SERVE TICKET FILES (FIXED ROUTE) ---
+# We changed '/static/...' to '/api/uploads/...' so Nginx routes this to Flask
+@app.route('/api/uploads/tickets/<filename>')
 def serve_ticket_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
+# --- Serve React Static Files ---
 @app.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory(app.static_folder + '/static', path)
@@ -1000,6 +1003,7 @@ def serve_static(path):
 def serve_uploads(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
+# --- Catch-All Route for React Router ---
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
