@@ -16,7 +16,8 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100), nullable=False)
     google_id = db.Column(db.String(100), unique=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    is_active = db.Column(db.Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True),
+    timezone = db.Column(db.String(50), default='UTC', nullable=False)
 
     def __init__(self, **kwargs):
         if 'created_at' not in kwargs:
@@ -34,7 +35,8 @@ class AdminUser(db.Model):
     role = db.Column(db.String(20), nullable=False, default='employee') # 'admin' or 'employee'
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)),
+    timezone = db.Column(db.String(50), default='UTC', nullable=False)
 
 # --- 3. EXISTING SEARCH HISTORY ---
 class SearchHistory(db.Model):
