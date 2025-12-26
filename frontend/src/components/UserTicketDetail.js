@@ -10,8 +10,7 @@ const UserTicketDetail = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // FIX 1: Use relative path (empty string) so it works on localhost AND production.
-  // This prevents 404s by asking the current server for the file.
+  // FIX: Ensure this is empty to use the current domain
   const API_BASE_URL = ''; 
 
   useEffect(() => {
@@ -30,13 +29,21 @@ const UserTicketDetail = ({ user }) => {
     fetchTicketDetails();
   }, [id]);
 
+  // --- NEW HELPER FUNCTION ---
+  // This ensures both old tickets (saved as /static/) and new ones (saved as /api/) 
+  // both route through the API so Nginx doesn't block them.
+  const getDownloadLink = (path) => {
+    if (!path) return '#';
+    // Replace /static/ with /api/uploads/ if it exists in the string
+    return path.replace('/static/uploads/tickets/', '/api/uploads/tickets/');
+  };
+
   if (loading) return <div className="text-center mt-5"><div className="spinner-border"></div></div>;
   
   if (error) return (
     <div className="container mt-5">
       <div className="alert alert-danger">
         {error} 
-        {/* FIX 2: Correct redirect for error state too */}
         <button className="btn btn-link ms-2" onClick={() => navigate('/support')}>Go Back</button>
       </div>
     </div>
@@ -46,7 +53,6 @@ const UserTicketDetail = ({ user }) => {
 
   return (
     <div className="container mt-4">
-      {/* FIX 2: Point "Back" button to the User Ticket List (/support), not Admin list (/tickets) */}
       <button className="btn btn-outline-secondary mb-3" onClick={() => navigate('/support')}>
         <i className="bi bi-arrow-left me-2"></i>Back to My Tickets
       </button>
@@ -85,8 +91,8 @@ const UserTicketDetail = ({ user }) => {
                 {ticket.attachment_paths.map((file, index) => (
                   <a 
                     key={index}
-                    // This now links to /static/uploads/... on your CURRENT server
-                    href={`${API_BASE_URL}${file.path}`} 
+                    // --- USE THE HELPER FUNCTION HERE ---
+                    href={`${API_BASE_URL}${getDownloadLink(file.path)}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="list-group-item list-group-item-action d-flex align-items-center"
