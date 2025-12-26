@@ -57,6 +57,8 @@ class SupportTicket(db.Model):
     
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.String(36), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+
+    ticket_sequence = db.Column(db.Integer, autoincrement=True, unique=True)
     
     # Merged Fields
     ticket_number = db.Column(db.String(20), unique=True, nullable=False)
