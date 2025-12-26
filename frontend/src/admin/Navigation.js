@@ -6,17 +6,20 @@ const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // --- ROLE CHECKS ---
-  // Check if user is staff (Admin OR Employee)
-  const isStaff = user?.role === 'admin' || user?.role === 'employee';
-  // Check if user is strictly Super Admin
-  const isAdmin = user?.role === 'admin';
+  // DEBUG: Uncomment this line to see exactly what "user" contains in your browser console
+  // console.log("Current Nav User:", user);
+
+  // --- SAFE ROLE CHECKS (Case Insensitive) ---
+  const role = user?.role?.toLowerCase() || ''; // Normalize to lowercase string
+  
+  const isAdmin = role === 'admin';
+  const isStaff = role === 'admin' || role === 'employee';
 
   // --- DYNAMIC LINKS ---
-  // Staff goes to Admin Dashboard, Customers go to User Dashboard
+  // If Staff -> Admin Dashboard. If Customer -> Customer Dashboard.
   const dashboardLink = isStaff ? '/admin/dashboard' : '/dashboard';
 
-  // Define Base URL (Relative path for flexibility)
+  // Define Base URL (Relative path)
   const API_BASE_URL = ''; 
 
   const handleLogout = async () => {
@@ -32,9 +35,7 @@ const Navigation = ({ user, onLogout }) => {
     } catch (error) {
       console.error("Logout API failed", error);
     } finally {
-      // Clear local state
       if (onLogout) onLogout();
-      
       // Redirect to appropriate login page
       navigate(isStaff ? '/admin/login' : '/login');
     }
@@ -53,7 +54,7 @@ const Navigation = ({ user, onLogout }) => {
           <div>
             <span className="fw-bold text-white">TutoMart</span>
             <small className="d-block text-light opacity-75" style={{ fontSize: '0.75rem' }}>
-              {isStaff ? 'Staff Portal' : 'Support Portal'}
+              {isAdmin ? 'Admin Panel' : isStaff ? 'Staff Portal' : 'Support Portal'}
             </small>
           </div>
         </Navbar.Brand>
@@ -62,7 +63,7 @@ const Navigation = ({ user, onLogout }) => {
 
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
-            {/* --- DASHBOARD LINK (Dynamic) --- */}
+            {/* --- DASHBOARD LINK --- */}
             <Nav.Link 
               as={Link} 
               to={dashboardLink} 
@@ -99,10 +100,10 @@ const Navigation = ({ user, onLogout }) => {
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
                   <Dropdown.Item as={Link} to="/users">
-                    <i className="bi bi-people me-2"></i>Users
+                    <i className="bi bi-people me-2"></i> Users
                   </Dropdown.Item>
                   <Dropdown.Item as={Link} to="/employees">
-                    <i className="bi bi-person-badge me-2"></i>Employees
+                    <i className="bi bi-person-badge me-2"></i> Employees
                   </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
@@ -137,7 +138,7 @@ const Navigation = ({ user, onLogout }) => {
                   <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
                        style={{ width: '32px', height: '32px' }}>
                     <span className="text-white fw-bold">
-                      {user?.name?.charAt(0).toUpperCase()}
+                      {user?.name?.charAt(0).toUpperCase() || 'U'}
                     </span>
                   </div>
                 </div>
@@ -157,33 +158,21 @@ const Navigation = ({ user, onLogout }) => {
                 <Dropdown.Divider />
                 
                 <Dropdown.Item as={Link} to={dashboardLink}>
-                  <i className="bi bi-speedometer2 me-2"></i>Dashboard
+                  <i className="bi bi-speedometer2 me-2"></i> Dashboard
                 </Dropdown.Item>
                 
+                {/* Regular users shouldn't see 'My Tickets' inside Admin view usually, but keeping for consistency */}
                 <Dropdown.Item as={Link} to="/tickets">
-                  <i className="bi bi-ticket-perforated me-2"></i>My Tickets
+                  <i className="bi bi-ticket-perforated me-2"></i> My Tickets
                 </Dropdown.Item>
                 
                 <Dropdown.Divider />
                 
                 <Dropdown.Item onClick={handleLogout} className="text-danger">
-                  <i className="bi bi-box-arrow-right me-2"></i>Logout
+                  <i className="bi bi-box-arrow-right me-2"></i> Logout
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
-
-            {/* --- QUICK ACTIONS (Staff Only) --- */}
-            {isStaff && (
-              <Button 
-                as={Link}
-                to="/tickets"
-                variant="primary" 
-                size="sm" 
-                className="ms-3 d-none d-md-block"
-              >
-                View Queue
-              </Button>
-            )}
 
             {/* --- MOBILE LOGOUT --- */}
             <div className="d-lg-none mt-3">
