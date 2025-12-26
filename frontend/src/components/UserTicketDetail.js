@@ -10,13 +10,13 @@ const UserTicketDetail = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Use the relative path if using proxy, or full URL
-  const API_BASE_URL = 'https://tutomart.com'; 
+  // FIX 1: Use relative path (empty string) so it works on localhost AND production.
+  // This prevents 404s by asking the current server for the file.
+  const API_BASE_URL = ''; 
 
   useEffect(() => {
     const fetchTicketDetails = async () => {
       try {
-        // NOTE: Using the User-specific endpoint
         const response = await api.get(`/support/ticket/${id}`);
         setTicket(response.data);
       } catch (err) {
@@ -36,7 +36,8 @@ const UserTicketDetail = ({ user }) => {
     <div className="container mt-5">
       <div className="alert alert-danger">
         {error} 
-        <button className="btn btn-link ms-2" onClick={() => navigate('/tickets')}>Go Back</button>
+        {/* FIX 2: Correct redirect for error state too */}
+        <button className="btn btn-link ms-2" onClick={() => navigate('/support')}>Go Back</button>
       </div>
     </div>
   );
@@ -45,8 +46,8 @@ const UserTicketDetail = ({ user }) => {
 
   return (
     <div className="container mt-4">
-      {/* Back Button */}
-      <button className="btn btn-outline-secondary mb-3" onClick={() => navigate('/tickets')}>
+      {/* FIX 2: Point "Back" button to the User Ticket List (/support), not Admin list (/tickets) */}
+      <button className="btn btn-outline-secondary mb-3" onClick={() => navigate('/support')}>
         <i className="bi bi-arrow-left me-2"></i>Back to My Tickets
       </button>
 
@@ -75,7 +76,6 @@ const UserTicketDetail = ({ user }) => {
             {ticket.description}
           </div>
 
-          {/* FIX 2: Attachments Display */}
           {ticket.attachment_paths && ticket.attachment_paths.length > 0 && (
             <div className="mt-4">
               <h6 className="text-muted text-uppercase small fw-bold mb-2">
@@ -85,7 +85,8 @@ const UserTicketDetail = ({ user }) => {
                 {ticket.attachment_paths.map((file, index) => (
                   <a 
                     key={index}
-                    href={`${API_BASE_URL}${file.path}`} // Links to backend static route
+                    // This now links to /static/uploads/... on your CURRENT server
+                    href={`${API_BASE_URL}${file.path}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="list-group-item list-group-item-action d-flex align-items-center"
