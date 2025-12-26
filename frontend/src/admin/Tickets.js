@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Badge, Button, Form, Modal, InputGroup, Alert, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { formatToAccountTime } from '../utils/dateUtils';
 
 const Tickets = ({ user }) => {
   const [tickets, setTickets] = useState([]);
@@ -335,10 +336,7 @@ const Tickets = ({ user }) => {
                   </td>
                 )}
                 <td>
-                  {new Date(ticket.created_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric'
-                  })}
+                  {formatToAccountTime(ticket.created_at, user?.timezone)}
                 </td>
                 <td>
                   <div className="d-flex gap-2">
