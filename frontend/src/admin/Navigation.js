@@ -6,30 +6,36 @@ const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // FIX: Check if user is either Admin OR Employee
+  // --- ROLE CHECKS ---
+  // Check if user is staff (Admin OR Employee)
   const isStaff = user?.role === 'admin' || user?.role === 'employee';
-  const isAdmin = user?.role === 'admin'; // Keep for specific admin-only buttons
+  // Check if user is strictly Super Admin
+  const isAdmin = user?.role === 'admin';
 
-  // FIX: Redirect both Admins and Employees to the Admin Dashboard
+  // --- DYNAMIC LINKS ---
+  // Staff goes to Admin Dashboard, Customers go to User Dashboard
   const dashboardLink = isStaff ? '/admin/dashboard' : '/dashboard';
 
+  // Define Base URL (Relative path for flexibility)
   const API_BASE_URL = ''; 
 
   const handleLogout = async () => {
     try {
-      // FIX: Use Admin logout endpoint for both Admins and Employees
+      // Use specific logout endpoint based on role
       const endpoint = isStaff ? '/api/admin/logout' : '/api/auth/logout';
 
       await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include' 
+        credentials: 'include' // Critical for session cookie removal
       });
     } catch (error) {
       console.error("Logout API failed", error);
     } finally {
+      // Clear local state
       if (onLogout) onLogout();
-      // FIX: Redirect to correct login page
+      
+      // Redirect to appropriate login page
       navigate(isStaff ? '/admin/login' : '/login');
     }
   };
@@ -37,7 +43,7 @@ const Navigation = ({ user, onLogout }) => {
   return (
     <Navbar bg="dark" variant="dark" expand="lg" className="mb-3 shadow">
       <Container fluid>
-        {/* Brand/Logo Section */}
+        {/* --- BRAND LOGO --- */}
         <Navbar.Brand as={Link} to={dashboardLink} className="d-flex align-items-center">
           <div className="me-2">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" className="text-primary">
@@ -56,6 +62,7 @@ const Navigation = ({ user, onLogout }) => {
 
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
+            {/* --- DASHBOARD LINK (Dynamic) --- */}
             <Nav.Link 
               as={Link} 
               to={dashboardLink} 
@@ -68,6 +75,7 @@ const Navigation = ({ user, onLogout }) => {
               Dashboard
             </Nav.Link>
             
+            {/* --- TICKETS LINK (Visible to All) --- */}
             <Nav.Link 
               as={Link} 
               to="/tickets" 
@@ -80,7 +88,7 @@ const Navigation = ({ user, onLogout }) => {
               Tickets
             </Nav.Link>
             
-            {/* Only show Management Dropdown for Super Admins */}
+            {/* --- MANAGEMENT MENU (Super Admin Only) --- */}
             {isAdmin && (
               <Dropdown as={Nav.Item}>
                 <Dropdown.Toggle as={Nav.Link} className="d-flex align-items-center">
@@ -90,13 +98,17 @@ const Navigation = ({ user, onLogout }) => {
                   Management
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  <Dropdown.Item as={Link} to="/users">Users</Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/employees">Employees</Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/users">
+                    <i className="bi bi-people me-2"></i>Users
+                  </Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/employees">
+                    <i className="bi bi-person-badge me-2"></i>Employees
+                  </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
             )}
 
-            {/* Show Assign Tickets for both Admins and Employees */}
+            {/* --- ASSIGN TICKETS (Admin & Staff) --- */}
             {isStaff && (
                <Nav.Link 
                  as={Link} 
@@ -112,7 +124,7 @@ const Navigation = ({ user, onLogout }) => {
             )}
           </Nav>
 
-          {/* User Info */}
+          {/* --- RIGHT SIDE: USER PROFILE --- */}
           <Nav className="align-items-center">
             <Dropdown align="end">
               <Dropdown.Toggle 
@@ -132,7 +144,7 @@ const Navigation = ({ user, onLogout }) => {
                 <div className="text-start d-none d-md-block">
                   <div className="small fw-bold">{user?.name}</div>
                   <div className="small text-light opacity-75" style={{ fontSize: '0.7rem' }}>
-                    {user?.role === 'admin' ? 'Administrator' : user?.role === 'employee' ? 'Staff' : 'User'}
+                    {isAdmin ? 'Administrator' : isStaff ? 'Support Staff' : 'User'}
                   </div>
                 </div>
               </Dropdown.Toggle>
@@ -144,14 +156,45 @@ const Navigation = ({ user, onLogout }) => {
                 </Dropdown.Header>
                 <Dropdown.Divider />
                 
-                <Dropdown.Item as={Link} to={dashboardLink}>Dashboard</Dropdown.Item>
-                <Dropdown.Item as={Link} to="/tickets">My Tickets</Dropdown.Item>
+                <Dropdown.Item as={Link} to={dashboardLink}>
+                  <i className="bi bi-speedometer2 me-2"></i>Dashboard
+                </Dropdown.Item>
+                
+                <Dropdown.Item as={Link} to="/tickets">
+                  <i className="bi bi-ticket-perforated me-2"></i>My Tickets
+                </Dropdown.Item>
+                
                 <Dropdown.Divider />
+                
                 <Dropdown.Item onClick={handleLogout} className="text-danger">
-                  Logout
+                  <i className="bi bi-box-arrow-right me-2"></i>Logout
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
+
+            {/* --- QUICK ACTIONS (Staff Only) --- */}
+            {isStaff && (
+              <Button 
+                as={Link}
+                to="/tickets"
+                variant="primary" 
+                size="sm" 
+                className="ms-3 d-none d-md-block"
+              >
+                View Queue
+              </Button>
+            )}
+
+            {/* --- MOBILE LOGOUT --- */}
+            <div className="d-lg-none mt-3">
+              <Button 
+                variant="outline-light" 
+                onClick={handleLogout}
+                className="w-100"
+              >
+                Logout
+              </Button>
+            </div>
           </Nav>
         </Navbar.Collapse>
       </Container>
