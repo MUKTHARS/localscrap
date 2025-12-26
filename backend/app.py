@@ -915,7 +915,9 @@ def create_support_ticket():
                         
                         file.save(file_path)
                         
-                        web_path = f"/static/uploads/tickets/{unique_filename}"
+                        # --- CRITICAL FIX: Save path with /api/ prefix ---
+                        web_path = f"/api/uploads/tickets/{unique_filename}"
+                        
                         attachment_paths.append({
                             'original_name': filename,
                             'stored_name': unique_filename,
