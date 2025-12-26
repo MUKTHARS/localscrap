@@ -126,6 +126,8 @@ function App() {
               </ProtectedUserRoute>
             } />
 
+            <Route path="/support/tickets/:id" element={<UserTicketDetail user={user} />} />
+
             {/* === ADMIN ROUTES === */}
             {/* Login */}
             <Route path="/admin/login" element={
