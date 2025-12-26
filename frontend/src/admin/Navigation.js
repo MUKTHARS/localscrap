@@ -6,45 +6,42 @@ const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // DEBUG: Uncomment this line to see exactly what "user" contains in your browser console
-  // console.log("Current Nav User:", user);
+  // --- 1. DETERMINE USER TYPE ---
+  // Normalize role to ensure case-insensitivity
+  const role = user?.role?.toLowerCase() || '';
+  const isStaff = role === 'admin' || role === 'employee'; // Both are staff
+  const isAdmin = role === 'admin'; // Only Super Admin
 
-  // --- SAFE ROLE CHECKS (Case Insensitive) ---
-  const role = user?.role?.toLowerCase() || ''; // Normalize to lowercase string
-  
-  const isAdmin = role === 'admin';
-  const isStaff = role === 'admin' || role === 'employee';
-
-  // --- DYNAMIC LINKS ---
-  // If Staff -> Admin Dashboard. If Customer -> Customer Dashboard.
+  // --- 2. DYNAMIC LINKS ---
+  // Staff go to Admin Dashboard, Customers go to User Dashboard
   const dashboardLink = isStaff ? '/admin/dashboard' : '/dashboard';
+  // Staff go to Admin Login, Customers go to User Login
+  const loginLink = isStaff ? '/admin/login' : '/login';
 
-  // Define Base URL (Relative path)
   const API_BASE_URL = 'https://tutomart.com'; 
 
   const handleLogout = async () => {
     try {
-      // Use specific logout endpoint based on role
+      // Choose the correct logout endpoint
       const endpoint = isStaff ? '/api/admin/logout' : '/api/auth/logout';
 
       await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include' // Critical for session cookie removal
+        credentials: 'include' // Essential for clearing the session cookie
       });
     } catch (error) {
       console.error("Logout API failed", error);
     } finally {
       if (onLogout) onLogout();
-      // Redirect to appropriate login page
-      navigate(isStaff ? '/admin/login' : '/login');
+      navigate(loginLink);
     }
   };
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg" className="mb-3 shadow">
       <Container fluid>
-        {/* --- BRAND LOGO --- */}
+        {/* --- BRAND LOGO (Dynamic Link) --- */}
         <Navbar.Brand as={Link} to={dashboardLink} className="d-flex align-items-center">
           <div className="me-2">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" className="text-primary">
@@ -63,7 +60,7 @@ const Navigation = ({ user, onLogout }) => {
 
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
-            {/* --- DASHBOARD LINK --- */}
+            {/* --- DASHBOARD LINK (Dynamic Link) --- */}
             <Nav.Link 
               as={Link} 
               to={dashboardLink} 
@@ -76,7 +73,7 @@ const Navigation = ({ user, onLogout }) => {
               Dashboard
             </Nav.Link>
             
-            {/* --- TICKETS LINK (Visible to All) --- */}
+            {/* --- TICKETS LINK (Common) --- */}
             <Nav.Link 
               as={Link} 
               to="/tickets" 
@@ -89,7 +86,7 @@ const Navigation = ({ user, onLogout }) => {
               Tickets
             </Nav.Link>
             
-            {/* --- MANAGEMENT MENU (Super Admin Only) --- */}
+            {/* --- ADMIN ONLY LINKS --- */}
             {isAdmin && (
               <Dropdown as={Nav.Item}>
                 <Dropdown.Toggle as={Nav.Link} className="d-flex align-items-center">
@@ -99,17 +96,13 @@ const Navigation = ({ user, onLogout }) => {
                   Management
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  <Dropdown.Item as={Link} to="/users">
-                    <i className="bi bi-people me-2"></i> Users
-                  </Dropdown.Item>
-                  <Dropdown.Item as={Link} to="/employees">
-                    <i className="bi bi-person-badge me-2"></i> Employees
-                  </Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/users">Users</Dropdown.Item>
+                  <Dropdown.Item as={Link} to="/employees">Employees</Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
             )}
 
-            {/* --- ASSIGN TICKETS (Admin & Staff) --- */}
+            {/* --- ASSIGN TICKETS (All Staff) --- */}
             {isStaff && (
                <Nav.Link 
                  as={Link} 
@@ -125,7 +118,7 @@ const Navigation = ({ user, onLogout }) => {
             )}
           </Nav>
 
-          {/* --- RIGHT SIDE: USER PROFILE --- */}
+          {/* --- USER PROFILE SECTION --- */}
           <Nav className="align-items-center">
             <Dropdown align="end">
               <Dropdown.Toggle 
@@ -138,7 +131,7 @@ const Navigation = ({ user, onLogout }) => {
                   <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center" 
                        style={{ width: '32px', height: '32px' }}>
                     <span className="text-white fw-bold">
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      {user?.name?.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -157,24 +150,44 @@ const Navigation = ({ user, onLogout }) => {
                 </Dropdown.Header>
                 <Dropdown.Divider />
                 
+                {/* Dynamic Dashboard Link inside Dropdown */}
                 <Dropdown.Item as={Link} to={dashboardLink}>
-                  <i className="bi bi-speedometer2 me-2"></i> Dashboard
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="me-2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
+                  Dashboard
                 </Dropdown.Item>
                 
-                {/* Regular users shouldn't see 'My Tickets' inside Admin view usually, but keeping for consistency */}
                 <Dropdown.Item as={Link} to="/tickets">
-                  <i className="bi bi-ticket-perforated me-2"></i> My Tickets
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="me-2">
+                    <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>
+                  </svg>
+                  My Tickets
                 </Dropdown.Item>
                 
                 <Dropdown.Divider />
-                
                 <Dropdown.Item onClick={handleLogout} className="text-danger">
-                  <i className="bi bi-box-arrow-right me-2"></i> Logout
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="me-2">
+                    <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                  </svg>
+                  Logout
                 </Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
 
-            {/* --- MOBILE LOGOUT --- */}
+            {/* Quick Action Button for Admins Only */}
+            {isAdmin && (
+              <Button 
+                variant="primary" 
+                size="sm" 
+                className="ms-3 d-none d-md-block"
+                onClick={() => navigate('/tickets')}
+              >
+                View All Tickets
+              </Button>
+            )}
+
+            {/* Mobile Logout */}
             <div className="d-lg-none mt-3">
               <Button 
                 variant="outline-light" 
