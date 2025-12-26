@@ -1,40 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/apiConfig';
-import { formatToAccountTime } from '../utils/dateUtils';
+import { formatToAccountTime } from '../utils/dateUtils'; // Ensure this utility exists
 import '../styles/SupportTickets.css';
 
-const SupportTickets = ({ onBack }) => {
+const SupportTickets = ({ user }) => { // Accept user prop for timezone
   const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
-  const [userTimezone, setUserTimezone] = useState('UTC'); // Default
   const [showNewTicketForm, setShowNewTicketForm] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  // Initialize with 'attachments' as an empty array
   const [formData, setFormData] = useState({
     subject: '',
     description: '',
     urgency: 'medium',
-    attachments: []
+    attachments: [] 
   });
 
   useEffect(() => {
-    fetchData();
+    fetchTickets();
   }, []);
 
-  const fetchData = async () => {
+  const fetchTickets = async () => {
     try {
-      // 1. Fetch User Config for Timezone
-      const userRes = await api.get('/user');
-      if (userRes.data.timezone) {
-        setUserTimezone(userRes.data.timezone);
-      }
-
-      // 2. Fetch Tickets
-      const ticketRes = await api.get('/support/tickets');
-      setTickets(ticketRes.data.tickets);
+      const response = await api.get('/support/tickets');
+      setTickets(response.data.tickets);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error fetching tickets:', error);
     }
   };
 
@@ -43,8 +36,24 @@ const SupportTickets = ({ onBack }) => {
     setFormData({ ...formData, [name]: value });
   };
 
+  // FIX 1: Allow appending multiple files
   const handleFileChange = (e) => {
-    setFormData({ ...formData, attachments: Array.from(e.target.files) });
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFormData(prev => ({
+        ...prev,
+        // Spread existing attachments AND new files
+        attachments: [...prev.attachments, ...newFiles]
+      }));
+    }
+  };
+
+  // FIX 1: Allow removing a file from selection
+  const removeFile = (indexToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, index) => index !== indexToRemove)
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -57,6 +66,7 @@ const SupportTickets = ({ onBack }) => {
       ticketData.append('description', formData.description);
       ticketData.append('urgency', formData.urgency);
       
+      // Append each file from the array
       formData.attachments.forEach(file => {
         ticketData.append('attachments', file);
       });
@@ -74,9 +84,7 @@ const SupportTickets = ({ onBack }) => {
           attachments: []
         });
         setShowNewTicketForm(false);
-        // Reload tickets to see the new one
-        const ticketRes = await api.get('/support/tickets');
-        setTickets(ticketRes.data.tickets);
+        fetchTickets();
       }
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to create ticket');
@@ -85,7 +93,7 @@ const SupportTickets = ({ onBack }) => {
     }
   };
 
-  // Helper functions for badges
+  // Helper functions
   const getUrgencyBadgeClass = (urgency) => {
     switch (urgency) {
       case 'low': return 'badge bg-info';
@@ -108,14 +116,11 @@ const SupportTickets = ({ onBack }) => {
 
   return (
     <div className="support-tickets-container container mt-4">
-      {/* Header Section */}
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <button 
           className="btn btn-outline-secondary" 
-          onClick={() => {
-            if (onBack) onBack();
-            else navigate('/dashboard');
-          }}
+          onClick={() => navigate('/dashboard')}
         >
           <i className="bi bi-arrow-left me-2"></i>Back to Dashboard
         </button>
@@ -182,11 +187,14 @@ const SupportTickets = ({ onBack }) => {
                 />
               </div>
 
+              {/* Attachments Section */}
               <div className="mb-4">
                 <div className="p-3 bg-light border rounded">
                   <label className="fw-bold mb-2">
                     <i className="bi bi-paperclip me-1"></i> Attachments (Optional)
                   </label>
+                  
+                  {/* File Input */}
                   <input
                     type="file"
                     className="form-control"
@@ -195,18 +203,29 @@ const SupportTickets = ({ onBack }) => {
                     accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt"
                   />
                   <div className="form-text mt-1 text-muted">
-                    <small>Max size: 10MB each. Formats: JPG, PNG, PDF, DOC, TXT</small>
+                    <small>Max size: 10MB each. Supported: Images, PDF, Docs.</small>
                   </div>
+
+                  {/* Selected Files List with Remove Option */}
                   {formData.attachments.length > 0 && (
-                    <div className="mt-2">
-                      <h6 className="small text-muted mb-2">Selected files:</h6>
-                      <ul className="list-group list-group-flush small">
+                    <div className="mt-3">
+                      <h6 className="small text-muted mb-2">Selected files ({formData.attachments.length}):</h6>
+                      <ul className="list-group">
                         {formData.attachments.map((file, index) => (
-                          <li key={index} className="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-1">
-                            <span>{file.name}</span>
-                            <span className="badge bg-secondary rounded-pill">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </span>
+                          <li key={index} className="list-group-item d-flex justify-content-between align-items-center py-2">
+                            <div>
+                              <span className="me-2">📄</span>
+                              <span>{file.name}</span>
+                              <span className="text-muted small ms-2">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                            </div>
+                            <button 
+                              type="button" 
+                              className="btn btn-sm btn-outline-danger border-0"
+                              onClick={() => removeFile(index)}
+                              title="Remove file"
+                            >
+                              <i className="bi bi-x-lg"></i>
+                            </button>
                           </li>
                         ))}
                       </ul>
@@ -216,26 +235,10 @@ const SupportTickets = ({ onBack }) => {
               </div>
 
               <div className="d-flex gap-2">
-                <button 
-                  type="submit" 
-                  className="btn btn-success"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2"></span>
-                      Creating...
-                    </>
-                  ) : (
-                    'Submit Ticket'
-                  )}
+                <button type="submit" className="btn btn-success" disabled={loading}>
+                  {loading ? <><span className="spinner-border spinner-border-sm me-2"></span>Creating...</> : 'Submit Ticket'}
                 </button>
-                <button 
-                  type="button" 
-                  className="btn btn-secondary"
-                  onClick={() => setShowNewTicketForm(false)}
-                  disabled={loading}
-                >
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNewTicketForm(false)} disabled={loading}>
                   Cancel
                 </button>
               </div>
@@ -246,13 +249,8 @@ const SupportTickets = ({ onBack }) => {
 
       {/* Ticket List Table */}
       <div className="card shadow-sm">
-        <div className="card-header bg-white d-flex justify-content-between align-items-center">
+        <div className="card-header bg-white">
           <h5 className="mb-0">My Support Tickets</h5>
-          {userTimezone !== 'UTC' && (
-            <span className="badge bg-light text-dark border">
-              <i className="bi bi-globe me-1"></i> Time Zone: {userTimezone}
-            </span>
-          )}
         </div>
         <div className="card-body p-0">
           {tickets.length > 0 ? (
@@ -271,19 +269,24 @@ const SupportTickets = ({ onBack }) => {
                 <tbody>
                   {tickets.map(ticket => (
                     <tr key={ticket.id}>
-                      <td><code className="text-dark">{ticket.ticket_number}</code></td>
+                      {/* FIX 2: Make ID Clickable */}
                       <td>
-                        <span className="fw-bold d-block">{ticket.subject}</span>
-                        <small className="text-muted text-truncate d-block" style={{maxWidth: '200px'}}>
+                        <Link to={`/support/tickets/${ticket.id}`} className="text-decoration-none fw-bold font-monospace">
+                          {ticket.ticket_number}
+                        </Link>
+                      </td>
+                      {/* FIX 2: Make Subject Clickable */}
+                      <td>
+                        <Link to={`/support/tickets/${ticket.id}`} className="text-decoration-none text-dark fw-bold d-block">
+                          {ticket.subject}
+                        </Link>
+                        <small className="text-muted text-truncate d-block" style={{maxWidth: '250px'}}>
                           {ticket.description}
                         </small>
                       </td>
                       <td><span className={getUrgencyBadgeClass(ticket.urgency)}>{ticket.urgency.toUpperCase()}</span></td>
                       <td><span className={getStatusBadgeClass(ticket.status)}>{ticket.status.replace('_', ' ').toUpperCase()}</span></td>
-                      <td>
-                        {/* Display date in Account Time Zone */}
-                        {formatToAccountTime(ticket.created_at, userTimezone)}
-                      </td>
+                      <td>{formatToAccountTime(ticket.created_at, user?.timezone)}</td>
                       <td>
                         {ticket.attachment_paths?.length > 0 ? (
                           <span className="badge bg-light text-dark border">
