@@ -6,7 +6,7 @@ import time
 
 db = SQLAlchemy()
 
-# --- 1. EXISTING USER MODEL (For Customers) ---
+# --- 1. USER MODEL (For Customers) ---
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
@@ -16,7 +16,11 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100), nullable=False)
     google_id = db.Column(db.String(100), unique=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    
+    # FIX: Removed trailing comma
     is_active = db.Column(db.Boolean, default=True)
+    
+    # Timezone for Immutable Time Strategy
     timezone = db.Column(db.String(50), default='UTC', nullable=False)
 
     def __init__(self, **kwargs):
@@ -24,7 +28,7 @@ class User(UserMixin, db.Model):
             kwargs['created_at'] = datetime.now(timezone.utc)
         super().__init__(**kwargs)
 
-# --- 2. NEW ADMIN USER MODEL (From Admin Project) ---
+# --- 2. ADMIN USER MODEL (Staff) ---
 class AdminUser(db.Model):
     __tablename__ = 'admin_users'
     
@@ -35,10 +39,13 @@ class AdminUser(db.Model):
     role = db.Column(db.String(20), nullable=False, default='employee') # 'admin' or 'employee'
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # FIX: Removed trailing comma
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
     timezone = db.Column(db.String(50), default='UTC', nullable=False)
 
-# --- 3. EXISTING SEARCH HISTORY ---
+# --- 3. SEARCH HISTORY ---
 class SearchHistory(db.Model):
     __tablename__ = 'search_history'
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -51,24 +58,25 @@ class SearchHistory(db.Model):
     search_type = db.Column(db.String(10), default='manual')
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-# --- 4. MERGED SUPPORT TICKET MODEL ---
+# --- 4. SUPPORT TICKET MODEL ---
 class SupportTicket(db.Model):
     __tablename__ = 'support_tickets'
     
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.String(36), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
 
+    # 1. SEQUENCE COLUMN: Handled by DB (SERIAL/SEQUENCE)
     ticket_sequence = db.Column(db.Integer, autoincrement=True)
     
-    # Merged Fields
+    # 2. FORMATTED NUMBER: Nullable initially (e.g. TH-0001)
     ticket_number = db.Column(db.String(20), unique=True, nullable=True)
+    
     subject = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
     urgency = db.Column(db.String(20), nullable=False, default='medium')
     status = db.Column(db.String(20), nullable=False, default='open')
     attachment_paths = db.Column(db.JSON, default=list)
     
-    # Admin Assignment Field
     assigned_to = db.Column(db.String(36), db.ForeignKey('admin_users.id', ondelete='SET NULL'), nullable=True)
     
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -78,16 +86,7 @@ class SupportTicket(db.Model):
     user = db.relationship('User', backref=db.backref('tickets', lazy=True, cascade='all, delete-orphan'))
     assigned_employee = db.relationship('AdminUser', foreign_keys=[assigned_to], backref=db.backref('tickets_assigned', lazy=True))
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if 'ticket_number' not in kwargs:
-            self.ticket_number = self._generate_ticket_number()
-    
-    def _generate_ticket_number(self):
-        # Simple generator: using timestamp or UUID segment for uniqueness
-        return f"TKT-{int(time.time())}-{str(uuid.uuid4())[:4].upper()}"
-
-# --- 5. NEW ASSIGNMENT TRACKING ---
+# --- 5. TICKET ASSIGNMENT LOGS ---
 class EmployeeTicketAssignment(db.Model):
     __tablename__ = 'employee_ticket_assignments'
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
