@@ -888,6 +888,7 @@ def get_user_tickets():
 @login_required
 def create_support_ticket():
     try:
+        # 1. Get Form Data
         subject = request.form.get('subject', '').strip()
         description = request.form.get('description', '').strip()
         urgency = request.form.get('urgency', 'medium').strip().lower()
@@ -895,11 +896,12 @@ def create_support_ticket():
         if not subject or not description:
             return jsonify({"error": "Subject and description are required"}), 400
         
+        # 2. Validate Urgency
         if urgency not in ['low', 'medium', 'high', 'critical']:
             urgency = 'medium'
         
+        # 3. Handle File Uploads (With API Path Fix)
         attachment_paths = []
-        
         if 'attachments' in request.files:
             files = request.files.getlist('attachments')
             
@@ -910,12 +912,13 @@ def create_support_ticket():
                     
                     if allowed_file(file.filename):
                         filename = secure_filename(file.filename)
+                        # Create unique name
                         unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                        # Save to physical folder
                         file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-                        
                         file.save(file_path)
                         
-                        # --- CRITICAL FIX: Save path with /api/ prefix ---
+                        # --- FIX: Use '/api/' prefix so Nginx routes it correctly ---
                         web_path = f"/api/uploads/tickets/{unique_filename}"
                         
                         attachment_paths.append({
@@ -924,6 +927,7 @@ def create_support_ticket():
                             'path': web_path
                         })
         
+        # 4. Initialize Ticket (Without ticket_number initially)
         new_ticket = SupportTicket(
             user_id=current_user.id,
             subject=subject,
@@ -933,6 +937,43 @@ def create_support_ticket():
         )
         
         db.session.add(new_ticket)
+        
+        # 5. Flush to Generate the Sequence Number
+        # This pushes the data to DB to get the auto-increment ID, but doesn't commit transaction yet
+        db.session.flush() 
+        
+        # 6. Generate Smart Ticket Number (e.g., TH-0001)
+        
+        # Determine Type Code (First Letter) based on Subject keywords
+        subject_lower = subject.lower()
+        type_code = 'G' # Default to General
+        
+        if any(x in subject_lower for x in ['tech', 'bug', 'error', 'fail', 'login', 'connect']):
+            type_code = 'T' # Technical
+        elif any(x in subject_lower for x in ['bill', 'pay', 'refund', 'money', 'cost']):
+            type_code = 'B' # Billing
+        elif any(x in subject_lower for x in ['account', 'profile', 'password', 'access']):
+            type_code = 'A' # Account
+        elif any(x in subject_lower for x in ['feature', 'request', 'add']):
+            type_code = 'F' # Feature Request
+
+        # Determine Urgency Code (Second Letter)
+        urgency_map = {
+            'critical': 'C',
+            'high': 'H',
+            'medium': 'M',
+            'low': 'L'
+        }
+        urgency_code = urgency_map.get(urgency, 'M')
+
+        # Format: {Type}{Urgency}-{Sequence padded with zeros}
+        # Example: TH-0025
+        formatted_number = f"{type_code}{urgency_code}-{new_ticket.ticket_sequence:04d}"
+        
+        # Update the ticket with the formatted number
+        new_ticket.ticket_number = formatted_number
+        
+        # 7. Final Commit
         db.session.commit()
         
         return jsonify({
