@@ -26,18 +26,15 @@ const Profile = () => {
   const handleTimezoneChange = async (e) => {
     const newTz = e.target.value;
     try {
-      // Optimistic UI update
       setProfileData(prev => ({
         ...prev,
         user: { ...prev.user, timezone: newTz }
       }));
-
       await api.put('/user/timezone', { timezone: newTz });
-      // Optional: Show a toast notification here
     } catch (error) {
       console.error('Failed to update timezone:', error);
       alert("Failed to save time zone setting.");
-      fetchProfileData(); // Revert on error
+      fetchProfileData();
     }
   };
 
@@ -54,114 +51,129 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="container mt-4">
-        <div className="d-flex justify-content-center">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="container mt-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
       </div>
     );
   }
 
-  // Helper to get current TZ safely
   const currentTz = profileData?.user?.timezone || 'UTC';
 
   return (
     <div className="container mt-4">
-      <div className="row">
-        {/* User Card */}
-        <div className="col-md-4">
-          <div className="card shadow-sm">
-            <div className="card-body text-center">
+      <div className="row g-4"> {/* g-4 adds consistent gutter spacing */}
+        
+        {/* Left Column: User Profile (Sticky) */}
+        <div className="col-lg-3 col-md-4">
+          <div className="card shadow-sm border-0" style={{ position: 'sticky', top: '20px' }}>
+            <div className="card-body text-center p-4">
+              
+              {/* Avatar Section */}
               <div className="mb-3">
-                <i 
-                  className="bi bi-person-circle" 
-                  style={{ fontSize: '3rem', color: '#0d6efd' }}
-                ></i>
+                <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto" 
+                     style={{ width: '80px', height: '80px', fontSize: '2.5rem', color: 'white' }}>
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
               </div>
-              <h5 className="card-title">{user?.name}</h5>
-              <p className="card-text text-muted">{user?.email}</p>
+              <h5 className="card-title fw-bold mb-1">{user?.name}</h5>
+              <p className="text-muted small mb-4">{user?.email}</p>
               
-              <hr />
+              <hr className="my-4 opacity-10" />
               
-              {/* Time Zone Configuration */}
-              <div className="mb-3 text-start">
-                <label className="form-label fw-bold small text-muted">
+              {/* Time Zone Section (Centered) */}
+              <div className="mb-4">
+                <label className="form-label fw-bold small text-uppercase text-muted mb-2">
                   <i className="bi bi-globe me-1"></i> Account Time Zone
                 </label>
                 <select 
-                  className="form-select form-select-sm" 
+                  className="form-select form-select-sm text-center mx-auto" 
                   value={currentTz}
                   onChange={handleTimezoneChange}
+                  style={{ maxWidth: '200px', cursor: 'pointer' }}
                 >
                   {AVAILABLE_TIMEZONES.map(tz => (
                     <option key={tz} value={tz}>{tz}</option>
                   ))}
                 </select>
-                <div className="form-text" style={{fontSize: '0.75rem'}}>
-                  Your logs and tickets will be displayed in <strong>{currentTz}</strong> regardless of your device location.
+                <div className="form-text mt-2" style={{ fontSize: '0.75rem', lineHeight: '1.4' }}>
+                  All dates will be displayed in <strong>{currentTz}</strong>.
                 </div>
               </div>
 
-              <p className="card-text mt-3">
-                <small className="text-muted">
-                  Member since: {formatToAccountTime(profileData?.user?.created_at, currentTz)}
+              {/* Member Since Footer */}
+              <div className="mt-auto pt-2">
+                <small className="text-muted" style={{ fontSize: '0.7rem' }}>
+                  Member since: <br/>
+                  {formatToAccountTime(profileData?.user?.created_at, currentTz)}
                 </small>
-              </p>
+              </div>
             </div>
           </div>
         </div>
         
-        {/* Search History */}
-        <div className="col-md-8">
-          <div className="card shadow-sm">
-            <div className="card-header bg-white d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Search History</h5>
-              <span className="badge bg-primary">
-                {profileData?.search_history.length || 0} searches
+        {/* Right Column: Search History */}
+        <div className="col-lg-9 col-md-8">
+          <div className="card shadow-sm border-0">
+            <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+              <h5 className="mb-0 fw-bold">Search History</h5>
+              <span className="badge bg-primary rounded-pill px-3">
+                {profileData?.search_history.length || 0} Searches
               </span>
             </div>
             
-            <div className="card-body">
+            <div className="card-body p-0">
               {profileData?.search_history.length > 0 ? (
                 <div className="table-responsive">
-                  <table className="table table-hover align-middle">
-                    <thead className="table-light">
+                  <table className="table table-hover align-middle mb-0">
+                    <thead className="bg-light text-secondary small text-uppercase">
                       <tr>
-                        <th>Type</th>
-                        <th>Brand/Product</th>
-                        <th>Details</th>
-                        <th>Website</th>
-                        <th>Date ({currentTz})</th>
-                        <th>Action</th>
+                        <th className="ps-4 py-3 border-0">Type</th>
+                        <th className="py-3 border-0">Brand/Product</th>
+                        <th className="py-3 border-0">Details</th>
+                        <th className="py-3 border-0">Website</th>
+                        <th className="py-3 border-0">Date ({currentTz})</th>
+                        <th className="text-end pe-4 py-3 border-0">Action</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="border-top-0">
                       {profileData.search_history.map((search) => (
                         <tr key={search.id}>
-                          <td>
-                            <span className={`badge ${search.search_type === 'bulk' ? 'bg-warning' : 'bg-info'}`}>
-                              {search.search_type}
+                          <td className="ps-4">
+                            <span className={`badge ${search.search_type === 'bulk' ? 'bg-warning text-dark' : 'bg-info text-white'}`} 
+                                  style={{ width: '60px' }}>
+                              {search.search_type.toUpperCase()}
                             </span>
                           </td>
                           <td>
-                            <div className="fw-bold">{search.brand}</div>
+                            <div className="fw-bold text-dark">{search.brand}</div>
                             <small className="text-muted">{search.product}</small>
                           </td>
                           <td>
-                            {search.oem_number && <div><small>OEM: {search.oem_number}</small></div>}
-                            {search.asin_number && <div><small>ASIN: {search.asin_number}</small></div>}
-                            {!search.oem_number && !search.asin_number && <span className="text-muted">-</span>}
+                            {(search.oem_number || search.asin_number) ? (
+                              <div className="small text-muted">
+                                {search.oem_number && <div>OEM: {search.oem_number}</div>}
+                                {search.asin_number && <div>ASIN: {search.asin_number}</div>}
+                              </div>
+                            ) : (
+                              <span className="text-muted small">—</span>
+                            )}
                           </td>
-                          <td>{search.website || 'All'}</td>
                           <td>
+                            <span className="badge bg-light text-dark border">
+                              {search.website || 'All'}
+                            </span>
+                          </td>
+                          <td className="small text-nowrap">
                             {formatToAccountTime(search.created_at, currentTz)}
                           </td>
-                          <td>
+                          <td className="text-end pe-4">
                             <button
-                              className="btn btn-sm btn-outline-danger border-0"
+                              className="btn btn-sm btn-outline-danger border-0 rounded-circle"
                               onClick={() => deleteSearch(search.id)}
+                              title="Delete Entry"
+                              style={{ width: '32px', height: '32px' }}
                             >
                               <i className="bi bi-trash"></i>
                             </button>
@@ -172,12 +184,9 @@ const Profile = () => {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <i 
-                    className="bi bi-clock-history" 
-                    style={{ fontSize: '3rem', color: '#6c757d' }}
-                  ></i>
-                  <p className="text-muted mt-3">No search history found.</p>
+                <div className="text-center py-5 text-muted">
+                  <i className="bi bi-clock-history display-4 mb-3 d-block opacity-50"></i>
+                  <p className="mb-0">No search history found.</p>
                 </div>
               )}
             </div>
