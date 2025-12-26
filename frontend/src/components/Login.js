@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Login.css';
+import logoImg from '../assets/tutomart-logo.jpeg';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -110,11 +111,16 @@ const Login = () => {
         {/* ... (Header Section remains the same) ... */}
         <div className="login-card-header">
           <div className="brand-logo">
-            {/* SVG Logo */}
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" 
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <img 
+              src={logoImg} 
+              alt="TutoMart Logo" 
+              style={{ 
+                height: '60px', // Bigger size for Login screen
+                width: 'auto',
+                borderRadius: '8px',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.1)' // Optional fancy shadow
+              }} 
+            />
           </div>
           <div className="login-header-content">
             <h1 className="login-title">Welcome Back</h1>
