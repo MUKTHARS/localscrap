@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/Navbar.css';
+import logoImg from '../assets/tutomart-logo.jpeg';
 
 const Navbar = () => {
   const auth = useAuth() || {};
@@ -28,7 +29,16 @@ const Navbar = () => {
       <div className="nav-container">
         {/* Brand Logo */}
         <Link className="nav-brand" to="/dashboard" onClick={closeMobileMenu}>
-          <span className="brand-text">TutoMart</span>
+          <img 
+            src={logoImg} 
+            alt="TutoMart" 
+            style={{ 
+              height: '40px', // Adjust height to fit navbar
+              width: 'auto', 
+              borderRadius: '5px',
+              marginRight: '10px'
+            }} 
+          />
         </Link>
 
         {/* Desktop Navigation */}
