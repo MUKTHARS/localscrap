@@ -8,7 +8,6 @@ from sqlalchemy import text
 
 db = SQLAlchemy()
 
-# --- 1. USER MODEL (For Customers) ---
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
@@ -19,10 +18,8 @@ class User(UserMixin, db.Model):
     google_id = db.Column(db.String(100), unique=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
-    # FIX: Removed trailing comma
     is_active = db.Column(db.Boolean, default=True)
     
-    # Timezone for Immutable Time Strategy
     timezone = db.Column(db.String(50), default='UTC', nullable=False)
 
     def __init__(self, **kwargs):
@@ -30,7 +27,6 @@ class User(UserMixin, db.Model):
             kwargs['created_at'] = datetime.now(timezone.utc)
         super().__init__(**kwargs)
 
-# --- 2. ADMIN USER MODEL (Staff) ---
 class AdminUser(db.Model):
     __tablename__ = 'admin_users'
     
@@ -42,12 +38,10 @@ class AdminUser(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # FIX: Removed trailing comma
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     timezone = db.Column(db.String(50), default='UTC', nullable=False)
 
-# --- 3. SEARCH HISTORY ---
 class SearchHistory(db.Model):
     __tablename__ = 'search_history'
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -60,17 +54,13 @@ class SearchHistory(db.Model):
     search_type = db.Column(db.String(10), default='manual')
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-# --- 4. SUPPORT TICKET MODEL ---
 class SupportTicket(db.Model):
     __tablename__ = 'support_tickets'
     
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.String(36), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
 
-    # 1. SEQUENCE COLUMN: Handled by DB (SERIAL/SEQUENCE)
     ticket_sequence = db.Column(db.Integer, db.Sequence('support_tickets_seq'), server_default=text("nextval('support_tickets_seq')"))
-    
-    # 2. FORMATTED NUMBER: Nullable initially (e.g. TH-0001)
     ticket_number = db.Column(db.String(20), unique=True, nullable=True)
     
     subject = db.Column(db.String(200), nullable=False)
@@ -84,11 +74,9 @@ class SupportTicket(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
-    # Relationships
     user = db.relationship('User', backref=db.backref('tickets', lazy=True, cascade='all, delete-orphan'))
     assigned_employee = db.relationship('AdminUser', foreign_keys=[assigned_to], backref=db.backref('tickets_assigned', lazy=True))
 
-# --- 5. TICKET ASSIGNMENT LOGS ---
 class EmployeeTicketAssignment(db.Model):
     __tablename__ = 'employee_ticket_assignments'
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
