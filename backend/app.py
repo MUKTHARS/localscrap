@@ -12,7 +12,6 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 import uuid
 
-# --- Import Existing Scrapers ---
 from scrapers.amazon_scraper import scrape_amazon
 from scrapers.flipkart_scraper import scrape_flipkart
 from scrapers.ebay_scraper import scrape_ebay
@@ -87,16 +86,10 @@ app.register_blueprint(auth_bp, url_prefix='/api/auth')
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# --- NEW: Shopify Direct Scraper Logic ---
 def scrape_shopify_direct(store_url, max_pages=5):
-    """
-    Directly scrapes a Shopify store using the JSON endpoint.
-    Integrated for TutoMart to run on the same backend.
-    """
     products_data = []
     page = 1
     
-    # Input Cleaning
     if not store_url.startswith('http'):
         store_url = f'https://{store_url}'
     store_url = store_url.rstrip('/')
@@ -107,7 +100,6 @@ def scrape_shopify_direct(store_url, max_pages=5):
 
     try:
         while page <= max_pages:
-            # The Magic Shopify Endpoint
             json_url = f"{store_url}/products.json?limit=250&page={page}"
             response = requests.get(json_url, headers=headers, timeout=10)
             
@@ -123,7 +115,6 @@ def scrape_shopify_direct(store_url, max_pages=5):
                 price = variants[0].get('price', 'N/A') if variants else 'N/A'
                 image_url = item['images'][0].get('src', '') if item.get('images') else ''
 
-                # Format data to match TutoMart's Table Structure
                 products_data.append({
                     "BRAND": item.get('vendor', 'N/A'),
                     "PRODUCT": "Shopify Item", 
@@ -140,15 +131,13 @@ def scrape_shopify_direct(store_url, max_pages=5):
                 })
             
             page += 1
-            time.sleep(0.5) # Prevent rate limiting
+            time.sleep(0.5)
 
         return {"data": products_data}
 
     except Exception as e:
         logger.error(f"Shopify Scrape Error: {e}")
         return {"error": str(e)}
-
-# --- Login & Auth Handlers ---
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -169,8 +158,6 @@ def check_admin_auth():
 def is_super_admin():
     admin = check_admin_auth()
     return admin and admin.get('role') == 'admin'
-
-# --- Admin Employee Management Routes ---
 
 @app.route('/api/admin/employees', methods=['POST'])
 def create_employee():
@@ -307,8 +294,6 @@ def admin_status():
 def admin_logout():
     session.pop('admin_user', None)
     return jsonify({"message": "Logged out"})
-
-# --- Admin Ticket Management ---
 
 @app.route('/api/admin/tickets', methods=['GET'])
 def get_admin_tickets():
@@ -558,8 +543,6 @@ def dashboard_stats():
     }
     return jsonify(stats)
 
-# --- User Routes ---
-
 @app.route("/api/user")
 @login_required
 def get_user():
@@ -571,7 +554,6 @@ def get_user():
         'authenticated': True
     })
 
-# --- Scrape Products Route (INTEGRATED) ---
 @app.route("/api/scrape", methods=["POST"])
 @login_required
 def scrape_products():
@@ -583,7 +565,6 @@ def scrape_products():
     temp_file_path = None
 
     try:
-        # --- Check for Bulk File Upload ---
         if 'file' in request.files:
             file = request.files['file']
             if file.filename == '':
@@ -665,7 +646,6 @@ def scrape_products():
                 if temp_file_path and os.path.exists(temp_file_path):
                     os.unlink(temp_file_path)
 
-        # --- Check for Manual JSON Request ---
         else:
             data = request.get_json()
             if not data:
@@ -673,13 +653,11 @@ def scrape_products():
 
             website = data.get("website", "").lower().strip()
             
-            # --- NEW SHOPIFY LOGIC START ---
             if website == 'shopify':
                 store_url = data.get("store_url")
                 if not store_url:
                     return jsonify({"error": "Store URL is required for Shopify scraping"}), 400
                 
-                # Direct internal call
                 shopify_result = scrape_shopify_direct(store_url)
                 
                 if "error" in shopify_result:
@@ -687,11 +665,10 @@ def scrape_products():
                 
                 results = shopify_result["data"]
                 
-                # Save to SearchHistory
                 if results:
                     search = SearchHistory(
                         user_id=current_user.id,
-                        brand=store_url, # URL as Brand
+                        brand=store_url,
                         product="Shopify Scan",
                         website="shopify",
                         search_type='manual',
@@ -701,8 +678,7 @@ def scrape_products():
                     db.session.commit()
 
                 return jsonify({"data": results})
-            # --- NEW SHOPIFY LOGIC END ---
-
+                
             brand = data.get("brand", "").strip()
             product = data.get("product", "").strip()
             oem = data.get("oem_number", "").strip()
@@ -888,7 +864,6 @@ def get_user_tickets():
 @login_required
 def create_support_ticket():
     try:
-        # 1. Get Form Data
         subject = request.form.get('subject', '').strip()
         description = request.form.get('description', '').strip()
         urgency = request.form.get('urgency', 'medium').strip().lower()
@@ -896,11 +871,9 @@ def create_support_ticket():
         if not subject or not description:
             return jsonify({"error": "Subject and description are required"}), 400
         
-        # 2. Validate Urgency
         if urgency not in ['low', 'medium', 'high', 'critical']:
             urgency = 'medium'
         
-        # 3. Handle File Uploads (With API Path Fix)
         attachment_paths = []
         if 'attachments' in request.files:
             files = request.files.getlist('attachments')
@@ -912,13 +885,10 @@ def create_support_ticket():
                     
                     if allowed_file(file.filename):
                         filename = secure_filename(file.filename)
-                        # Create unique name
                         unique_filename = f"{uuid.uuid4().hex}_{filename}"
-                        # Save to physical folder
                         file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
                         file.save(file_path)
                         
-                        # --- FIX: Use '/api/' prefix so Nginx routes it correctly ---
                         web_path = f"/api/uploads/tickets/{unique_filename}"
                         
                         attachment_paths.append({
@@ -927,7 +897,6 @@ def create_support_ticket():
                             'path': web_path
                         })
         
-        # 4. Initialize Ticket (Without ticket_number initially)
         new_ticket = SupportTicket(
             user_id=current_user.id,
             subject=subject,
@@ -937,27 +906,21 @@ def create_support_ticket():
         )
         
         db.session.add(new_ticket)
-        
-        # 5. Flush to Generate the Sequence Number
-        # This pushes the data to DB to get the auto-increment ID, but doesn't commit transaction yet
+
         db.session.flush() 
         
-        # 6. Generate Smart Ticket Number (e.g., TH-0001)
-        
-        # Determine Type Code (First Letter) based on Subject keywords
         subject_lower = subject.lower()
-        type_code = 'G' # Default to General
+        type_code = 'G'
         
         if any(x in subject_lower for x in ['tech', 'bug', 'error', 'fail', 'login', 'connect']):
-            type_code = 'T' # Technical
+            type_code = 'T'
         elif any(x in subject_lower for x in ['bill', 'pay', 'refund', 'money', 'cost']):
-            type_code = 'B' # Billing
+            type_code = 'B'
         elif any(x in subject_lower for x in ['account', 'profile', 'password', 'access']):
-            type_code = 'A' # Account
+            type_code = 'A'
         elif any(x in subject_lower for x in ['feature', 'request', 'add']):
-            type_code = 'F' # Feature Request
+            type_code = 'F'
 
-        # Determine Urgency Code (Second Letter)
         urgency_map = {
             'critical': 'C',
             'high': 'H',
@@ -965,15 +928,11 @@ def create_support_ticket():
             'low': 'L'
         }
         urgency_code = urgency_map.get(urgency, 'M')
-
-        # Format: {Type}{Urgency}-{Sequence padded with zeros}
-        # Example: TH-0025
+5
         formatted_number = f"{type_code}{urgency_code}-{new_ticket.ticket_sequence:04d}"
         
-        # Update the ticket with the formatted number
         new_ticket.ticket_number = formatted_number
         
-        # 7. Final Commit
         db.session.commit()
         
         return jsonify({
@@ -1031,13 +990,10 @@ def get_ticket_details(ticket_id):
         logger.exception("Error fetching ticket details")
         return jsonify({"error": "Failed to fetch ticket details"}), 500
 
-# --- SERVE TICKET FILES (FIXED ROUTE) ---
-# We changed '/static/...' to '/api/uploads/...' so Nginx routes this to Flask
 @app.route('/api/uploads/tickets/<filename>')
 def serve_ticket_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-# --- Serve React Static Files ---
 @app.route('/static/<path:path>')
 def serve_static(path):
     return send_from_directory(app.static_folder + '/static', path)
@@ -1046,7 +1002,6 @@ def serve_static(path):
 def serve_uploads(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-# --- Catch-All Route for React Router ---
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
