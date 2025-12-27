@@ -13,7 +13,7 @@ const Dashboard = () => {
     product: '',
     oem_number: '',
     asin_number: '',
-    website: '',
+    website: 'amazon',
     amazon_country: 'amazon.com',
     store_url: '' // For Shopify
   });
@@ -41,7 +41,8 @@ const Dashboard = () => {
   const [matchType, setMatchType] = useState('fuzzy'); // 'fuzzy' or 'exact'
 
   // Check if Amazon Region field should be shown (Only if Amazon or All Sites selected)
-  const showAmazonRegion = (formData.website === 'amazon' || formData.website === '' || formData.website === 'allwebsite') && formData.website !== 'shopify';
+  // const showAmazonRegion = (formData.website === 'amazon' || formData.website === '' || formData.website === 'allwebsite') && formData.website !== 'shopify';
+  const showAmazonRegion = formData.website === 'amazon';
 
   // --- Handlers ---
 
@@ -295,7 +296,6 @@ const Dashboard = () => {
                       value={formData.website}
                       onChange={handleChange}
                     >
-                      // <option value="">All Websites</option>
                       <option value="amazon">Amazon</option>
                       <option value="flipkart">Flipkart</option>
                       <option value="ebay">eBay</option>
