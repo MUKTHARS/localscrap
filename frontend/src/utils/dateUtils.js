@@ -1,18 +1,13 @@
-export const AVAILABLE_TIMEZONES = [
-  'UTC',
-  'Asia/Dubai',
-  'Asia/Kolkata',
-  'America/New_York',
-  'Europe/London',
-  'Asia/Singapore',
-  'Australia/Sydney',
-];
-
 export const formatToAccountTime = (dateString, timeZone = 'UTC') => {
   if (!dateString) return '-';
 
   try {
-    const date = new Date(dateString);
+    let utcString = dateString;
+    if (typeof dateString === 'string' && !dateString.endsWith('Z')) {
+      utcString += 'Z';
+    }
+
+    const date = new Date(utcString);
 
     return new Intl.DateTimeFormat('en-GB', {
       day: '2-digit',
