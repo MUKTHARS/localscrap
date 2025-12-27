@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
-import { formatToAccountTime, AVAILABLE_TIMEZONES } from '../utils/dateUtils';
+import { formatToAccountTime } from '../utils/dateUtils';
 
 const Profile = () => {
   const [profileData, setProfileData] = useState(null);
@@ -20,24 +20,6 @@ const Profile = () => {
       console.error('Error fetching profile data:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleTimezoneChange = async (e) => {
-    const newTz = e.target.value;
-    try {
-      // Optimistic UI update
-      setProfileData(prev => ({
-        ...prev,
-        user: { ...prev.user, timezone: newTz }
-      }));
-
-      await api.put('/user/timezone', { timezone: newTz });
-      // Optional: Show a toast notification here
-    } catch (error) {
-      console.error('Failed to update timezone:', error);
-      alert("Failed to save time zone setting.");
-      fetchProfileData(); // Revert on error
     }
   };
 
@@ -64,7 +46,7 @@ const Profile = () => {
     );
   }
 
-  // Helper to get current TZ safely
+  // Helper to get current TZ from backend data safely
   const currentTz = profileData?.user?.timezone || 'UTC';
 
   return (
@@ -85,21 +67,14 @@ const Profile = () => {
               
               <hr />
               
-              {/* Time Zone Configuration */}
-              <div className="mb-3 text-start">
-                <label className="form-label fw-bold small text-muted">
-                </label>
-                <select 
-                  className="form-select form-select-sm" 
-                  value={currentTz}
-                  onChange={handleTimezoneChange}
-                >
-                  {AVAILABLE_TIMEZONES.map(tz => (
-                    <option key={tz} value={tz}>{tz}</option>
-                  ))}
-                </select>
-                <div className="form-text" style={{fontSize: '0.75rem'}}>
-                  Your logs and tickets will be displayed in <strong>{currentTz}</strong> regardless of your device location.
+              {/* Static Time Zone Display (Selector Removed) */}
+              <div className="mb-3 text-center">
+                <span className="badge bg-light text-dark border p-2">
+                  <i className="bi bi-globe me-2"></i>
+                  Timezone: <strong>{currentTz}</strong>
+                </span>
+                <div className="form-text mt-2" style={{fontSize: '0.8rem'}}>
+                   Your logs are displayed in <strong>{currentTz}</strong> time, regardless of your physical location.
                 </div>
               </div>
 
@@ -132,8 +107,8 @@ const Profile = () => {
                         <th>Brand/Product</th>
                         <th>OEM</th>
                         <th>ASIN</th>
-                        <th>Details</th>
                         <th>Website</th>
+                        {/* Header explicitly shows the timezone being used */}
                         <th>Date ({currentTz})</th>
                         <th>Action</th>
                       </tr>
@@ -154,6 +129,7 @@ const Profile = () => {
                           <td>{search.asin_number || 'N/A'}</td>
                           <td>{search.website || 'All'}</td>
                           <td>
+                            {/* Uses the strict utility with currentTz */}
                             {formatToAccountTime(search.created_at, currentTz)}
                           </td>
                           <td>
