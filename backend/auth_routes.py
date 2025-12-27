@@ -10,7 +10,6 @@ import os
 auth_bp = Blueprint("auth", __name__)
 oauth = OAuth()
 
-# Use your actual domain
 FRONTEND_BASE = "https://tutomart.com"
 CALLBACK_URL = "https://tutomart.com/api/auth/login/google/callback"  # Updated
 
@@ -30,8 +29,6 @@ def init_oauth(app):
             "token_endpoint_auth_method": "client_secret_post"
         },
     )
-
-# -------------------------- LOGIN STATUS ----------------------------------
 
 @auth_bp.route("/")
 def login():
@@ -53,8 +50,6 @@ def login_status():
         })
     return jsonify({"authenticated": False})
 
-# -------------------------- GOOGLE LOGIN ----------------------------------
-
 @auth_bp.route("/login/google")
 def google_login():
     try:
@@ -67,7 +62,6 @@ def google_login():
 @auth_bp.route("/login/google/callback")
 def google_callback():
     try:
-        # Manually exchange token
         code = request.args.get("code")
         if not code:
             return redirect(f"{FRONTEND_BASE}/login?error=no_code")
@@ -92,7 +86,6 @@ def google_callback():
         token_data = token_response.json()
         access_token = token_data.get("access_token")
 
-        # Get user info
         user_response = requests.get(
             "https://www.googleapis.com/oauth2/v1/userinfo",
             params={"access_token": access_token},
@@ -108,14 +101,12 @@ def google_callback():
         google_id = user_info.get("id")
         name = user_info.get("name") or email.split("@")[0]
 
-        # Check if user exists
         user = User.query.filter_by(email=email).first()
 
         if not user:
             user = User(email=email, name=name, google_id=google_id)
             db.session.add(user)
         else:
-            # Update Google ID if missing
             if not user.google_id:
                 user.google_id = google_id
 
@@ -123,14 +114,11 @@ def google_callback():
 
         login_user(user, remember=True)
 
-        # FIX: Use absolute URL for redirect
         return redirect(f"{FRONTEND_BASE}/dashboard?login=success")
 
     except Exception as e:
         print("Callback Error:", str(e))
         return redirect(f"{FRONTEND_BASE}/login?error=callback_failed")
-
-# -------------------------- TRADITIONAL LOGIN -----------------------------
 
 @auth_bp.route('/login/traditional', methods=['POST'])
 @cross_origin(supports_credentials=True)
@@ -168,9 +156,6 @@ def traditional_login():
     except Exception as e:
         print("Login Error:", e)
         return jsonify({"error": "Login failed"}), 500
-
-
-# -------------------------- REGISTRATION ----------------------------------
 
 @auth_bp.route('/register', methods=['POST'])
 @cross_origin(supports_credentials=True)
@@ -226,20 +211,16 @@ def register():
 @auth_bp.route('/logout', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def logout():
-    # FIX: Don't require login_required decorator
-    # If user is logged in, log them out
     try:
         logout_user()
         return jsonify({"message": "Logged out successfully"})
     except Exception:
-        # Even if there's an error, clear the session
         return jsonify({"message": "Session cleared"})
 
 
 @auth_bp.route('/reset-password', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def reset_password():
-    # TEMPORARY: For localhost testing only
     try:
         data = request.get_json()
         email = data.get("email", "").strip()
@@ -248,7 +229,6 @@ def reset_password():
         if not email or not new_password:
             return jsonify({"error": "Email and password required"}), 400
         
-        # FIX: Use db.session.query()
         user = db.session.query(User).filter_by(email=email).first()
         
         if not user:
