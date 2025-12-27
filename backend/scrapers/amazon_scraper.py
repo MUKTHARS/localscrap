@@ -150,12 +150,6 @@ def scrape_amazon(brand, product):
                             })
                             print(f"   >>> Injected cookie: i18n-prefs={current_currency}")
 
-                        driver.add_cookie({
-                            'name': 'lc-main',
-                            'value': 'en_US',
-                            'domain': f'.{domain}'
-                        })
-
                     except Exception as cookie_err:
                         print(f"   >>> Warning: Cookie injection failed: {cookie_err}")
 
