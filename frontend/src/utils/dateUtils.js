@@ -1,10 +1,19 @@
-export const formatToAccountTime = (utcDateString, timeZone) => {
+export const formatToAccountTime = (utcDateString, timeZone = 'UTC') => {
   if (!utcDateString) return '-';
-  
+
   const targetZone = timeZone || 'UTC';
 
   try {
-    const date = new Date(utcDateString);
+    let utcString = utcDateString;
+
+    // Ensure the string is treated as UTC
+    if (typeof utcDateString === 'string' && !utcDateString.endsWith('Z')) {
+      utcString += 'Z';
+    }
+
+    const date = new Date(utcString);
+
+    if (isNaN(date.getTime())) return utcDateString;
 
     const formatter = new Intl.DateTimeFormat('en-GB', {
       day: '2-digit',
@@ -12,6 +21,7 @@ export const formatToAccountTime = (utcDateString, timeZone) => {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
       hour12: true,
       timeZone: targetZone
     });
