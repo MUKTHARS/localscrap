@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatToAccountTime } from '../utils/dateUtils';
 import '../styles/Dashboard.css';
 import '../styles/Table.css';
+import { getFormattedCurrency } from '../utils/currencyUtils';
 
 const Dashboard = () => {
   // --- Form State ---
@@ -774,7 +775,6 @@ const Dashboard = () => {
                       <th>Website</th>
                       <th>Product Name</th>
                       <th>Price</th>
-                      <th>Currency</th>
                       <th>Seller Rating</th>
                       {/* 2. UPDATE HEADER TO SHOW TIMEZONE */}
                       <th>Date Scraped ({user?.timezone || 'UTC'})</th>
@@ -814,11 +814,22 @@ const Dashboard = () => {
                         </td>
                         <td>
                           <div className="price-cell">
-                            <span className="price-value">{item.PRICE}</span>
+                            <span 
+                              className="currency-symbol" 
+                              style={{ 
+                                color: '#888', 
+                                fontWeight: 'bold', 
+                                marginRight: '4px',
+                                fontSize: '0.9em' 
+                              }}
+                            >
+                              {getFormattedCurrency(item.CURRENCY)}
+                            </span>
+                        
+                            <span className="price-value">
+                              {item.PRICE}
+                            </span>
                           </div>
-                        </td>
-                        <td>
-                          <span className="currency">{item.CURRENCY}</span>
                         </td>
                         <td>
                           {item['SELLER RATING'] && item['SELLER RATING'] !== 'N/A' ? (
