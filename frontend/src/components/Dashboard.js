@@ -295,7 +295,7 @@ const Dashboard = () => {
                       value={formData.website}
                       onChange={handleChange}
                     >
-                      <option value="">All Websites</option>
+                      // <option value="">All Websites</option>
                       <option value="amazon">Amazon</option>
                       <option value="flipkart">Flipkart</option>
                       <option value="ebay">eBay</option>
@@ -459,7 +459,7 @@ const Dashboard = () => {
                       </select>
                     </div>
                     <small className="form-help">
-                      Used when scraping Amazon or All Websites.
+                      Select which Amazon country you want to scrape
                     </small>
                   </div>
                 )}
@@ -581,7 +581,7 @@ const Dashboard = () => {
                   </select>
                 </div>
                 <small className="form-help">
-                  Used when scraping Amazon or All Websites.
+                  Select which Amazon country you want to scrape
                 </small>
               </div>
 
