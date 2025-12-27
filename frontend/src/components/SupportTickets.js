@@ -36,19 +36,17 @@ const SupportTickets = ({ user }) => { // Accept user prop for timezone
     setFormData({ ...formData, [name]: value });
   };
 
-  // FIX 1: Allow appending multiple files
-  const handleFileChange = (e) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFormData(prev => ({
-        ...prev,
-        // Spread existing attachments AND new files
-        attachments: [...prev.attachments, ...newFiles]
-      }));
-    }
-  };
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, ...newFiles]
+      }));
+      e.target.value = ''; 
+    }
+  };
 
-  // FIX 1: Allow removing a file from selection
   const removeFile = (indexToRemove) => {
     setFormData(prev => ({
       ...prev,
