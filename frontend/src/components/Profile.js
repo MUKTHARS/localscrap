@@ -70,9 +70,6 @@ const Profile = () => {
                   <i className="bi bi-geo-alt-fill me-2 text-danger"></i>
                   Region: <strong>{currentTz}</strong>
                 </span>
-                <p className="text-muted mt-2 small">
-                  Logs are fixed to this time zone regardless of your location.
-                </p>
               </div>
 
               <p className="card-text mt-3">
