@@ -1,14 +1,12 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import api from '../utils/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
-// 1. IMPORT TIMEZONE UTILITY
 import { formatToAccountTime } from '../utils/dateUtils';
 import '../styles/Dashboard.css';
 import '../styles/Table.css';
 import { getFormattedCurrency } from '../utils/currencyUtils';
 
 const Dashboard = () => {
-  // --- Form State ---
   const [formData, setFormData] = useState({
     brand: '',
     product: '',
@@ -16,11 +14,10 @@ const Dashboard = () => {
     asin_number: '',
     website: 'amazon',
     amazon_country: 'amazon.com',
-    store_url: '' // For Shopify
+    store_url: ''
   });
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
-  // --- Data & UI State ---
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,23 +25,17 @@ const Dashboard = () => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   
-  // Get User for Timezone preference
   const { user } = useAuth();
 
-  // --- Filter State ---
   const [filters, setFilters] = useState({
     keyword: '',
     website: '',
     maxPrice: ''
   });
 
-  // --- Match Type State (Fuzzy vs Exact) ---
-  const [matchType, setMatchType] = useState('fuzzy'); // 'fuzzy' or 'exact'
+  const [matchType, setMatchType] = useState('fuzzy');
 
-  // Check if Amazon Region field should be shown (Only if Amazon is selected)
   const showAmazonRegion = formData.website === 'amazon';
-
-  // --- Handlers ---
 
   const handleChange = (e) => {
     setFormData({
@@ -146,7 +137,7 @@ const Dashboard = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 300000 // 5 minute timeout for bulk upload
+        timeout: 300000
       });
 
       if (response.data.error) {
@@ -171,7 +162,6 @@ const Dashboard = () => {
   };
 
   const exportToCSV = () => {
-    // We export filtered results to match what the user sees
     const headers = [
       'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
       'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
@@ -198,37 +188,29 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
-  // --- Filtering Logic (Memoized for Performance) ---
   const filteredResults = useMemo(() => {
     return results.filter(item => {
-      // 1. Keyword Filter (Brand or Product or Product Name)
       const searchTerm = filters.keyword.toLowerCase();
       const matchesKeyword =
         (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
         (item.PRODUCT?.toLowerCase() || '').includes(searchTerm) ||
         (item['PRODUCT NAME']?.toLowerCase() || '').includes(searchTerm);
 
-      // 2. Website Filter
       const matchesWebsite = filters.website === '' ||
         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
-      // 3. Price Filter (Clean currency symbols like $ or ₹ before comparing)
       let priceValue = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
       if (isNaN(priceValue)) priceValue = 0;
 
       const maxPrice = parseFloat(filters.maxPrice);
       const matchesPrice = !filters.maxPrice || priceValue <= maxPrice;
 
-      // 4. Match Type Filter (Fuzzy vs Exact)
-      // Only apply this logic if NOT using Shopify mode
       let matchesType = true;
       if (formData.website !== 'shopify' && matchType === 'exact') {
         const productName = (item['PRODUCT NAME'] || '').toLowerCase();
-        // Use the brand/product from the specific row data
         const brandQuery = (item.BRAND || '').toLowerCase();
         const productQuery = (item.PRODUCT || '').toLowerCase();
 
-        // Split queries into words to allow flexibility
         const brandWords = brandQuery.split(/\s+/).filter(w => w);
         const productWords = productQuery.split(/\s+/).filter(w => w);
 
@@ -244,7 +226,6 @@ const Dashboard = () => {
 
   return (
     <div className="premium-dashboard">
-      {/* Header Section */}
       <div className="dashboard-hero">
         <div className="hero-content">
           <h1 className="hero-title">
@@ -270,10 +251,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="dashboard-content">
         <div className="content-grid">
-          {/* Manual Entry Card */}
           <div className="feature-card">
             <div className="card-header">
               <h3 className="card-title">Single Product Search</h3>
@@ -283,7 +262,6 @@ const Dashboard = () => {
             <div className="card-body">
               <form onSubmit={handleScrape} className="premium-form">
                 
-                {/* --- WEBSITE SELECTION FIRST --- */}
                 <div className="form-group">
                   <label className="form-label">Website</label>
                   <div className="input-wrapper">
@@ -296,7 +274,6 @@ const Dashboard = () => {
                       value={formData.website}
                       onChange={handleChange}
                     >
-                      {/* Removed "All Websites" option to force specific selection */}
                       <option value="amazon">Amazon</option>
                       <option value="flipkart">Flipkart</option>
                       <option value="ebay">eBay</option>
@@ -308,7 +285,6 @@ const Dashboard = () => {
                       <option value="seazoneuae">Seazone UAE</option>
                       <option value="empiremarine">Empire Marine</option>
                       <option value="climaxmarine">Climax Marine</option>
-                      {/* ADDED SHOPIFY OPTION */}
                       <option value="shopify" style={{ fontWeight: 'bold', color: '#28a745' }}>
                         ★ Shopify Store Scanner
                       </option>
@@ -316,9 +292,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* --- CONDITIONAL FIELDS BASED ON SELECTION --- */}
                 {formData.website === 'shopify' ? (
-                  // SHOPIFY MODE: URL INPUT
                   <div className="form-group">
                     <label className="form-label">
                       <span>Store URL</span>
@@ -343,7 +317,6 @@ const Dashboard = () => {
                     </small>
                   </div>
                 ) : (
-                  // STANDARD MODE: BRAND/PRODUCT INPUTS
                   <>
                     <div className="form-group">
                       <label className="form-label">
@@ -425,7 +398,6 @@ const Dashboard = () => {
                   </>
                 )}
 
-                {/* Amazon Region Field - Conditionally Rendered */}
                 {showAmazonRegion && (
                   <div className="form-group">
                     <label className="form-label">Amazon Region</label>
@@ -485,7 +457,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Bulk Upload Card */}
           <div className="feature-card">
             <div className="card-header">
               <h3 className="card-title">Bulk Product Analysis</h3>
@@ -548,7 +519,6 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {/* Amazon Region for Bulk Upload */}
               <div className="form-group">
                 <label className="form-label">Amazon Region</label>
                 <div className="input-wrapper">
@@ -616,7 +586,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Error Display */}
         {error && (
           <div className="error-alert">
             <div className="alert-icon">
@@ -635,7 +604,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Results Section with Filters */}
         {results.length > 0 && (
           <div className="results-section">
             <div className="results-header">
@@ -649,7 +617,6 @@ const Dashboard = () => {
                 </p>
               </div>
 
-              {/* Match Type Toggle Buttons - HIDE FOR SHOPIFY */}
               {formData.website !== 'shopify' && (
                 <div className="match-toggle-group" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginRight: '20px' }}>
                   <button
@@ -680,11 +647,9 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* --- FILTER BAR --- */}
             <div className="feature-card filter-card" style={{ marginBottom: '20px', padding: '12px 20px' }}>
               <div className="form-row" style={{ alignItems: 'flex-end', gap: '15px', margin: 0 }}>
 
-                {/* 1. Keyword Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
                     Keyword
@@ -705,7 +670,6 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* 2. Website Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
                     Website
@@ -738,7 +702,6 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* 3. Price Filter */}
                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
                     Max Price
@@ -761,7 +724,6 @@ const Dashboard = () => {
 
               </div>
             </div>
-            {/* --- END FILTER BAR --- */}
 
             <div className="table-container">
               <div className="table-scroll">
@@ -775,15 +737,12 @@ const Dashboard = () => {
                       <th>Website</th>
                       <th>Product Name</th>
                       <th>Price</th>
-                      {/* Removed Currency Column to Fix Alignment */}
                       <th>Seller Rating</th>
-                      {/* 2. UPDATE HEADER TO SHOW TIMEZONE */}
                       <th>Date Scraped ({user?.timezone || 'UTC'})</th>
                       <th>Source URL</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Render Filtered Results */}
                     {filteredResults.map((item, index) => (
                       <tr key={index}>
                         <td>
@@ -845,7 +804,6 @@ const Dashboard = () => {
                           )}
                         </td>
                         <td>
-                          {/* 3. USE UTILITY FOR DATE CELL */}
                           <span className="date-cell">
                             {formatToAccountTime(item['DATE SCRAPED'], user?.timezone)}
                           </span>
@@ -867,7 +825,6 @@ const Dashboard = () => {
                     ))}
                   </tbody>
                 </table>
-                {/* Message if filters hide all results */}
                 {results.length > 0 && filteredResults.length === 0 && (
                   <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
                     <i className="bi bi-search" style={{ fontSize: '2rem', display: 'block', marginBottom: '10px', opacity: 0.5 }}></i>
