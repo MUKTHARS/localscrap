@@ -161,7 +161,6 @@ def scrape_amazon(brand, product):
                         search_url = f"https://www.{domain}/s?k={base_query}&page={current_page}"
                         driver.get(search_url)
 
-                        # Random scrolling behavior
                         for _ in range(random.randint(2, 4)):
                             scroll_amount = random.randint(300, 800)
                             driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
@@ -194,7 +193,13 @@ def scrape_amazon(brand, product):
                                       card.select_one("a.a-link-normal.s-no-outline") or \
                                       card.select_one("h2 a")
                             
-                            raw_product_url = f"https://www.{domain}" + url_tag["href"] if url_tag else "N/A"
+                            if url_tag:
+                                raw_product_url = f"https://www.{domain}" + url_tag["href"]
+                                raw_product_url = raw_product_url.split('#')[0]
+
+                            else:
+                                raw_product_url = "N/A"
+                            
                             clean_url_key = raw_product_url.split("?")[0]
                             
                             if clean_url_key in seen_urls: continue
