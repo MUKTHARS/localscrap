@@ -169,14 +169,16 @@ def scrape_amazon(brand, product):
                                 if match:
                                     price_value = round(float(match.group(0)), 2)
                                 
-                                currency_match = re.search(r'[\$€£₹¥]', raw_price)
-                                if currency_match:
-                                    currency = currency_match.group(0)
-                                else:
-                                    if "in" in domain: currency = "₹"
-                                    elif "uk" in domain: currency = "£"
-                                    elif "de" in domain or "fr" in domain: currency = "€"
-                                    else: currency = "$"
+                            currency_match = re.search(
+                                r'(?:'
+                                r'[\$€£₹¥₩₽₺₫₴₦₱₵₲₡₸₭₣₥₧₯₰₳₢₣₤₥₦₧₩₫₭₮₯₱₲₳₴₺₼₾₿]|'  # Common currency symbols
+                                r'د\.إ|ر\.س|ج\.م|₨|'                          # Arabic / Indian symbols
+                                r'S\$|zł|kr|R\$|'                             # Singapore, Poland, Sweden, Brazil
+                                r'[A-Z]{3}'                                   # ISO codes like USD, AED, INR
+                                r')',
+                                raw_price
+                            )
+                            currency = currency_match.group(0) if currency_match else "NA"
 
                             if price_value == "NA": continue
 
