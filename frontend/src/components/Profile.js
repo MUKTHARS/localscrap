@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/apiConfig';
 import { useAuth } from '../contexts/AuthContext';
-// 1. Import the utility that handles the timezone logic
 import { formatToAccountTime } from '../utils/dateUtils';
 
 const Profile = () => {
@@ -47,13 +46,11 @@ const Profile = () => {
     );
   }
 
-  // 2. Get the configured timezone safely (default to UTC)
   const currentTz = profileData?.user?.timezone || 'UTC';
 
   return (
     <div className="container mt-4">
       <div className="row">
-        {/* --- LEFT COLUMN: USER CARD --- */}
         <div className="col-md-4">
           <div className="card shadow-sm">
             <div className="card-body text-center">
@@ -67,19 +64,18 @@ const Profile = () => {
               <p className="card-text text-muted">{user?.email}</p>
               
               <hr />
-
-              {/* Static Timezone Display (No Edit Button) */}
+              
               <div className="mb-3">
-                <span className="badge bg-light text-dark border">
-                  <i className="bi bi-globe me-2"></i>
-                  {currentTz}
+                <span className="badge bg-light text-dark border px-3 py-2">
+                  <i className="bi bi-geo-alt-fill me-2 text-danger"></i>
+                  Region: <strong>{currentTz}</strong>
                 </span>
-                <p className="text-muted mt-2" style={{ fontSize: '0.8rem' }}>
-                  Dates are displayed in your configured time zone.
+                <p className="text-muted mt-2 small">
+                  Logs are fixed to this time zone regardless of your location.
                 </p>
               </div>
 
-              <p className="card-text">
+              <p className="card-text mt-3">
                 <small className="text-muted">
                   Member since: {formatToAccountTime(profileData?.user?.created_at, currentTz)}
                 </small>
@@ -88,7 +84,6 @@ const Profile = () => {
           </div>
         </div>
         
-        {/* --- RIGHT COLUMN: SEARCH HISTORY --- */}
         <div className="col-md-8">
           <div className="card shadow-sm">
             <div className="card-header bg-white d-flex justify-content-between align-items-center">
@@ -105,12 +100,10 @@ const Profile = () => {
                     <thead className="table-light">
                       <tr>
                         <th>Type</th>
-                        <th>Brand</th>
-                        <th>Product</th>
+                        <th>Brand/Product</th>
                         <th>OEM</th>
                         <th>ASIN</th>
                         <th>Website</th>
-                        {/* Header shows the timezone being used */}
                         <th>Date ({currentTz})</th>
                         <th>Action</th>
                       </tr>
@@ -119,32 +112,24 @@ const Profile = () => {
                       {profileData.search_history.map((search) => (
                         <tr key={search.id}>
                           <td>
-                            <span 
-                              className={`badge ${
-                                search.search_type === 'bulk' ? 'bg-warning' : 'bg-info'
-                              }`}
-                            >
+                            <span className={`badge ${search.search_type === 'bulk' ? 'bg-warning' : 'bg-info'}`}>
                               {search.search_type}
                             </span>
                           </td>
-                          <td><span className="fw-bold">{search.brand}</span></td>
-                          <td>{search.product}</td>
-                          <td><small className="text-muted">{search.oem_number || '-'}</small></td>
-                          <td><small className="text-muted">{search.asin_number || '-'}</small></td>
                           <td>
-                            <span className="badge bg-light text-dark border">
-                              {search.website || 'All'}
-                            </span>
+                            <div className="fw-bold">{search.brand}</div>
+                            <small className="text-muted">{search.product}</small>
                           </td>
+                          <td>{search.oem_number || 'N/A'}</td>
+                          <td>{search.asin_number || 'N/A'}</td>
+                          <td>{search.website || 'All'}</td>
                           <td>
-                            {/* 3. Apply the Timezone conversion */}
                             {formatToAccountTime(search.created_at, currentTz)}
                           </td>
                           <td>
                             <button
                               className="btn btn-sm btn-outline-danger border-0"
                               onClick={() => deleteSearch(search.id)}
-                              title="Delete Entry"
                             >
                               <i className="bi bi-trash"></i>
                             </button>
@@ -155,7 +140,7 @@ const Profile = () => {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-5">
+                <div className="text-center py-4">
                   <i 
                     className="bi bi-clock-history" 
                     style={{ fontSize: '3rem', color: '#6c757d' }}
