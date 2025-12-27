@@ -139,6 +139,26 @@ def scrape_amazon(brand, product):
                     driver = uc.Chrome(options=options)
                     driver.set_page_load_timeout(45)
 
+                    try:
+                        driver.get(f"https://www.{domain}/ref=cs_503_link")
+                        
+                        if current_currency != "NA":
+                            driver.add_cookie({
+                                'name': 'i18n-prefs',
+                                'value': current_currency,
+                                'domain': f'.{domain}'
+                            })
+                            print(f"   >>> Injected cookie: i18n-prefs={current_currency}")
+
+                        driver.add_cookie({
+                            'name': 'lc-main',
+                            'value': 'en_US',
+                            'domain': f'.{domain}'
+                        })
+
+                    except Exception as cookie_err:
+                        print(f"   >>> Warning: Cookie injection failed: {cookie_err}")
+
                     base_query = "+".join([k for k in [brand, product] if k])
                     
                     for current_page in range(1, max_pages + 1):
@@ -205,7 +225,7 @@ def scrape_amazon(brand, product):
                                 "WEBSITE": f"Amazon ({domain})",
                                 "PRODUCT NAME": name,
                                 "PRICE": price_value,
-                                "CURRENCY": current_currency, # Using the mapped currency
+                                "CURRENCY": current_currency, # Forces USD/EUR/GBP label
                                 "SELLER RATING": rating,
                                 "DATE SCRAPED": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "SOURCE URL": raw_product_url,
