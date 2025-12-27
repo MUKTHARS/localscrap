@@ -1,30 +1,24 @@
-export const formatToAccountTime = (dateString, timeZone = 'UTC') => {
-  if (!dateString) return '-';
+export const formatToAccountTime = (utcDateString, timeZone) => {
+  if (!utcDateString) return '-';
+  
+  const targetZone = timeZone || 'UTC';
 
   try {
-    let utcString = dateString;
+    const date = new Date(utcDateString);
 
-    if (typeof dateString === 'string' && !dateString.endsWith('Z')) {
-      utcString += 'Z';
-    }
-
-    const date = new Date(utcString);
-
-    if (isNaN(date.getTime())) return dateString;
-
-    return new Intl.DateTimeFormat('en-GB', {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
       hour12: true,
-      timeZone: timeZone || 'UTC'
-    }).format(date);
+      timeZone: targetZone
+    });
 
+    return formatter.format(date);
   } catch (error) {
-    console.error("Date formatting error:", error);
-    return dateString;
+    console.error(`Error formatting date for zone ${targetZone}:`, error);
+    return utcDateString;
   }
 };
