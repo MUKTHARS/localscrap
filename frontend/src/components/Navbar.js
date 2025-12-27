@@ -33,10 +33,12 @@ const Navbar = () => {
             src={logoImg} 
             alt="TutoMart" 
             style={{ 
-              height: '40px', // Adjust height to fit navbar
+              // UPDATED SIZE: Standard visibility size (increased from 40px)
+              height: '52px', 
               width: 'auto', 
               borderRadius: '5px',
-              marginRight: '10px'
+              marginRight: '12px',
+              objectFit: 'contain' // Ensures the image doesn't look stretched
             }} 
           />
         </Link>
@@ -56,7 +58,6 @@ const Navbar = () => {
               <span>Dashboard</span>
             </Link>
             
-            {/* 👇 ADDED SUPPORT LINK */}
             <Link 
               className={`nav-link ${location.pathname === '/support' ? 'active' : ''}`}
               to="/support"
@@ -114,7 +115,6 @@ const Navbar = () => {
               <div className="link-indicator"></div>
             </Link>
             
-            {/* 👇 ADDED SUPPORT LINK FOR MOBILE */}
             <Link 
               className={`mobile-nav-link ${location.pathname === '/support' ? 'active' : ''}`}
               to="/support"
