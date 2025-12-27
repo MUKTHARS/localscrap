@@ -41,8 +41,7 @@ const Dashboard = () => {
   // --- Match Type State (Fuzzy vs Exact) ---
   const [matchType, setMatchType] = useState('fuzzy'); // 'fuzzy' or 'exact'
 
-  // Check if Amazon Region field should be shown (Only if Amazon or All Sites selected)
-  // const showAmazonRegion = (formData.website === 'amazon' || formData.website === '' || formData.website === 'allwebsite') && formData.website !== 'shopify';
+  // Check if Amazon Region field should be shown (Only if Amazon is selected)
   const showAmazonRegion = formData.website === 'amazon';
 
   // --- Handlers ---
@@ -297,6 +296,7 @@ const Dashboard = () => {
                       value={formData.website}
                       onChange={handleChange}
                     >
+                      {/* Removed "All Websites" option to force specific selection */}
                       <option value="amazon">Amazon</option>
                       <option value="flipkart">Flipkart</option>
                       <option value="ebay">eBay</option>
@@ -775,6 +775,7 @@ const Dashboard = () => {
                       <th>Website</th>
                       <th>Product Name</th>
                       <th>Price</th>
+                      {/* Removed Currency Column to Fix Alignment */}
                       <th>Seller Rating</th>
                       {/* 2. UPDATE HEADER TO SHOW TIMEZONE */}
                       <th>Date Scraped ({user?.timezone || 'UTC'})</th>
@@ -825,7 +826,7 @@ const Dashboard = () => {
                             >
                               {getFormattedCurrency(item.CURRENCY)}
                             </span>
-                        
+                            
                             <span className="price-value">
                               {item.PRICE}
                             </span>
