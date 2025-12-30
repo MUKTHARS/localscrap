@@ -8,7 +8,7 @@ const AssignTicketModal = ({ show, onHide, ticketId, ticketNumber, onAssign }) =
   const [error, setError] = useState('');
 
   // Define Base URL for Flask Backend
-  const API_BASE_URL = 'https://tutomart.com';
+  const API_BASE_URL = 'https://api.tutomart.com';
 
   useEffect(() => {
     if (show) {
