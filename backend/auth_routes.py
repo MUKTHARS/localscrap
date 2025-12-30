@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, url_for, request, jsonify, current_app
+from flask import Blueprint, redirect, url_for, request, jsonify, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_cors import cross_origin
 from authlib.integrations.flask_client import OAuth
@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db_models import db, User
 import requests
 import os
+import uuid
 
 auth_bp = Blueprint("auth", __name__)
 oauth = OAuth()
@@ -110,10 +111,13 @@ def google_callback():
             if not user.google_id:
                 user.google_id = google_id
 
+        new_token = str(uuid.uuid4())
+        user.session_token = new_token
         db.session.commit()
-
+        
+        session['session_token'] = new_token
+        
         login_user(user, remember=True)
-
         return redirect(f"{FRONTEND_BASE}/dashboard?login=success")
 
     except Exception as e:
@@ -141,6 +145,12 @@ def traditional_login():
 
         if not check_password_hash(user.password, password):
             return jsonify({"error": "Invalid credentials"}), 401
+
+        new_token = str(uuid.uuid4())
+        user.session_token = new_token
+        db.session.commit()
+
+        session['session_token'] = new_token
 
         login_user(user, remember=True)
 
@@ -245,6 +255,7 @@ def reset_password():
         db.session.rollback()
         return jsonify({"error": "Failed to reset password"}), 500
 
+
 # from flask import Blueprint, redirect, url_for, request, jsonify, current_app
 # from flask_login import login_user, logout_user, login_required, current_user
 # from flask_cors import cross_origin
@@ -257,7 +268,6 @@ def reset_password():
 # auth_bp = Blueprint("auth", __name__)
 # oauth = OAuth()
 
-# # Use your actual domain
 # FRONTEND_BASE = "https://tutomart.com"
 # CALLBACK_URL = "https://tutomart.com/api/auth/login/google/callback"  # Updated
 
@@ -277,8 +287,6 @@ def reset_password():
 #             "token_endpoint_auth_method": "client_secret_post"
 #         },
 #     )
-
-# # -------------------------- LOGIN STATUS ----------------------------------
 
 # @auth_bp.route("/")
 # def login():
@@ -300,8 +308,6 @@ def reset_password():
 #         })
 #     return jsonify({"authenticated": False})
 
-# # -------------------------- GOOGLE LOGIN ----------------------------------
-
 # @auth_bp.route("/login/google")
 # def google_login():
 #     try:
@@ -314,7 +320,6 @@ def reset_password():
 # @auth_bp.route("/login/google/callback")
 # def google_callback():
 #     try:
-#         # Manually exchange token
 #         code = request.args.get("code")
 #         if not code:
 #             return redirect(f"{FRONTEND_BASE}/login?error=no_code")
@@ -339,7 +344,6 @@ def reset_password():
 #         token_data = token_response.json()
 #         access_token = token_data.get("access_token")
 
-#         # Get user info
 #         user_response = requests.get(
 #             "https://www.googleapis.com/oauth2/v1/userinfo",
 #             params={"access_token": access_token},
@@ -355,14 +359,12 @@ def reset_password():
 #         google_id = user_info.get("id")
 #         name = user_info.get("name") or email.split("@")[0]
 
-#         # Check if user exists
 #         user = User.query.filter_by(email=email).first()
 
 #         if not user:
 #             user = User(email=email, name=name, google_id=google_id)
 #             db.session.add(user)
 #         else:
-#             # Update Google ID if missing
 #             if not user.google_id:
 #                 user.google_id = google_id
 
@@ -370,14 +372,11 @@ def reset_password():
 
 #         login_user(user, remember=True)
 
-#         # FIX: Use absolute URL for redirect
 #         return redirect(f"{FRONTEND_BASE}/dashboard?login=success")
 
 #     except Exception as e:
 #         print("Callback Error:", str(e))
 #         return redirect(f"{FRONTEND_BASE}/login?error=callback_failed")
-
-# # -------------------------- TRADITIONAL LOGIN -----------------------------
 
 # @auth_bp.route('/login/traditional', methods=['POST'])
 # @cross_origin(supports_credentials=True)
@@ -415,9 +414,6 @@ def reset_password():
 #     except Exception as e:
 #         print("Login Error:", e)
 #         return jsonify({"error": "Login failed"}), 500
-
-
-# # -------------------------- REGISTRATION ----------------------------------
 
 # @auth_bp.route('/register', methods=['POST'])
 # @cross_origin(supports_credentials=True)
@@ -470,11 +466,39 @@ def reset_password():
 #         return jsonify({"error": "Registration failed"}), 500
 
 
-# # -------------------------- LOGOUT ----------------------------------------
-
 # @auth_bp.route('/logout', methods=['POST'])
-# @login_required
 # @cross_origin(supports_credentials=True)
 # def logout():
-#     logout_user()
-#     return jsonify({"message": "Logged out successfully"})
+#     try:
+#         logout_user()
+#         return jsonify({"message": "Logged out successfully"})
+#     except Exception:
+#         return jsonify({"message": "Session cleared"})
+
+
+# @auth_bp.route('/reset-password', methods=['POST'])
+# @cross_origin(supports_credentials=True)
+# def reset_password():
+#     try:
+#         data = request.get_json()
+#         email = data.get("email", "").strip()
+#         new_password = data.get("password", "").strip()
+        
+#         if not email or not new_password:
+#             return jsonify({"error": "Email and password required"}), 400
+        
+#         user = db.session.query(User).filter_by(email=email).first()
+        
+#         if not user:
+#             return jsonify({"error": "User not found"}), 404
+        
+#         from werkzeug.security import generate_password_hash
+#         user.password = generate_password_hash(new_password)
+#         db.session.commit()
+        
+#         return jsonify({"message": "Password reset successful"})
+        
+#     except Exception as e:
+#         print("Reset Password Error:", e)
+#         db.session.rollback()
+#         return jsonify({"error": "Failed to reset password"}), 500
