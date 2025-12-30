@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://tutomart.com/api', 
+  // baseURL: 'https://tutomart.com/api', 
+  baseURL: 'https://api.tutomart.com/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
