@@ -567,14 +567,25 @@ def get_user_lock(user_id):
 
 @app.before_request
 def check_session_concurrency():
-    """
-    Ensures the user's session token matches the one in the DB.
-    If not, it means they logged in somewhere else.
-    """
+    ignored_endpoints = [
+        'auth.login',
+        'auth.google_login',
+        'auth.google_callback',
+        'auth.traditional_login',
+        'auth.logout',
+        'auth.login_status',
+        'static',
+        'serve_static'
+    ]
+
+    if not request.endpoint or request.endpoint in ignored_endpoints:
+        return
+
     if current_user.is_authenticated:
         if current_user.session_token and session.get('session_token') != current_user.session_token:
             logout_user()
             session.clear()
+            
             if request.path.startswith('/api/'):
                 return jsonify({"error": "Session expired. You have logged in from another device."}), 401
     
