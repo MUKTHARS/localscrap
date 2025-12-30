@@ -15,7 +15,7 @@ const AssignTickets = () => {
   const [success, setSuccess] = useState('');
 
   // Define Base URL
-  const API_BASE_URL = 'https://tutomart.com';
+  const API_BASE_URL = 'https://api.tutomart.com';
 
   useEffect(() => {
     fetchData();
