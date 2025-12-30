@@ -9,7 +9,7 @@ const Users = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const API_BASE_URL = 'https://tutomart.com';
+  const API_BASE_URL = 'https://api.tutomart.com';
 
   useEffect(() => {
     fetchUsers();
