@@ -964,7 +964,7 @@ def create_support_ticket():
             'low': 'L'
         }
         urgency_code = urgency_map.get(urgency, 'M')
-5
+        
         formatted_number = f"{type_code}{urgency_code}-{new_ticket.ticket_sequence:04d}"
         
         new_ticket.ticket_number = formatted_number
