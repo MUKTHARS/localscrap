@@ -14,7 +14,7 @@ const TicketDetail = ({ user }) => {
   const [replyText, setReplyText] = useState('');
   const [updating, setUpdating] = useState(false);
 
-  const API_BASE_URL = 'https://tutomart.com';
+  const API_BASE_URL = 'https://api.tutomart.com';
 
   useEffect(() => {
     fetchTicket();
