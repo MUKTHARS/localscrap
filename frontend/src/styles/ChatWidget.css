@@ -1,94 +1,130 @@
-import React, { useState, useRef, useEffect } from 'react';
-import api from '../utils/apiConfig';
-import '../styles/ChatWidget.css';
+.chat-widget-wrapper {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  font-family: 'Inter', sans-serif;
+}
 
-const ChatWidget = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { text: "Hello! I can check live prices or analyze your past searches. How can I help?", isBot: true }
-  ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+.chat-launcher {
+  background: linear-gradient(135deg, #4f46e5, #ec4899);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+.chat-launcher:hover {
+  transform: translateY(-2px);
+}
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isOpen]);
+.chat-window {
+  width: 350px;
+  height: 500px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideIn 0.3s ease;
+}
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-    const userMsg = input;
-    setInput("");
-    setMessages(prev => [...prev, { text: userMsg, isBot: false }]);
-    setIsLoading(true);
+.chat-header {
+  background: #1e1b4b;
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    try {
-      const response = await api.post('/chat', { message: userMsg });
-      setMessages(prev => [...prev, { text: response.data.response, isBot: true }]);
-    } catch (error) {
-      console.error("Chat error:", error);
-      setMessages(prev => [...prev, { text: "Sorry, I encountered an error.", isBot: true }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+.header-info {
+  display: flex;
+  gap: 8px;
+  font-weight: 600;
+}
 
-  return (
-    <div className={`chat-widget-wrapper ${isOpen ? 'open' : ''}`}>
-      {!isOpen && (
-        <button className="chat-launcher" onClick={() => setIsOpen(true)}>
-          <i className="bi bi-stars"></i>
-          <span>AI Assistant</span>
-        </button>
-      )}
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  opacity: 0.8;
+}
 
-      {isOpen && (
-        <div className="chat-window">
-          <div className="chat-header">
-            <div className="header-info">
-              <i className="bi bi-robot"></i>
-              <span>TutoMart AI</span>
-            </div>
-            <button className="close-btn" onClick={() => setIsOpen(false)}>
-              <i className="bi bi-chevron-down"></i>
-            </button>
-          </div>
+.chat-body {
+  flex: 1;
+  padding: 15px;
+  background: #f8fafc;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-          <div className="chat-body">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`chat-bubble ${msg.isBot ? 'bot' : 'user'}`}>
-                {msg.text}
-              </div>
-            ))}
-            {isLoading && (
-              <div className="chat-bubble bot loading">
-                <div className="dot"></div><div className="dot"></div><div className="dot"></div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+.chat-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
 
-          <form className="chat-footer" onSubmit={handleSend}>
-            <input 
-              type="text" 
-              placeholder="Ask about prices..." 
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
-            <button type="submit" disabled={!input.trim()}>
-              <i className="bi bi-send-fill"></i>
-            </button>
-          </form>
-        </div>
-      )}
-    </div>
-  );
-};
+.chat-bubble.bot {
+  background: white;
+  border: 1px solid #e2e8f0;
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
 
-export default ChatWidget;
+.chat-bubble.user {
+  background: #4f46e5;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-footer {
+  padding: 15px;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 8px;
+}
+
+.chat-footer input {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  padding: 8px 15px;
+  border-radius: 20px;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.chat-footer button {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+/* Loading Dots */
+.loading { display: flex; gap: 4px; padding: 12px; }
+.dot { width: 6px; height: 6px; background: #cbd5e1; border-radius: 50%; animation: bounce 1.4s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
