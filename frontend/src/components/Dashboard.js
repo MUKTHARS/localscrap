@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import api from '../utils/apiConfig';
+import React, { useState, useCallback } from 'react';
+import api from '../utils/apiConfig'; 
 import { useAuth } from '../contexts/AuthContext';
-import { formatToAccountTime } from '../utils/dateUtils';
+import ChatWidget from './ChatWidget';
 import '../styles/Dashboard.css';
 import '../styles/Table.css';
-import { getFormattedCurrency } from '../utils/currencyUtils';
 
 const Dashboard = () => {
   const [formData, setFormData] = useState({
@@ -12,41 +11,23 @@ const Dashboard = () => {
     product: '',
     oem_number: '',
     asin_number: '',
-    website: 'amazon',
-    amazon_country: 'amazon.com',
-    store_url: ''
+    website: '',
+    amazon_country: 'amazon.com' 
   });
   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
-
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-  
   const { user } = useAuth();
 
-  const [filters, setFilters] = useState({
-    keyword: '',
-    website: '',
-    maxPrice: ''
-  });
-
-  const [matchType, setMatchType] = useState('fuzzy');
-
-  const showAmazonRegion = formData.website === 'amazon';
+  const showAmazonRegion = formData.website === 'amazon' || formData.website === '' || formData.website === 'allwebsite';
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleFilterChange = (e) => {
-    setFilters({
-      ...filters,
       [e.target.name]: e.target.value
     });
   };
@@ -59,6 +40,7 @@ const Dashboard = () => {
 
     try {
       const response = await api.post('/scrape', formData);
+
       if (response.data.error) {
         setError(response.data.error);
       } else {
@@ -85,7 +67,7 @@ const Dashboard = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
+    
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       handleFileSelection(file);
@@ -101,7 +83,7 @@ const Dashboard = () => {
   const handleFileSelection = (file) => {
     const validTypes = ['.csv', '.xlsx', '.xls'];
     const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-
+    
     if (!validTypes.includes(fileExtension)) {
       setError('Please upload a CSV or Excel file (.csv, .xlsx, .xls)');
       return;
@@ -116,46 +98,46 @@ const Dashboard = () => {
     setError('');
   };
 
-  const handleBulkUpload = async () => {
-    if (!selectedFile) {
-      setError('Please select a file first');
-      return;
-    }
+const handleBulkUpload = async () => {
+  if (!selectedFile) {
+    setError('Please select a file first');
+    return;
+  }
 
-    setBulkLoading(true);
-    setError('');
-    setResults([]);
+  setBulkLoading(true);
+  setError('');
+  setResults([]);
 
-    try {
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', selectedFile);
-      uploadFormData.append('amazon_country', bulkAmazonCountry || 'amazon.com');
+  try {
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', selectedFile);
+    uploadFormData.append('amazon_country', bulkAmazonCountry || 'amazon.com');
 
-      console.log('🟡 Sending bulk upload with Amazon domain:', bulkAmazonCountry);
+    console.log('🟡 Sending bulk upload with Amazon domain:', bulkAmazonCountry);
 
-      const response = await api.post('/scrape', uploadFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 300000
-      });
+    const response = await api.post('/scrape', uploadFormData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000 // 5 minute timeout for bulk upload
+    });
 
-      if (response.data.error) {
-        setError(response.data.error);
-      } else {
-        setResults(response.data.data || []);
-        setSelectedFile(null);
-        if (response.data.data && response.data.data.length === 0) {
-          setError('No products found in the uploaded file');
-        }
+    if (response.data.error) {
+      setError(response.data.error);
+    } else {
+      setResults(response.data.data || []);
+      setSelectedFile(null);
+      if (response.data.data && response.data.data.length === 0) {
+        setError('No products found in the uploaded file');
       }
-    } catch (error) {
-      console.error('Bulk upload error:', error);
-      setError(error.response?.data?.error || 'Bulk upload failed. Please check your file format and try again.');
-    } finally {
-      setBulkLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Bulk upload error:', error);
+    setError(error.response?.data?.error || 'Bulk upload failed. Please check your file format and try again.');
+  } finally {
+    setBulkLoading(false);
+  }
+};
 
   const removeFile = () => {
     setSelectedFile(null);
@@ -164,14 +146,14 @@ const Dashboard = () => {
   const exportToCSV = () => {
     const headers = [
       'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
-      'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
+      'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING', 
       'DATE SCRAPED', 'SOURCE URL'
     ];
 
     const csvContent = [
       headers.join(','),
-      ...filteredResults.map(row =>
-        headers.map(header =>
+      ...results.map(row => 
+        headers.map(header => 
           `"${(row[header] || '').toString().replace(/"/g, '""')}"`
         ).join(',')
       )
@@ -188,44 +170,9 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
-  const filteredResults = useMemo(() => {
-    return results.filter(item => {
-      const searchTerm = filters.keyword.toLowerCase();
-      const matchesKeyword =
-        (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
-        (item.PRODUCT?.toLowerCase() || '').includes(searchTerm) ||
-        (item['PRODUCT NAME']?.toLowerCase() || '').includes(searchTerm);
-
-      const matchesWebsite = filters.website === '' ||
-        (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
-
-      let priceValue = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
-      if (isNaN(priceValue)) priceValue = 0;
-
-      const maxPrice = parseFloat(filters.maxPrice);
-      const matchesPrice = !filters.maxPrice || priceValue <= maxPrice;
-
-      let matchesType = true;
-      if (formData.website !== 'shopify' && matchType === 'exact') {
-        const productName = (item['PRODUCT NAME'] || '').toLowerCase();
-        const brandQuery = (item.BRAND || '').toLowerCase();
-        const productQuery = (item.PRODUCT || '').toLowerCase();
-
-        const brandWords = brandQuery.split(/\s+/).filter(w => w);
-        const productWords = productQuery.split(/\s+/).filter(w => w);
-
-        const hasBrand = brandWords.every(word => productName.includes(word));
-        const hasProduct = productWords.every(word => productName.includes(word));
-
-        matchesType = hasBrand && hasProduct;
-      }
-
-      return matchesKeyword && matchesWebsite && matchesPrice && matchesType;
-    });
-  }, [results, filters, matchType, formData.website]);
-
   return (
     <div className="premium-dashboard">
+      {/* Header Section */}
       <div className="dashboard-hero">
         <div className="hero-content">
           <h1 className="hero-title">
@@ -251,16 +198,95 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="dashboard-content">
         <div className="content-grid">
+          {/* Manual Entry Card */}
           <div className="feature-card">
             <div className="card-header">
               <h3 className="card-title">Single Product Search</h3>
               <p className="card-description">Search for individual products across multiple platforms</p>
             </div>
-
+            
             <div className="card-body">
               <form onSubmit={handleScrape} className="premium-form">
+                <div className="form-group">
+                  <label className="form-label">
+                    <span>Brand</span>
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      name="brand"
+                      className="form-input"
+                      placeholder="e.g., Samsung, Apple, Sony"
+                      value={formData.brand}
+                      onChange={handleChange}
+                      required
+                    />
+                    <div className="input-icon">
+                      <i className="bi bi-tag"></i>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">
+                    <span>Product</span>
+                    <span className="required">*</span>
+                  </label>
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      name="product"
+                      className="form-input"
+                      placeholder="e.g., Smart TV, iPhone, Headphones"
+                      value={formData.product}
+                      onChange={handleChange}
+                      required
+                    />
+                    <div className="input-icon">
+                      <i className="bi bi-box"></i>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">OEM Number</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="text"
+                        name="oem_number"
+                        className="form-input"
+                        placeholder="OEM12345"
+                        value={formData.oem_number}
+                        onChange={handleChange}
+                      />
+                      <div className="input-icon">
+                        <i className="bi bi-upc-scan"></i>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">ASIN Number</label>
+                    <div className="input-wrapper">
+                      <input
+                        type="text"
+                        name="asin_number"
+                        className="form-input"
+                        placeholder="B0CXYZ123"
+                        value={formData.asin_number}
+                        onChange={handleChange}
+                      />
+                      <div className="input-icon">
+                        <i className="bi bi-upc"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 <div className="form-group">
                   <label className="form-label">Website</label>
@@ -274,6 +300,7 @@ const Dashboard = () => {
                       value={formData.website}
                       onChange={handleChange}
                     >
+                      <option value="">All Websites</option>
                       <option value="amazon">Amazon</option>
                       <option value="flipkart">Flipkart</option>
                       <option value="ebay">eBay</option>
@@ -285,119 +312,11 @@ const Dashboard = () => {
                       <option value="seazoneuae">Seazone UAE</option>
                       <option value="empiremarine">Empire Marine</option>
                       <option value="climaxmarine">Climax Marine</option>
-                      <option value="shopify" style={{ fontWeight: 'bold', color: '#28a745' }}>
-                        ★ Shopify Store Scanner
-                      </option>
                     </select>
                   </div>
                 </div>
 
-                {formData.website === 'shopify' ? (
-                  <div className="form-group">
-                    <label className="form-label">
-                      <span>Store URL</span>
-                      <span className="required">*</span>
-                    </label>
-                    <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="store_url"
-                        className="form-input"
-                        placeholder="e.g. gymshark.com, colourpop.com"
-                        value={formData.store_url}
-                        onChange={handleChange}
-                        required
-                      />
-                      <div className="input-icon">
-                        <i className="bi bi-link-45deg"></i>
-                      </div>
-                    </div>
-                    <small className="form-help">
-                      Enter the home page URL of the Shopify store to scan all products.
-                    </small>
-                  </div>
-                ) : (
-                  <>
-                    <div className="form-group">
-                      <label className="form-label">
-                        <span>Brand</span>
-                        <span className="required">*</span>
-                      </label>
-                      <div className="input-wrapper">
-                        <input
-                          type="text"
-                          name="brand"
-                          className="form-input"
-                          placeholder="e.g., Samsung, Apple, Sony"
-                          value={formData.brand}
-                          onChange={handleChange}
-                          required
-                        />
-                        <div className="input-icon">
-                          <i className="bi bi-tag"></i>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">
-                        <span>Product</span>
-                        <span className="required">*</span>
-                      </label>
-                      <div className="input-wrapper">
-                        <input
-                          type="text"
-                          name="product"
-                          className="form-input"
-                          placeholder="e.g., Smart TV, iPhone, Headphones"
-                          value={formData.product}
-                          onChange={handleChange}
-                          required
-                        />
-                        <div className="input-icon">
-                          <i className="bi bi-box"></i>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label className="form-label">OEM Number</label>
-                        <div className="input-wrapper">
-                          <input
-                            type="text"
-                            name="oem_number"
-                            className="form-input"
-                            placeholder="OEM12345"
-                            value={formData.oem_number}
-                            onChange={handleChange}
-                          />
-                          <div className="input-icon">
-                            <i className="bi bi-upc-scan"></i>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="form-group">
-                        <label className="form-label">ASIN Number</label>
-                        <div className="input-wrapper">
-                          <input
-                            type="text"
-                            name="asin_number"
-                            className="form-input"
-                            placeholder="B0CXYZ123"
-                            value={formData.asin_number}
-                            onChange={handleChange}
-                          />
-                          <div className="input-icon">
-                            <i className="bi bi-upc"></i>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-
+                {/* Amazon Region Field - Conditionally Rendered */}
                 {showAmazonRegion && (
                   <div className="form-group">
                     <label className="form-label">Amazon Region</label>
@@ -432,13 +351,13 @@ const Dashboard = () => {
                       </select>
                     </div>
                     <small className="form-help">
-                      Select which Amazon country you want to scrape
+                      Used when scraping Amazon or All Websites.
                     </small>
                   </div>
                 )}
-
-                <button
-                  type="submit"
+                
+                <button 
+                  type="submit" 
                   className="btn btn-primary btn-full"
                   disabled={loading}
                 >
@@ -457,14 +376,15 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Bulk Upload Card */}
           <div className="feature-card">
             <div className="card-header">
               <h3 className="card-title">Bulk Product Analysis</h3>
               <p className="card-description">Upload multiple products at once for comprehensive comparison</p>
             </div>
-
+            
             <div className="card-body">
-              <div
+              <div 
                 className={`upload-zone ${dragActive ? 'drag-active' : ''} ${selectedFile ? 'has-file' : ''}`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -479,7 +399,7 @@ const Dashboard = () => {
                   accept=".csv,.xlsx,.xls"
                   onChange={handleFileInput}
                 />
-
+                
                 {selectedFile ? (
                   <div className="file-preview">
                     <div className="file-icon success">
@@ -491,7 +411,7 @@ const Dashboard = () => {
                         {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                       </div>
                     </div>
-                    <button
+                    <button 
                       className="file-remove"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -519,6 +439,7 @@ const Dashboard = () => {
                 )}
               </div>
 
+              {/* Amazon Region for Bulk Upload */}
               <div className="form-group">
                 <label className="form-label">Amazon Region</label>
                 <div className="input-wrapper">
@@ -552,7 +473,7 @@ const Dashboard = () => {
                   </select>
                 </div>
                 <small className="form-help">
-                  Select which Amazon country you want to scrape
+                  Used when scraping Amazon or All Websites.
                 </small>
               </div>
 
@@ -566,7 +487,7 @@ const Dashboard = () => {
                 </ul>
               </div>
 
-              <button
+              <button 
                 className="btn btn-success btn-full"
                 onClick={handleBulkUpload}
                 disabled={!selectedFile || bulkLoading}
@@ -586,6 +507,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Error Display */}
         {error && (
           <div className="error-alert">
             <div className="alert-icon">
@@ -595,7 +517,7 @@ const Dashboard = () => {
               <h5 className="alert-title">Operation Failed</h5>
               <p className="alert-message">{error}</p>
             </div>
-            <button
+            <button 
               className="alert-close"
               onClick={() => setError('')}
             >
@@ -604,6 +526,7 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Results Table */}
         {results.length > 0 && (
           <div className="results-section">
             <div className="results-header">
@@ -613,115 +536,17 @@ const Dashboard = () => {
                   Comparison Results
                 </h3>
                 <p className="results-subtitle">
-                  Showing {filteredResults.length} (of {results.length}) products
+                  Found {results.length} products across multiple platforms
                 </p>
               </div>
-
-              {formData.website !== 'shopify' && (
-                <div className="match-toggle-group" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginRight: '20px' }}>
-                  <button
-                    className={`btn btn-sm ${matchType === 'fuzzy' ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => setMatchType('fuzzy')}
-                    title="Show all related results (includes accessories/similar items)"
-                  >
-                    <i className="bi bi-share"></i> Fuzzy Match
-                  </button>
-                  <button
-                    className={`btn btn-sm ${matchType === 'exact' ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => setMatchType('exact')}
-                    title="Show only results that contain Brand + Product Name"
-                  >
-                    <i className="bi bi-check-circle"></i> Exact Match
-                  </button>
-                </div>
-              )}
-
               <div className="results-actions">
-                <button
+                <button 
                   className="btn btn-outline"
                   onClick={exportToCSV}
                 >
                   <i className="bi bi-download"></i>
                   Export CSV
                 </button>
-              </div>
-            </div>
-
-            <div className="feature-card filter-card" style={{ marginBottom: '20px', padding: '12px 20px' }}>
-              <div className="form-row" style={{ alignItems: 'flex-end', gap: '15px', margin: 0 }}>
-
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
-                    Keyword
-                  </label>
-                  <div className="input-wrapper">
-                    <input
-                      type="text"
-                      name="keyword"
-                      className="form-input"
-                      placeholder="Search brand or product..."
-                      value={filters.keyword}
-                      onChange={handleFilterChange}
-                      style={{ height: '40px', paddingLeft: '35px', fontSize: '0.9rem' }}
-                    />
-                    <div className="input-icon" style={{ height: '40px', lineHeight: '40px', width: '35px' }}>
-                      <i className="bi bi-search" style={{ fontSize: '0.9rem' }}></i>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
-                    Website
-                  </label>
-                  <div className="input-wrapper">
-                    <div className="input-icon" style={{ height: '40px', lineHeight: '40px', width: '35px' }}>
-                      <i className="bi bi-funnel" style={{ fontSize: '0.9rem' }}></i>
-                    </div>
-                    <select
-                      name="website"
-                      className="form-select"
-                      value={filters.website}
-                      onChange={handleFilterChange}
-                      style={{ height: '40px', paddingLeft: '35px', fontSize: '0.9rem' }}
-                    >
-                      <option value="">All Websites</option>
-                      <option value="amazon">Amazon</option>
-                      <option value="flipkart">Flipkart</option>
-                      <option value="ebay">eBay</option>
-                      <option value="snapdeal">Snapdeal</option>
-                      <option value="amitretail">Amit Retail</option>
-                      <option value="noon">Noon</option>
-                      <option value="sharafdg">Sharaf DG</option>
-                      <option value="ntsuae">NTS UAE</option>
-                      <option value="seazoneuae">Seazone UAE</option>
-                      <option value="empiremarine">Empire Marine</option>
-                      <option value="climaxmarine">Climax Marine</option>
-                      <option value="shopify">Shopify Store</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
-                    Max Price
-                  </label>
-                  <div className="input-wrapper">
-                    <input
-                      type="number"
-                      name="maxPrice"
-                      className="form-input"
-                      placeholder="0.00"
-                      value={filters.maxPrice}
-                      onChange={handleFilterChange}
-                      style={{ height: '40px', paddingLeft: '35px', fontSize: '0.9rem' }}
-                    />
-                    <div className="input-icon" style={{ height: '40px', lineHeight: '40px', width: '35px' }}>
-                      <i className="bi bi-cash" style={{ fontSize: '0.9rem' }}></i>
-                    </div>
-                  </div>
-                </div>
-
               </div>
             </div>
 
@@ -737,13 +562,14 @@ const Dashboard = () => {
                       <th>Website</th>
                       <th>Product Name</th>
                       <th>Price</th>
+                      <th>Currency</th>
                       <th>Seller Rating</th>
-                      <th>Date Scraped ({user?.timezone || 'UTC'})</th>
+                      <th>Date Scraped</th>
                       <th>Source URL</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredResults.map((item, index) => (
+                    {results.map((item, index) => (
                       <tr key={index}>
                         <td>
                           <div className="brand-cell">
@@ -774,22 +600,11 @@ const Dashboard = () => {
                         </td>
                         <td>
                           <div className="price-cell">
-                            <span 
-                              className="currency-symbol" 
-                              style={{ 
-                                color: '#888', 
-                                fontWeight: 'bold', 
-                                marginRight: '4px',
-                                fontSize: '0.9em' 
-                              }}
-                            >
-                              {getFormattedCurrency(item.CURRENCY)}
-                            </span>
-                            
-                            <span className="price-value">
-                              {item.PRICE}
-                            </span>
+                            <span className="price-value">{item.PRICE}</span>
                           </div>
+                        </td>
+                        <td>
+                          <span className="currency">{item.CURRENCY}</span>
                         </td>
                         <td>
                           {item['SELLER RATING'] && item['SELLER RATING'] !== 'N/A' ? (
@@ -804,15 +619,13 @@ const Dashboard = () => {
                           )}
                         </td>
                         <td>
-                          <span className="date-cell">
-                            {formatToAccountTime(item['DATE SCRAPED'], user?.timezone)}
-                          </span>
+                          <span className="date-cell">{item['DATE SCRAPED']}</span>
                         </td>
                         <td>
                           <div className="action-cell">
-                            <a
-                              href={item['SOURCE URL']}
-                              target="_blank"
+                            <a 
+                              href={item['SOURCE URL']} 
+                              target="_blank" 
                               rel="noopener noreferrer"
                               className="action-btn view-btn"
                               title="View Product"
@@ -825,18 +638,11 @@ const Dashboard = () => {
                     ))}
                   </tbody>
                 </table>
-                {results.length > 0 && filteredResults.length === 0 && (
-                  <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-                    <i className="bi bi-search" style={{ fontSize: '2rem', display: 'block', marginBottom: '10px', opacity: 0.5 }}></i>
-                    {matchType === 'exact'
-                      ? "No exact matches found. Try switching to 'Fuzzy Match' to see all results."
-                      : "No products match your filters."}
-                  </div>
-                )}
               </div>
             </div>
           </div>
         )}
+      <ChatWidget />
       </div>
     </div>
   );
@@ -847,45 +653,41 @@ export default Dashboard;
 // import React, { useState, useCallback, useMemo } from 'react';
 // import api from '../utils/apiConfig';
 // import { useAuth } from '../contexts/AuthContext';
+// import { formatToAccountTime } from '../utils/dateUtils';
 // import '../styles/Dashboard.css';
 // import '../styles/Table.css';
+// import { getFormattedCurrency } from '../utils/currencyUtils';
 
 // const Dashboard = () => {
-//   // --- Form State ---
 //   const [formData, setFormData] = useState({
 //     brand: '',
 //     product: '',
 //     oem_number: '',
 //     asin_number: '',
-//     website: '',
+//     website: 'amazon',
 //     amazon_country: 'amazon.com',
-//     store_url: '' // <--- Added for Shopify
+//     store_url: ''
 //   });
 //   const [bulkAmazonCountry, setBulkAmazonCountry] = useState('amazon.com');
 
-//   // --- Data & UI State ---
 //   const [results, setResults] = useState([]);
 //   const [error, setError] = useState('');
 //   const [loading, setLoading] = useState(false);
 //   const [bulkLoading, setBulkLoading] = useState(false);
 //   const [dragActive, setDragActive] = useState(false);
 //   const [selectedFile, setSelectedFile] = useState(null);
+  
 //   const { user } = useAuth();
 
-//   // --- Filter State ---
 //   const [filters, setFilters] = useState({
 //     keyword: '',
 //     website: '',
 //     maxPrice: ''
 //   });
 
-//   // --- Match Type State (Fuzzy vs Exact) ---
-//   const [matchType, setMatchType] = useState('fuzzy'); // 'fuzzy' or 'exact'
+//   const [matchType, setMatchType] = useState('fuzzy');
 
-//   // Check if Amazon Region field should be shown (Only if Amazon or All Sites selected)
-//   const showAmazonRegion = (formData.website === 'amazon' || formData.website === '' || formData.website === 'allwebsite') && formData.website !== 'shopify';
-
-//   // --- Handlers ---
+//   const showAmazonRegion = formData.website === 'amazon';
 
 //   const handleChange = (e) => {
 //     setFormData({
@@ -987,7 +789,7 @@ export default Dashboard;
 //         headers: {
 //           'Content-Type': 'multipart/form-data',
 //         },
-//         timeout: 300000 // 5 minute timeout for bulk upload
+//         timeout: 300000
 //       });
 
 //       if (response.data.error) {
@@ -1012,7 +814,6 @@ export default Dashboard;
 //   };
 
 //   const exportToCSV = () => {
-//     // We export filtered results to match what the user sees
 //     const headers = [
 //       'BRAND', 'PRODUCT', 'OEM NUMBER', 'ASIN NUMBER', 'WEBSITE',
 //       'PRODUCT NAME', 'PRICE', 'CURRENCY', 'SELLER RATING',
@@ -1039,37 +840,29 @@ export default Dashboard;
 //     URL.revokeObjectURL(url);
 //   };
 
-//   // --- Filtering Logic (Memoized for Performance) ---
 //   const filteredResults = useMemo(() => {
 //     return results.filter(item => {
-//       // 1. Keyword Filter (Brand or Product or Product Name)
 //       const searchTerm = filters.keyword.toLowerCase();
 //       const matchesKeyword =
 //         (item.BRAND?.toLowerCase() || '').includes(searchTerm) ||
 //         (item.PRODUCT?.toLowerCase() || '').includes(searchTerm) ||
 //         (item['PRODUCT NAME']?.toLowerCase() || '').includes(searchTerm);
 
-//       // 2. Website Filter
 //       const matchesWebsite = filters.website === '' ||
 //         (item.WEBSITE?.toLowerCase() === filters.website.toLowerCase());
 
-//       // 3. Price Filter (Clean currency symbols like $ or ₹ before comparing)
 //       let priceValue = parseFloat((item.PRICE || '0').toString().replace(/[^0-9.]/g, ''));
 //       if (isNaN(priceValue)) priceValue = 0;
 
 //       const maxPrice = parseFloat(filters.maxPrice);
 //       const matchesPrice = !filters.maxPrice || priceValue <= maxPrice;
 
-//       // 4. Match Type Filter (Fuzzy vs Exact)
-//       // Only apply this logic if NOT using Shopify mode
 //       let matchesType = true;
 //       if (formData.website !== 'shopify' && matchType === 'exact') {
 //         const productName = (item['PRODUCT NAME'] || '').toLowerCase();
-//         // Use the brand/product from the specific row data
 //         const brandQuery = (item.BRAND || '').toLowerCase();
 //         const productQuery = (item.PRODUCT || '').toLowerCase();
 
-//         // Split queries into words to allow flexibility
 //         const brandWords = brandQuery.split(/\s+/).filter(w => w);
 //         const productWords = productQuery.split(/\s+/).filter(w => w);
 
@@ -1085,7 +878,6 @@ export default Dashboard;
 
 //   return (
 //     <div className="premium-dashboard">
-//       {/* Header Section */}
 //       <div className="dashboard-hero">
 //         <div className="hero-content">
 //           <h1 className="hero-title">
@@ -1111,10 +903,8 @@ export default Dashboard;
 //         </div>
 //       </div>
 
-//       {/* Main Content */}
 //       <div className="dashboard-content">
 //         <div className="content-grid">
-//           {/* Manual Entry Card */}
 //           <div className="feature-card">
 //             <div className="card-header">
 //               <h3 className="card-title">Single Product Search</h3>
@@ -1124,7 +914,6 @@ export default Dashboard;
 //             <div className="card-body">
 //               <form onSubmit={handleScrape} className="premium-form">
                 
-//                 {/* --- WEBSITE SELECTION FIRST --- */}
 //                 <div className="form-group">
 //                   <label className="form-label">Website</label>
 //                   <div className="input-wrapper">
@@ -1137,7 +926,6 @@ export default Dashboard;
 //                       value={formData.website}
 //                       onChange={handleChange}
 //                     >
-//                       <option value="">All Websites</option>
 //                       <option value="amazon">Amazon</option>
 //                       <option value="flipkart">Flipkart</option>
 //                       <option value="ebay">eBay</option>
@@ -1149,7 +937,6 @@ export default Dashboard;
 //                       <option value="seazoneuae">Seazone UAE</option>
 //                       <option value="empiremarine">Empire Marine</option>
 //                       <option value="climaxmarine">Climax Marine</option>
-//                       {/* ADDED SHOPIFY OPTION */}
 //                       <option value="shopify" style={{ fontWeight: 'bold', color: '#28a745' }}>
 //                         ★ Shopify Store Scanner
 //                       </option>
@@ -1157,9 +944,7 @@ export default Dashboard;
 //                   </div>
 //                 </div>
 
-//                 {/* --- CONDITIONAL FIELDS BASED ON SELECTION --- */}
 //                 {formData.website === 'shopify' ? (
-//                   // SHOPIFY MODE: URL INPUT
 //                   <div className="form-group">
 //                     <label className="form-label">
 //                       <span>Store URL</span>
@@ -1184,7 +969,6 @@ export default Dashboard;
 //                     </small>
 //                   </div>
 //                 ) : (
-//                   // STANDARD MODE: BRAND/PRODUCT INPUTS
 //                   <>
 //                     <div className="form-group">
 //                       <label className="form-label">
@@ -1266,7 +1050,6 @@ export default Dashboard;
 //                   </>
 //                 )}
 
-//                 {/* Amazon Region Field - Conditionally Rendered */}
 //                 {showAmazonRegion && (
 //                   <div className="form-group">
 //                     <label className="form-label">Amazon Region</label>
@@ -1301,7 +1084,7 @@ export default Dashboard;
 //                       </select>
 //                     </div>
 //                     <small className="form-help">
-//                       Used when scraping Amazon or All Websites.
+//                       Select which Amazon country you want to scrape
 //                     </small>
 //                   </div>
 //                 )}
@@ -1326,7 +1109,6 @@ export default Dashboard;
 //             </div>
 //           </div>
 
-//           {/* Bulk Upload Card */}
 //           <div className="feature-card">
 //             <div className="card-header">
 //               <h3 className="card-title">Bulk Product Analysis</h3>
@@ -1389,7 +1171,6 @@ export default Dashboard;
 //                 )}
 //               </div>
 
-//               {/* Amazon Region for Bulk Upload */}
 //               <div className="form-group">
 //                 <label className="form-label">Amazon Region</label>
 //                 <div className="input-wrapper">
@@ -1423,7 +1204,7 @@ export default Dashboard;
 //                   </select>
 //                 </div>
 //                 <small className="form-help">
-//                   Used when scraping Amazon or All Websites.
+//                   Select which Amazon country you want to scrape
 //                 </small>
 //               </div>
 
@@ -1457,7 +1238,6 @@ export default Dashboard;
 //           </div>
 //         </div>
 
-//         {/* Error Display */}
 //         {error && (
 //           <div className="error-alert">
 //             <div className="alert-icon">
@@ -1476,7 +1256,6 @@ export default Dashboard;
 //           </div>
 //         )}
 
-//         {/* Results Section with Filters */}
 //         {results.length > 0 && (
 //           <div className="results-section">
 //             <div className="results-header">
@@ -1490,7 +1269,6 @@ export default Dashboard;
 //                 </p>
 //               </div>
 
-//               {/* Match Type Toggle Buttons - HIDE FOR SHOPIFY */}
 //               {formData.website !== 'shopify' && (
 //                 <div className="match-toggle-group" style={{ display: 'flex', gap: '10px', alignItems: 'center', marginRight: '20px' }}>
 //                   <button
@@ -1521,11 +1299,9 @@ export default Dashboard;
 //               </div>
 //             </div>
 
-//             {/* --- FILTER BAR --- */}
 //             <div className="feature-card filter-card" style={{ marginBottom: '20px', padding: '12px 20px' }}>
 //               <div className="form-row" style={{ alignItems: 'flex-end', gap: '15px', margin: 0 }}>
 
-//                 {/* 1. Keyword Filter */}
 //                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
 //                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
 //                     Keyword
@@ -1546,7 +1322,6 @@ export default Dashboard;
 //                   </div>
 //                 </div>
 
-//                 {/* 2. Website Filter */}
 //                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
 //                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
 //                     Website
@@ -1579,7 +1354,6 @@ export default Dashboard;
 //                   </div>
 //                 </div>
 
-//                 {/* 3. Price Filter */}
 //                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
 //                   <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>
 //                     Max Price
@@ -1602,7 +1376,6 @@ export default Dashboard;
 
 //               </div>
 //             </div>
-//             {/* --- END FILTER BAR --- */}
 
 //             <div className="table-container">
 //               <div className="table-scroll">
@@ -1616,14 +1389,12 @@ export default Dashboard;
 //                       <th>Website</th>
 //                       <th>Product Name</th>
 //                       <th>Price</th>
-//                       <th>Currency</th>
 //                       <th>Seller Rating</th>
-//                       <th>Date Scraped</th>
+//                       <th>Date Scraped ({user?.timezone || 'UTC'})</th>
 //                       <th>Source URL</th>
 //                     </tr>
 //                   </thead>
 //                   <tbody>
-//                     {/* Render Filtered Results */}
 //                     {filteredResults.map((item, index) => (
 //                       <tr key={index}>
 //                         <td>
@@ -1655,11 +1426,22 @@ export default Dashboard;
 //                         </td>
 //                         <td>
 //                           <div className="price-cell">
-//                             <span className="price-value">{item.PRICE}</span>
+//                             <span 
+//                               className="currency-symbol" 
+//                               style={{ 
+//                                 color: '#888', 
+//                                 fontWeight: 'bold', 
+//                                 marginRight: '4px',
+//                                 fontSize: '0.9em' 
+//                               }}
+//                             >
+//                               {getFormattedCurrency(item.CURRENCY)}
+//                             </span>
+                            
+//                             <span className="price-value">
+//                               {item.PRICE}
+//                             </span>
 //                           </div>
-//                         </td>
-//                         <td>
-//                           <span className="currency">{item.CURRENCY}</span>
 //                         </td>
 //                         <td>
 //                           {item['SELLER RATING'] && item['SELLER RATING'] !== 'N/A' ? (
@@ -1674,7 +1456,9 @@ export default Dashboard;
 //                           )}
 //                         </td>
 //                         <td>
-//                           <span className="date-cell">{item['DATE SCRAPED']}</span>
+//                           <span className="date-cell">
+//                             {formatToAccountTime(item['DATE SCRAPED'], user?.timezone)}
+//                           </span>
 //                         </td>
 //                         <td>
 //                           <div className="action-cell">
@@ -1693,7 +1477,6 @@ export default Dashboard;
 //                     ))}
 //                   </tbody>
 //                 </table>
-//                 {/* Message if filters hide all results */}
 //                 {results.length > 0 && filteredResults.length === 0 && (
 //                   <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
 //                     <i className="bi bi-search" style={{ fontSize: '2rem', display: 'block', marginBottom: '10px', opacity: 0.5 }}></i>
@@ -1709,6 +1492,10 @@ export default Dashboard;
 //       </div>
 //     </div>
 //   );
+// };
+
+// export default Dashboard;
+
 // };
 
 // export default Dashboard;
