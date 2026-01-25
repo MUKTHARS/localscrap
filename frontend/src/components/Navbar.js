@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,29 +28,33 @@ const Navbar = () => {
   return (
     <nav className="premium-navbar">
       <div className="nav-container">
-        {/* Brand Logo */}
-        <Link className="nav-brand" to="/dashboard" onClick={closeMobileMenu}>
-          <img 
-            src={logoImg} 
-            alt="TutoMart" 
-            style={{ 
-              // UPDATED SIZE: Standard visibility size (increased from 40px)
-              height: '52px', 
-              width: 'auto', 
-              borderRadius: '5px',
-              marginRight: '12px',
-              objectFit: 'contain' // Ensures the image doesn't look stretched
-            }} 
-          />
-        </Link>
-
-        {/* Desktop Navigation */}
-        <div className="nav-desktop">
-          <div className="nav-welcome">
-            <span className="welcome-text">Welcome back,</span>
-            <span className="user-name">{user?.name}</span>
-          </div>
+        {/* Left Side - Logo and Welcome */}
+        <div className="nav-left-section">
+          {/* Brand Logo */}
+          <Link className="nav-brand" to="/dashboard" onClick={closeMobileMenu}>
+            <img 
+              src={logoImg} 
+              alt="TutoMart" 
+              style={{ 
+                height: '52px', 
+                width: 'auto', 
+                borderRadius: '5px',
+                objectFit: 'contain'
+              }} 
+            />
+          </Link>
           
+          {/* Welcome Text - Desktop Only */}
+          <div className="welcome-desktop">
+            <div className="nav-welcome">
+              <span className="welcome-text">Welcome back,</span>
+              <span className="user-name">{user?.name}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Navigation - Right Side */}
+        <div className="nav-desktop">
           <div className="nav-links">
             <Link 
               className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}
@@ -63,6 +68,13 @@ const Navbar = () => {
               to="/support"
             >
               <span>Support</span>
+            </Link>
+            
+            <Link 
+              className={`nav-link ${location.pathname === '/history' ? 'active' : ''}`}
+              to="/history"
+            >
+              <span>History</span>
             </Link>
             
             <Link 
@@ -135,6 +147,16 @@ const Navbar = () => {
               <div className="link-indicator"></div>
             </Link>
             
+            <Link 
+              className={`mobile-nav-link ${location.pathname === '/history' ? 'active' : ''}`}
+              to="/history"
+              onClick={closeMobileMenu}
+            >
+              <i className="bi bi-clock-history"></i>
+              <span>History</span>
+              <div className="link-indicator"></div>
+            </Link>
+
             <button 
               className="mobile-nav-link logout-btn"
               onClick={handleLogout}

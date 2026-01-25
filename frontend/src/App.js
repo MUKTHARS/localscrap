@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
-
+import './styles/fonts.css';
+import History from './components/History';
 // --- USER IMPORTS ---
 import UserLogin from './components/Login';
 import UserDashboard from './components/Dashboard';
@@ -23,15 +23,15 @@ import AssignTickets from './admin/AssignTickets';
 import Employees from './admin/Employees';
 
 // Debug Auth Component
-function DebugAuth() {
-  const { user, loading } = useAuth();
-  if (process.env.NODE_ENV !== 'development') return null;
-  return (
-    <div style={{ position: 'fixed', top: 10, right: 10, background: 'white', padding: '5px', zIndex: 9999, fontSize: '10px', border: '1px solid #ccc' }}>
-      User: {loading ? '...' : (user ? user.email : 'None')}
-    </div>
-  );
-}
+// function DebugAuth() {
+//   const { user, loading } = useAuth();
+//   if (process.env.NODE_ENV !== 'development') return null;
+//   return (
+//     <div style={{ position: 'fixed', top: 10, right: 10, background: 'white', padding: '5px', zIndex: 9999, fontSize: '10px', border: '1px solid #ccc' }}>
+//       User: {loading ? '...' : (user ? user.email : 'None')}
+//     </div>
+//   );
+// }
 
 // User Protected Route
 function ProtectedUserRoute({ children }) {
@@ -105,7 +105,7 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
-          <DebugAuth />
+          {/* <DebugAuth /> */}
           <Routes>
             {/* === USER ROUTES === */}
             
@@ -118,7 +118,12 @@ function App() {
             <Route path="/dashboard" element={
               <ProtectedUserRoute><UserNavbar /><UserDashboard /></ProtectedUserRoute>
             } />
-            
+            <Route path="/history" element={
+  <ProtectedUserRoute>
+    <UserNavbar />
+    <div className="container mt-4"><History /></div>
+  </ProtectedUserRoute>
+} />
             <Route path="/profile" element={<ProtectedUserRoute><UserNavbar /><UserProfile /></ProtectedUserRoute>} />
             <Route path="/support" element={
               <ProtectedUserRoute>
