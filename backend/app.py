@@ -62,19 +62,22 @@ if not app.config.get("SECRET_KEY"):
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-for-local")
 
 app.config.update({
-    "SESSION_COOKIE_SECURE": True,
+    "SESSION_COOKIE_SECURE": False,  # False for HTTP
     "SESSION_COOKIE_SAMESITE": "Lax",
     "SESSION_COOKIE_HTTPONLY": True,
-    "SESSION_COOKIE_DOMAIN": "tutomart.com",
+    "SESSION_COOKIE_DOMAIN": None,  # None (not string) for localhost
     "REMEMBER_COOKIE_SAMESITE": "Lax",
-    "REMEMBER_COOKIE_SECURE": True,
-    "REMEMBER_COOKIE_DOMAIN": "tutomart.com",
+    "REMEMBER_COOKIE_SECURE": False,  # False for HTTP
+    "REMEMBER_COOKIE_DOMAIN": None,  # None (not string) for localhost
     "PERMANENT_SESSION_LIFETIME": timedelta(days=7)
 })
 
 CORS(app,
      supports_credentials=True,
-     origins=["https://tutomart.com", "https://www.tutomart.com"],
+      origins=["http://localhost:3000", "http://localhost:3001", 
+              "https://localhost:3000", "https://localhost:3001",
+              "https://tutomart.com", "https://www.tutomart.com"],
+    #  origins=["https://tutomart.com", "https://www.tutomart.com", "http://localhost:3000", "http://localhost:3001"],
      allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      expose_headers=["Content-Type", "Authorization"])
@@ -1064,7 +1067,7 @@ def serve(path):
 
 if __name__ == "__main__":
     create_tables(app)
-    app.run(debug=False, host='0.0.0.0', port=8080)
+    app.run(debug=False, host='0.0.0.0', port=3001)
 
 @app.route('/api/admin/tickets/breakdown', methods=['GET'])
 def get_ticket_breakdown():

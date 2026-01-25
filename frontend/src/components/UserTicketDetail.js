@@ -11,8 +11,8 @@ const UserTicketDetail = ({ user }) => {
   const [error, setError] = useState('');
 
   // FIX: Ensure this is empty to use the current domain
-  const API_BASE_URL = 'https://api.tutomart.com';
-
+  // const API_BASE_URL = 'https://api.tutomart.com';
+const API_BASE_URL = 'http://api.localhost:3001';
   useEffect(() => {
     const fetchTicketDetails = async () => {
       try {
