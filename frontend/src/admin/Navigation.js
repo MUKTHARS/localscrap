@@ -84,7 +84,6 @@ const API_BASE_URL = 'http://api.localhost:3001';
 
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
-            {/* --- DASHBOARD LINK --- */}
             {/* This checks if you are staff. If yes, it sends you to /admin/dashboard */}
             <Nav.Link 
               as={Link} 

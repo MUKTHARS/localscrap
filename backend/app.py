@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory, session
 from flask_login import LoginManager, current_user, login_required, logout_user
 from flask_cors import CORS
-from db_models import db, User, SearchHistory, SupportTicket, AdminUser, EmployeeTicketAssignment, create_tables
+from db_models import db, User, SearchHistory, SupportTicket, AdminUser, EmployeeTicketAssignment, create_tables, QuizQuestion, UserQuizAttempt
 from auth_config import Config
 from auth_routes import auth_bp, init_oauth
 from threading import Lock
@@ -12,7 +12,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 import uuid
-
+from sqlalchemy import func
 from scrapers.amazon_scraper import scrape_amazon
 from scrapers.flipkart_scraper import scrape_flipkart
 from scrapers.ebay_scraper import scrape_ebay
@@ -1065,9 +1065,139 @@ def serve(path):
 
     return send_from_directory(app.static_folder, 'index.html')
 
-if __name__ == "__main__":
-    create_tables(app)
-    app.run(debug=False, host='0.0.0.0', port=3001)
+
+
+# Add after the dashboard_stats route, before the user profile routes
+
+@app.route('/api/admin/quiz/questions', methods=['GET'])
+def get_quiz_questions():
+    """Admin: Get all quiz questions"""
+    admin = check_admin_auth()
+    if not admin or admin['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        questions = QuizQuestion.query.order_by(QuizQuestion.created_at.desc()).all()
+        results = []
+        
+        for q in questions:
+            results.append({
+                'id': q.id,
+                'question': q.question,
+                'product_name': q.product_name,
+                'correct_price_range': q.correct_price_range,
+                'affiliate_link': q.affiliate_link,
+                'category': q.category,
+                'difficulty': q.difficulty,
+                'is_active': q.is_active,
+                'last_shown_date': q.last_shown_date.isoformat() if q.last_shown_date else None,
+                'show_count': q.show_count,
+                'created_at': q.created_at.isoformat() if q.created_at else None
+            })
+            
+        return jsonify({"questions": results})
+    except Exception as e:
+        logger.error(f"Error fetching quiz questions: {e}")
+        return jsonify({"error": "Failed to fetch questions"}), 500
+
+@app.route('/api/admin/quiz/questions', methods=['POST'])
+def create_quiz_question():
+    """Admin: Create new quiz question"""
+    admin = check_admin_auth()
+    if not admin or admin['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['question', 'product_name', 'affiliate_link']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"{field} is required"}), 400
+        
+        new_question = QuizQuestion(
+            question=data['question'],
+            product_name=data['product_name'],
+            correct_price_range=data.get('correct_price_range'),
+            affiliate_link=data['affiliate_link'],
+            category=data.get('category', 'electronics'),
+            difficulty=data.get('difficulty', 'medium'),
+            is_active=data.get('is_active', True)
+        )
+        
+        db.session.add(new_question)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Quiz question created successfully",
+            "question_id": new_question.id
+        })
+    except Exception as e:
+        logger.error(f"Error creating quiz question: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to create question"}), 500
+
+@app.route('/api/admin/quiz/questions/<question_id>', methods=['PUT'])
+def update_quiz_question(question_id):
+    """Admin: Update quiz question"""
+    admin = check_admin_auth()
+    if not admin or admin['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        question = db.session.get(QuizQuestion, question_id)
+        if not question:
+            return jsonify({"error": "Question not found"}), 404
+        
+        data = request.get_json()
+        
+        # Update fields
+        updatable_fields = ['question', 'product_name', 'correct_price_range', 
+                          'affiliate_link', 'category', 'difficulty', 'is_active']
+        
+        for field in updatable_fields:
+            if field in data:
+                setattr(question, field, data[field])
+        
+        question.updated_at = datetime.now(timezone.utc)
+        db.session.commit()
+        
+        return jsonify({"message": "Question updated successfully"})
+    except Exception as e:
+        logger.error(f"Error updating quiz question: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to update question"}), 500
+
+@app.route('/api/admin/quiz/questions/<question_id>', methods=['DELETE'])
+def delete_quiz_question(question_id):
+    """Admin: Delete quiz question"""
+    admin = check_admin_auth()
+    if not admin or admin['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        question = db.session.get(QuizQuestion, question_id)
+        if not question:
+            return jsonify({"error": "Question not found"}), 404
+        
+        # Check if there are attempts for this question
+        attempts = UserQuizAttempt.query.filter_by(question_id=question_id).count()
+        if attempts > 0:
+            return jsonify({
+                "error": "Cannot delete question with existing attempts",
+                "attempts": attempts
+            }), 400
+        
+        db.session.delete(question)
+        db.session.commit()
+        
+        return jsonify({"message": "Question deleted successfully"})
+    except Exception as e:
+        logger.error(f"Error deleting quiz question: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete question"}), 500
+
 
 @app.route('/api/admin/tickets/breakdown', methods=['GET'])
 def get_ticket_breakdown():
@@ -1104,3 +1234,256 @@ def get_ticket_breakdown():
     except Exception as e:
         logger.error(f"Error fetching ticket breakdown: {e}")
         return jsonify({"error": "Failed to fetch breakdown"}), 500
+
+
+@app.route('/api/debug/quiz-status', methods=['GET'])
+@login_required
+def debug_quiz_status():
+    """Debug endpoint to check quiz question status"""
+    try:
+        today = datetime.now(timezone.utc).date()
+        week_ago = today - timedelta(days=7)
+        
+        total_questions = QuizQuestion.query.count()
+        active_questions = QuizQuestion.query.filter_by(is_active=True).count()
+        
+        # Questions not shown in last 7 days
+        fresh_questions = QuizQuestion.query.filter_by(
+            is_active=True
+        ).filter(
+            (QuizQuestion.last_shown_date.is_(None)) | 
+            (QuizQuestion.last_shown_date < week_ago)
+        ).all()
+        
+        # User's today attempt
+        user_today_attempt = UserQuizAttempt.query.filter_by(
+            user_id=current_user.id
+        ).filter(
+            func.date(UserQuizAttempt.attempted_at) == today
+        ).first()
+        
+        return jsonify({
+            "today": today.isoformat(),
+            "user_id": current_user.id,
+            "total_questions": total_questions,
+            "active_questions": active_questions,
+            "fresh_questions_count": len(fresh_questions),
+            "user_attempted_today": user_today_attempt is not None,
+            "fresh_questions": [
+                {
+                    "id": q.id,
+                    "question": q.question,
+                    "last_shown": q.last_shown_date.isoformat() if q.last_shown_date else None,
+                    "show_count": q.show_count
+                }
+                for q in fresh_questions[:5]  # Show first 5
+            ]
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/quiz/daily', methods=['GET'])
+@login_required
+def get_daily_quiz():
+    """Get today's quiz question for the user"""
+    try:
+        today = datetime.now(timezone.utc).date()
+        
+        # Check if user already attempted today's quiz
+        existing_attempt = UserQuizAttempt.query.filter_by(
+            user_id=current_user.id
+        ).join(QuizQuestion).filter(
+            func.date(UserQuizAttempt.attempted_at) == today
+        ).first()
+        
+        if existing_attempt:
+            return jsonify({
+                "already_attempted": True,
+                "redirect_to_affiliate": existing_attempt.redirect_to_affiliate,
+                "question_id": existing_attempt.question_id,
+                "affiliate_link": existing_attempt.question.affiliate_link,
+                "product_name": existing_attempt.question.product_name
+            })
+        
+        # Get a question that hasn't been shown today or in the last 7 days
+        week_ago = today - timedelta(days=7)
+        
+        # First try to get a question not shown in the last 7 days
+        available_question = QuizQuestion.query.filter_by(
+            is_active=True
+        ).filter(
+            (QuizQuestion.last_shown_date.is_(None)) | 
+            (QuizQuestion.last_shown_date < week_ago)
+        ).order_by(
+            QuizQuestion.show_count.asc(),  # Show less shown questions first
+            func.random()
+        ).first()
+        
+        if not available_question:
+            # If no question meets 7-day rule, get any active question not shown today
+            available_question = QuizQuestion.query.filter_by(
+                is_active=True
+            ).filter(
+                (QuizQuestion.last_shown_date.is_(None)) | 
+                (QuizQuestion.last_shown_date != today)
+            ).order_by(
+                QuizQuestion.show_count.asc(),
+                func.random()
+            ).first()
+        
+        if not available_question:
+            # Last resort: any active question
+            available_question = QuizQuestion.query.filter_by(
+                is_active=True
+            ).order_by(func.random()).first()
+        
+        if not available_question:
+            return jsonify({"error": "No quiz questions available"}), 404
+        
+        # Update question stats
+        available_question.last_shown_date = today
+        available_question.show_count += 1
+        db.session.commit()
+        
+        return jsonify({
+            "question_id": available_question.id,
+            "question": available_question.question,
+            "product_name": available_question.product_name,
+            "category": available_question.category,
+            "difficulty": available_question.difficulty,
+            "show_count": available_question.show_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting daily quiz: {e}")
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/quiz/stats', methods=['GET'])
+def get_quiz_stats():
+    """Admin: Get quiz statistics"""
+    admin = check_admin_auth()
+    if not admin or admin['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        total_questions = QuizQuestion.query.count()
+        active_questions = QuizQuestion.query.filter_by(is_active=True).count()
+        total_attempts = UserQuizAttempt.query.count()
+        
+        # Most attempted questions
+        from sqlalchemy import func
+        popular_questions = db.session.query(
+            QuizQuestion.product_name,
+            func.count(UserQuizAttempt.id).label('attempt_count')
+        ).join(UserQuizAttempt, QuizQuestion.id == UserQuizAttempt.question_id)\
+         .group_by(QuizQuestion.product_name)\
+         .order_by(func.count(UserQuizAttempt.id).desc())\
+         .limit(5).all()
+        
+        return jsonify({
+            "total_questions": total_questions,
+            "active_questions": active_questions,
+            "total_attempts": total_attempts,
+            "popular_questions": [
+                {"product": q[0], "attempts": q[1]} 
+                for q in popular_questions
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error fetching quiz stats: {e}")
+        return jsonify({"error": "Failed to fetch stats"}), 500
+
+
+@app.route('/api/quiz/check-answer', methods=['POST'])
+@login_required
+def check_quiz_answer():
+    """Record quiz attempt and redirect to affiliate link"""
+    try:
+        data = request.get_json()
+        question_id = data.get('question_id')
+        guessed_price = data.get('guessed_price', '').strip()
+        
+        if not question_id:
+            return jsonify({"error": "Question ID required"}), 400
+        
+        question = db.session.get(QuizQuestion, question_id)
+        if not question:
+            return jsonify({"error": "Question not found"}), 404
+        
+        # Create attempt record
+        attempt = UserQuizAttempt(
+            user_id=current_user.id,
+            question_id=question_id,
+            guessed_price=guessed_price,
+            redirect_to_affiliate=True
+        )
+        
+        db.session.add(attempt)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Redirecting to affiliate link",
+            "affiliate_link": question.affiliate_link,
+            "product_name": question.product_name
+        })
+        
+    except Exception as e:
+        logger.error(f"Error recording quiz attempt: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to process quiz"}), 500
+
+@app.route('/api/quiz/user-stats', methods=['GET'])
+@login_required
+def get_user_quiz_stats():
+    """Get user's quiz statistics"""
+    try:
+        total_attempts = UserQuizAttempt.query.filter_by(
+            user_id=current_user.id
+        ).count()
+        
+        today = datetime.now(timezone.utc).date()
+        today_attempt = UserQuizAttempt.query.filter_by(
+            user_id=current_user.id
+        ).filter(
+            func.date(UserQuizAttempt.attempted_at) == today
+        ).first()
+        
+        streak_days = 0
+        # Calculate streak (consecutive days with attempts)
+        attempts_by_day = UserQuizAttempt.query.filter_by(
+            user_id=current_user.id
+        ).with_entities(
+            func.date(UserQuizAttempt.attempted_at).label('attempt_date')
+        ).distinct().order_by(
+            func.date(UserQuizAttempt.attempted_at).desc()
+        ).all()
+        
+        current_date = today
+        for i, record in enumerate(attempts_by_day):
+            if record.attempt_date == current_date - timedelta(days=i):
+                streak_days += 1
+            else:
+                break
+        
+        return jsonify({
+            "total_attempts": total_attempts,
+            "has_attempted_today": today_attempt is not None,
+            "streak_days": streak_days,
+            "today_attempt": {
+                "product_name": today_attempt.question.product_name if today_attempt else None,
+                "redirected": today_attempt.redirect_to_affiliate if today_attempt else None
+            } if today_attempt else None
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user quiz stats: {e}")
+        return jsonify({"error": "Failed to get stats"}), 500
+
+
+
+if __name__ == "__main__":
+    create_tables(app)
+    app.run(debug=False, host='0.0.0.0', port=3001)

@@ -85,6 +85,40 @@ class EmployeeTicketAssignment(db.Model):
     assigned_by = db.Column(db.String(36), db.ForeignKey('admin_users.id', ondelete='SET NULL'))
     assigned_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+
+# Add these models at the end of the file
+
+class QuizQuestion(db.Model):
+    __tablename__ = 'quiz_questions'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    question = db.Column(db.Text, nullable=False)
+    product_name = db.Column(db.String(200), nullable=False)
+    correct_price_range = db.Column(db.String(100))  # e.g., "$1000-$1200"
+    affiliate_link = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(100), default='electronics')
+    difficulty = db.Column(db.String(20), default='medium')  # easy, medium, hard
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # For daily rotation
+    last_shown_date = db.Column(db.Date, nullable=True)
+    show_count = db.Column(db.Integer, default=0)
+
+class UserQuizAttempt(db.Model):
+    __tablename__ = 'user_quiz_attempts'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    question_id = db.Column(db.String(36), db.ForeignKey('quiz_questions.id'), nullable=False)
+    guessed_price = db.Column(db.String(50))
+    attempted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    redirect_to_affiliate = db.Column(db.Boolean, default=False)
+    
+    user = db.relationship('User', backref=db.backref('quiz_attempts', lazy=True))
+    question = db.relationship('QuizQuestion')
+
+    
 def create_tables(app):
     with app.app_context():
         db.create_all()

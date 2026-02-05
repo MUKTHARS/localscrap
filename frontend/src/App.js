@@ -11,7 +11,7 @@ import UserProfile from './components/Profile';
 import UserNavbar from './components/Navbar';
 import SupportTickets from './components/SupportTickets';
 import UserTicketDetail from './components/UserTicketDetail'; // <--- FIX 1: Import this
-
+import QuizManager from './admin/QuizManager';
 // --- ADMIN IMPORTS ---
 import AdminLogin from './admin/Login';
 import AdminDashboard from './admin/Dashboard';
@@ -152,7 +152,13 @@ function App() {
                 </AdminLayout>
               </ProtectedAdminRoute>
             } />
-
+<Route path="/quiz-manager" element={
+  <ProtectedAdminRoute requiredRole="admin">
+    <AdminLayout>
+      <QuizManager user={JSON.parse(localStorage.getItem('admin_user'))} />
+    </AdminLayout>
+  </ProtectedAdminRoute>
+} />
             <Route path="/tickets" element={<ProtectedAdminRoute><AdminLayout><AdminTickets user={JSON.parse(localStorage.getItem('admin_user'))} /></AdminLayout></ProtectedAdminRoute>} />
             <Route path="/tickets/:id" element={<ProtectedAdminRoute><AdminLayout><AdminTicketDetail user={JSON.parse(localStorage.getItem('admin_user'))} /></AdminLayout></ProtectedAdminRoute>} />
             <Route path="/users" element={<ProtectedAdminRoute><AdminLayout><AdminUsers user={JSON.parse(localStorage.getItem('admin_user'))} /></AdminLayout></ProtectedAdminRoute>} />
