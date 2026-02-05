@@ -173,7 +173,7 @@ const Login = () => {
             {/* Divider */}
             <div className="divider-section">
               <div className="divider-line"></div>
-              <span className="divider-text">or continue with email</span>
+              <span className="divider-text">or</span>
               <div className="divider-line"></div>
             </div>
 
