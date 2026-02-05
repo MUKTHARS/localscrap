@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/Login.css';
 import logoImg from '../../assets/tutomart-logo.jpeg';
-import backgroundImg from '../../assets/login_cover.jpg';
+import backgroundImg from '../../assets/login_covers.png';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -96,7 +96,7 @@ const Login = () => {
     <div 
   className="login-left-side"
   style={{
-    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4)), url(${backgroundImg})`,
+    backgroundImage: `url(${backgroundImg})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat'
