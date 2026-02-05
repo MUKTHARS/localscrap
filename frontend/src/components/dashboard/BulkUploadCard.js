@@ -129,7 +129,7 @@ const BulkUploadCard = ({
               <p className="upload-description">
                 Supported formats: CSV, Excel (.csv, .xlsx, .xls)
               </p>
-              <p className="upload-note">Maximum file size: 10MB</p>
+              {/* <p className="upload-note">Maximum file size: 10MB</p> */}
               <button className="browse-button" type="button">
                 <i className="bi bi-folder2-open"></i>
                 Browse Files
@@ -172,31 +172,31 @@ const BulkUploadCard = ({
             </select>
           </div>
           <div className="form-help">
-            <i className="bi bi-info-circle"></i>
+            {/* <i className="bi bi-info-circle"></i> */}
             Select which Amazon country you want to scrape for bulk upload.
           </div>
         </div>
 
         <div className="upload-guide">
           <h5 className="guide-title">
-            <i className="bi bi-file-earmark-text"></i>
+            {/* <i className="bi bi-file-earmark-text"></i> */}
             File Format Requirements
           </h5>
           <ul className="guide-list">
             <li>
-              <i className="bi bi-check-circle"></i>
+              {/* <i className="bi bi-check-circle"></i> */}
               Include columns: <strong>Brand, Product, Website Name</strong>
             </li>
             <li>
-              <i className="bi bi-check-circle"></i>
+              {/* <i className="bi bi-check-circle"></i> */}
               Optional columns: <strong>OEM Number, ASIN Number</strong>
             </li>
             <li>
-              <i className="bi bi-check-circle"></i>
+              {/* <i className="bi bi-check-circle"></i> */}
               First row should contain headers
             </li>
             <li>
-              <i className="bi bi-check-circle"></i>
+              {/* <i className="bi bi-check-circle"></i> */}
               Supported formats: CSV, XLSX, XLS
             </li>
           </ul>

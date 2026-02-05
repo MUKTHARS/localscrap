@@ -33,7 +33,7 @@ const HeroSection = ({ onSearchClick }) => {
           <div className="search-wrapper">
             <input
               type="text"
-              className="search-input"
+              className="search-inputs"
               placeholder="What product are you looking for?"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

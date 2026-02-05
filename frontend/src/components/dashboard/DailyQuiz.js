@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-// import '../../styles/DailyQuiz.css';
 import api from '../../utils/apiConfig';
 import { useAuth } from '../../contexts/AuthContext';
-import '../../styles/Dashboard.css';
+import '../../styles/DailyQuiz.css';
+
 const DailyQuiz = () => {
   const { user } = useAuth();
   const [quizData, setQuizData] = useState(null);
@@ -11,7 +11,6 @@ const DailyQuiz = () => {
   const [guessedPrice, setGuessedPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Move fetchUserStats before useEffect
   const fetchUserStats = async () => {
     try {
       const response = await api.get('/quiz/user-stats');
@@ -21,21 +20,17 @@ const DailyQuiz = () => {
     }
   };
 
-  // Move fetchDailyQuiz before useEffect
   const fetchDailyQuiz = async () => {
     setLoading(true);
     try {
       const response = await api.get('/quiz/daily');
       
       if (response.status === 404) {
-        // No quiz available
         setQuizData({ error: "No quiz available" });
       } else if (response.data.error) {
-        // Other error
         console.error('Quiz error:', response.data.error);
         setQuizData({ error: response.data.error });
       } else {
-        // Success
         setQuizData(response.data);
       }
     } catch (error) {
@@ -69,15 +64,9 @@ const DailyQuiz = () => {
       });
 
       if (response.data.success) {
-        // Redirect to affiliate link
         window.open(response.data.affiliate_link, '_blank', 'noopener,noreferrer');
-        
-        // Refresh stats
         fetchUserStats();
-        // Refresh quiz data to show "already attempted" state
         fetchDailyQuiz();
-        
-        // Show success message
         alert(`Checking answer for ${response.data.product_name}... Redirecting!`);
       }
     } catch (error) {
@@ -88,81 +77,65 @@ const DailyQuiz = () => {
     }
   };
 
-  const getDifficultyBadge = (difficulty) => {
-    const classes = {
-      easy: 'badge-success',
-      medium: 'badge-warning',
-      hard: 'badge-danger'
-    };
-    return classes[difficulty] || 'badge-secondary';
-  };
-
-  // Remove duplicate loading check - we already have one
-  // Remove the second duplicate loading check and the duplicate condition
-
   if (loading) {
     return (
-      <div className="daily-quiz-card loading">
-        <div className="spinner-border text-primary"></div>
+      <div className="dashboard-quiz-card quiz-loading">
+        <div className="spinner-border"></div>
         <p>Loading today's quiz...</p>
       </div>
     );
   }
 
-  // Handle error state
   if (quizData?.error) {
     return (
-      <div className="daily-quiz-card no-quiz">
-        <div className="quiz-header">
-          <div className="quiz-badge">
+      <div className="dashboard-quiz-card quiz-no-quiz">
+        <div className="quiz-dashboard-header">
+          <h3 className="quiz-dashboard-title">
             <i className="bi bi-question-circle"></i>
-            <span>Daily Quiz</span>
-          </div>
+            Daily Quiz
+          </h3>
         </div>
-        <div className="quiz-body">
-          <div className="no-quiz-message">
-            <i className="bi bi-emoji-frown display-4"></i>
-            <h5>No Quiz Available</h5>
-            <p>{quizData.error}</p>
-            <button 
-              className="btn btn-outline-light"
-              onClick={fetchDailyQuiz}
-            >
-              <i className="bi bi-arrow-clockwise"></i> Try Again
-            </button>
-          </div>
+        <div className="dashboard-quiz-noquiz">
+          <i className="bi bi-emoji-frown"></i>
+          <h5>No Quiz Available</h5>
+          <p>{quizData.error}</p>
+          <button 
+            className="dashboard-quiz-refresh-btn"
+            onClick={fetchDailyQuiz}
+          >
+            <i className="bi bi-arrow-clockwise"></i> Try Again
+          </button>
         </div>
       </div>
     );
   }
 
-  // Handle already attempted state
   if (quizData?.already_attempted) {
     return (
-      <div className="daily-quiz-card attempted">
-        <div className="quiz-header">
-          <div className="quiz-badge">
+      <div className="dashboard-quiz-card quiz-attempted">
+        <div className="quiz-dashboard-header">
+          <h3 className="quiz-dashboard-title">
             <i className="bi bi-trophy"></i>
-            <span>Daily Quiz</span>
-          </div>
-          <div className="quiz-stats">
-            {userStats && (
-              <span className="streak">
+            Daily Quiz
+          </h3>
+          <div className="quiz-dashboard-stats">
+            {userStats && userStats.streak_days > 0 && (
+              <span className="quiz-dashboard-streak">
                 <i className="bi bi-fire"></i> {userStats.streak_days} day streak
               </span>
             )}
           </div>
         </div>
         
-        <div className="quiz-body">
-          <div className="attempted-message">
-            <i className="bi bi-check-circle success-icon"></i>
+        <div className="quiz-dashboard-body">
+          <div className="dashboard-quiz-attempted">
+            <i className="bi bi-check-circle dashboard-quiz-success-icon"></i>
             <h5>You've Already Played Today!</h5>
             <p>Come back tomorrow for a new price guessing challenge!</p>
             
             {quizData.redirect_to_affiliate && (
               <button 
-                className="btn btn-outline-light"
+                className="dashboard-quiz-attempted-btn"
                 onClick={() => window.open(quizData.affiliate_link, '_blank', 'noopener,noreferrer')}
               >
                 <i className="bi bi-cart"></i> Visit Product Page
@@ -171,14 +144,14 @@ const DailyQuiz = () => {
           </div>
           
           {userStats && (
-            <div className="user-stats">
-              <div className="stat-item">
-                <div className="stat-number">{userStats.total_attempts}</div>
-                <div className="stat-label">Total Plays</div>
+            <div className="dashboard-quiz-user-stats">
+              <div className="dashboard-quiz-stat-item">
+                <div className="dashboard-quiz-stat-number">{userStats.total_attempts}</div>
+                <div className="dashboard-quiz-stat-label">Total Plays</div>
               </div>
-              <div className="stat-item">
-                <div className="stat-number">{userStats.streak_days}</div>
-                <div className="stat-label">Day Streak</div>
+              <div className="dashboard-quiz-stat-item">
+                <div className="dashboard-quiz-stat-number">{userStats.streak_days}</div>
+                <div className="dashboard-quiz-stat-label">Day Streak</div>
               </div>
             </div>
           )}
@@ -187,51 +160,59 @@ const DailyQuiz = () => {
     );
   }
 
-  // Handle no question_id but no error (should not happen, but safe fallback)
   if (!quizData?.question_id) {
     return (
-      <div className="daily-quiz-card no-quiz">
-        <div className="quiz-header">
-          <div className="quiz-badge">
+      <div className="dashboard-quiz-card quiz-no-quiz">
+        <div className="quiz-dashboard-header">
+          <h3 className="quiz-dashboard-title">
             <i className="bi bi-question-circle"></i>
-            <span>Daily Quiz</span>
-          </div>
+            Daily Quiz
+          </h3>
         </div>
-        <div className="quiz-body">
-          <div className="no-quiz-message">
-            <i className="bi bi-info-circle display-4"></i>
-            <h5>No Quiz Available</h5>
-            <p>Check back later for today's quiz challenge!</p>
-            <button 
-              className="btn btn-outline-light"
-              onClick={fetchDailyQuiz}
-            >
-              <i className="bi bi-arrow-clockwise"></i> Refresh
-            </button>
-          </div>
+        <div className="dashboard-quiz-noquiz">
+          <i className="bi bi-info-circle"></i>
+          <h5>No Quiz Available</h5>
+          <p>Check back later for today's quiz challenge!</p>
+          <button 
+            className="dashboard-quiz-refresh-btn"
+            onClick={fetchDailyQuiz}
+          >
+            <i className="bi bi-arrow-clockwise"></i> Refresh
+          </button>
         </div>
       </div>
     );
   }
 
-  // Main quiz UI
   return (
-    <div className="daily-quiz-card active">
-
+    <div className="dashboard-quiz-card">
+      <div className="quiz-dashboard-header">
+        <h3 className="quiz-dashboard-title">
+          <i className="bi bi-question-circle"></i>
+          Daily Quiz
+        </h3>
+        {userStats && userStats.streak_days > 0 && (
+          <div className="quiz-dashboard-stats">
+            <span className="quiz-dashboard-streak">
+              <i className="bi bi-fire"></i> {userStats.streak_days} day streak
+            </span>
+          </div>
+        )}
+      </div>
       
-      <div className="quiz-body">
-        <h5 className="quiz-question">{quizData.question}</h5>
-        <p className="quiz-product">
-          <i className="bi bi-box-seam"></i> Product: <strong>{quizData.product_name}</strong>
-        </p>
+      <div className="quiz-dashboard-body">
+        <h4 className="quiz-dashboard-question">{quizData.question}</h4>
+        <div className="quiz-dashboard-product">
+          <i className="bi bi-box-seam"></i>
+          <span>Product: <strong>{quizData.product_name}</strong></span>
+        </div>
         
-        <div className="price-input-section">
-       
-          <div className="input-group">
-            <span className="input-group-text">$</span>
+        <div className="quiz-dashboard-input-section">
+          <div className="quiz-dashboard-input-group">
+            <span className="quiz-dashboard-input-prefix">$</span>
             <input
               type="number"
-              className="form-control"
+              className="quiz-dashboard-input"
               placeholder="Enter estimated price"
               value={guessedPrice}
               onChange={(e) => setGuessedPrice(e.target.value)}
@@ -239,38 +220,36 @@ const DailyQuiz = () => {
               step="0.01"
             />
           </div>
-          <small className="form-text text-muted">
+          <small className="quiz-dashboard-hint">
             Enter your best guess for the current market price
           </small>
         </div>
         
-        <div className="quiz-footer">
-          <button 
-            className="btn btn-primary quiz-submit"
-            onClick={handleCheckAnswer}
-            disabled={!guessedPrice.trim() || submitting}
-          >
-            {submitting ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2"></span>
-                Processing...
-              </>
-            ) : (
-              <>
-                <i className="bi bi-check-circle me-2"></i>
-                Check Answer & View Product
-              </>
-            )}
-          </button>
-          
-          <div className="quiz-note">
-            <i className="bi bi-info-circle"></i>
-            Clicking "Check Answer" will redirect you to the product page
-          </div>
+        <button 
+          className="quiz-dashboard-submit"
+          onClick={handleCheckAnswer}
+          disabled={!guessedPrice.trim() || submitting}
+        >
+          {submitting ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2"></span>
+              Processing...
+            </>
+          ) : (
+            <>
+              <i className="bi bi-check-circle me-2"></i>
+              Check Answer & View Product
+            </>
+          )}
+        </button>
+        
+        <div className="quiz-dashboard-note">
+          <i className="bi bi-info-circle"></i>
+          <span>Clicking "Check Answer" will redirect you to the product page</span>
         </div>
         
         {userStats && (
-          <div className="mini-stats">
+          <div className="dashboard-quiz-mini-stats">
             <span>
               <i className="bi bi-check2-all"></i> {userStats.total_attempts} quizzes played
             </span>

@@ -79,11 +79,14 @@
   background: #fafafa;
   border-radius: 2px;
   transition: all 0.2s ease;
+  border: 1px solid #eee; /* Add this line */
+  margin: 5px; /* Optional: add some spacing */
 }
 
 .stat-item:hover {
   background: #f5f5f5;
   transform: translateY(-2px);
+  border-color: #e0e0e0; /* Slightly darker border on hover */
 }
 
 .stat-number {
@@ -93,6 +96,7 @@
   line-height: 1;
   margin-bottom: 8px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  text-shadow: none; /* Ensure no shadow that might hide text */
 }
 
 .stat-label {
@@ -103,6 +107,29 @@
   font-weight: 500;
 }
 
+.user-statz {
+  background: #fafafa; /* Or use a slightly different background */
+  padding: 15px;
+  border-radius: 2px;
+  border: 1px solid #eee;
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.user-statz {
+  color: #212121 !important; /* Ensure text is dark */
+}
+.stat-number {
+  font-weight: 500 !important; /* Or 600 for bolder */
+}
+.stat-item {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.stat-number {
+  color: #212121 !important; /* Force dark color */
+}
 /* Filters - Clean Design */
 .history-filters {
   background: white;

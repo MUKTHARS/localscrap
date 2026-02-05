@@ -209,12 +209,14 @@ return (
 
     {/* Quiz Section - Placed right after Hero with proper spacing */}
     <div className="dashboard-content">
-      <div className="quiz-section-container">
-        <DailyQuiz />
-      </div>
+    
 
       {/* Search Components Section with ref */}
       <div ref={searchComponentsRef} className="search-components-section">
+          <div className="quiz-section-container">
+        <DailyQuiz />
+      </div>
+      
         <h2 className="section-title">
           Start Your Search
         </h2>
