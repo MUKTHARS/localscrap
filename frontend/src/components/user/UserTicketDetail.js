@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../utils/apiConfig';
-import { formatToAccountTime } from '../utils/dateUtils';
+import api from '../../utils/apiConfig';
+import { formatToAccountTime } from '../../utils/dateUtils';
 
 const UserTicketDetail = ({ user }) => {
   const { id } = useParams();

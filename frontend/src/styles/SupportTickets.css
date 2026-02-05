@@ -1,87 +1,346 @@
+/* Support Tickets - Premium Minimalist Theme */
 .support-tickets-container {
-    padding: 20px 0;
+  padding: 0 20px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.ticket-card {
-    border-left: 4px solid #007bff;
-    margin-bottom: 15px;
-    transition: all 0.3s ease;
+/* Header Navigation */
+.support-tickets-container .btn-outline-secondary {
+  background: transparent;
+  border: 1px solid #e0e0e0;
+  color: #666;
+  padding: 10px 20px;
+  border-radius: 2px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
-.ticket-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+.support-tickets-container .btn-outline-secondary:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+  color: #333;
 }
 
-.ticket-card.low {
-    border-left-color: #17a2b8;
+.support-tickets-container .btn-primary {
+  background: #212121;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 2px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
-.ticket-card.medium {
-    border-left-color: #007bff;
+.support-tickets-container .btn-primary:hover {
+  background: #000;
+  transform: translateY(-1px);
 }
 
-.ticket-card.high {
-    border-left-color: #ffc107;
+/* Card Styles */
+.support-tickets-container .card {
+  border: 1px solid #eee;
+  border-radius: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: white;
+  margin-bottom: 30px;
+  overflow: hidden;
 }
 
-.ticket-card.critical {
-    border-left-color: #dc3545;
+.support-tickets-container .card-header {
+  background: white;
+  border-bottom: 1px solid #eee;
+  padding: 20px 25px;
+  color: #212121;
+  font-weight: 400;
+  font-size: 1.3rem;
 }
 
-.ticket-status {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
+.support-tickets-container .card-body {
+  padding: 25px;
 }
 
-.status-open {
-    background-color: #d4edda;
-    color: #155724;
+/* Form Elements */
+.support-tickets-container .form-label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
 }
 
-.status-in_progress {
-    background-color: #fff3cd;
-    color: #856404;
+.support-tickets-container .form-control,
+.support-tickets-container .form-select {
+  border: 1px solid #e0e0e0;
+  border-radius: 2px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  background: #fff;
+  transition: all 0.2s ease;
 }
 
-.status-resolved {
-    background-color: #cce5ff;
-    color: #004085;
+.support-tickets-container .form-control:focus,
+.support-tickets-container .form-select:focus {
+  border-color: #999;
+  box-shadow: none;
+  outline: none;
 }
 
-.status-closed {
-    background-color: #e2e3e5;
-    color: #383d41;
+.support-tickets-container textarea.form-control {
+  resize: vertical;
+  min-height: 120px;
 }
 
-.attachment-list {
-    list-style: none;
-    padding: 0;
+/* File Upload Section */
+.support-tickets-container .bg-light {
+  background: #fafafa !important;
+  border-color: #eee !important;
 }
 
-.attachment-list li {
-    padding: 8px;
-    margin-bottom: 5px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.support-tickets-container .list-group-item {
+  border: 1px solid #eee;
+  border-radius: 2px;
+  background: white;
+  margin-bottom: 8px;
+  padding: 12px 15px;
 }
 
-.attachment-list li:hover {
-    background-color: #e9ecef;
+.support-tickets-container .btn-outline-danger {
+  border: none;
+  background: transparent;
+  color: #d32f2f;
+  opacity: 0.7;
 }
 
-.file-icon {
-    margin-right: 10px;
-    color: #6c757d;
+.support-tickets-container .btn-outline-danger:hover {
+  background: transparent;
+  opacity: 1;
 }
 
-.file-size {
-    font-size: 12px;
-    color: #6c757d;
+/* Buttons */
+.support-tickets-container .btn-success {
+  background: #212121;
+  border: none;
+  color: white;
+  padding: 10px 25px;
+  border-radius: 2px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.support-tickets-container .btn-success:hover {
+  background: #000;
+}
+
+.support-tickets-container .btn-secondary {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  color: #666;
+  padding: 10px 25px;
+  border-radius: 2px;
+  font-size: 0.9rem;
+}
+
+.support-tickets-container .btn-secondary:hover {
+  background: #eee;
+  border-color: #ccc;
+}
+
+/* Spinner */
+.support-tickets-container .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+/* Table Styling */
+.support-tickets-container .table {
+  margin-bottom: 0;
+}
+
+.support-tickets-container .table thead th {
+  background: #fafafa;
+  border-bottom: 1px solid #eee;
+  padding: 15px 20px;
+  font-weight: 500;
+  color: #666;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.support-tickets-container .table tbody td {
+  padding: 15px 20px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 0.9rem;
+}
+
+.support-tickets-container .table tbody tr:hover {
+  background: #fafafa;
+}
+
+.support-tickets-container .table-hover tbody tr:hover {
+  background: #f9f9f9;
+}
+
+/* Badge Styling */
+.support-tickets-container .badge {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.support-tickets-container .bg-info {
+  background: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+.support-tickets-container .bg-primary {
+  background: #f3e5f5 !important;
+  color: #7b1fa2 !important;
+}
+
+.support-tickets-container .bg-warning {
+  background: #fff8e1 !important;
+  color: #ff8f00 !important;
+}
+
+.support-tickets-container .bg-danger {
+  background: #ffebee !important;
+  color: #d32f2f !important;
+}
+
+.support-tickets-container .bg-success {
+  background: #e8f5e9 !important;
+  color: #2e7d32 !important;
+}
+
+.support-tickets-container .bg-secondary {
+  background: #f5f5f5 !important;
+  color: #666 !important;
+}
+
+.support-tickets-container .bg-light.text-dark {
+  background: #f5f5f5 !important;
+  color: #333 !important;
+  border: 1px solid #eee !important;
+}
+
+/* Links in Table */
+.support-tickets-container .text-decoration-none {
+  transition: color 0.2s ease;
+}
+
+.support-tickets-container .text-decoration-none:hover {
+  color: #212121 !important;
+}
+
+.support-tickets-container .font-monospace {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Empty State */
+.support-tickets-container .display-1 {
+  font-size: 3.5rem;
+  color: #e0e0e0;
+  margin-bottom: 1rem;
+}
+
+.support-tickets-container .text-center h4 {
+  color: #212121;
+  font-weight: 400;
+  margin: 1rem 0 0.5rem;
+}
+
+.support-tickets-container .text-center p {
+  color: #757575;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .support-tickets-container {
+    padding: 0 15px 30px;
+  }
+  
+  .support-tickets-container .card-header {
+    padding: 15px 20px;
+    font-size: 1.2rem;
+  }
+  
+  .support-tickets-container .card-body {
+    padding: 20px;
+  }
+  
+  .support-tickets-container .table thead {
+    display: none;
+  }
+  
+  .support-tickets-container .table tbody tr {
+    display: block;
+    margin-bottom: 20px;
+    border: 1px solid #eee;
+    border-radius: 2px;
+    padding: 15px;
+  }
+  
+  .support-tickets-container .table tbody td {
+    display: block;
+    text-align: right;
+    padding: 10px 15px;
+    border-bottom: 1px solid #f5f5f5;
+    position: relative;
+  }
+  
+  .support-tickets-container .table tbody td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 15px;
+    width: 45%;
+    padding-right: 10px;
+    font-weight: 500;
+    text-align: left;
+    color: #666;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+  }
+  
+  .support-tickets-container .table-responsive {
+    border: none;
+  }
+  
+  .support-tickets-container .d-flex {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .support-tickets-container .btn-outline-secondary,
+  .support-tickets-container .btn-primary {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .support-tickets-container {
+    padding: 0 10px 20px;
+  }
+  
+  .support-tickets-container .card-header {
+    padding: 12px 15px;
+    font-size: 1.1rem;
+  }
+  
+  .support-tickets-container .card-body {
+    padding: 15px;
+  }
+  
+  .support-tickets-container .display-1 {
+    font-size: 2.5rem;
+  }
 }

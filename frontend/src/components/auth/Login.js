@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import '../styles/Login.css';
-import logoImg from '../assets/tutomart-logo.jpeg';
+import '../../styles/Login.css';
+import logoImg from '../../assets/tutomart-logo.jpeg';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);

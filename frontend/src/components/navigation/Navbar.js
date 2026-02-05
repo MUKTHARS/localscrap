@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import '../styles/Navbar.css';
-import logoImg from '../assets/tutomart-logo.jpeg';
+import { useAuth } from '../../contexts/AuthContext';
+import '../../styles/Navbar.css';
+import logoImg from '../../assets/tutomart-logo.jpeg';
 
 const Navbar = () => {
   const auth = useAuth() || {};

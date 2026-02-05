@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../utils/apiConfig';
-import { formatToAccountTime } from '../utils/dateUtils'; // Ensure this utility exists
-import '../styles/SupportTickets.css';
+import api from '../../utils/apiConfig';
+import { formatToAccountTime } from '../../utils/dateUtils'; // Ensure this utility exists
+import '../../styles/SupportTickets.css';
 
 const SupportTickets = ({ user }) => { // Accept user prop for timezone
   const navigate = useNavigate();
@@ -266,33 +266,31 @@ const SupportTickets = ({ user }) => { // Accept user prop for timezone
                 </thead>
                 <tbody>
                   {tickets.map(ticket => (
-                    <tr key={ticket.id}>
-                      {/* FIX 2: Make ID Clickable */}
-                      <td>
-                        <Link to={`/support/tickets/${ticket.id}`} className="text-decoration-none fw-bold font-monospace">
-                          {ticket.ticket_number}
-                        </Link>
-                      </td>
-                      {/* FIX 2: Make Subject Clickable */}
-                      <td>
-                        <Link to={`/support/tickets/${ticket.id}`} className="text-decoration-none text-dark fw-bold d-block">
-                          {ticket.subject}
-                        </Link>
-                        <small className="text-muted text-truncate d-block" style={{maxWidth: '250px'}}>
-                          {ticket.description}
-                        </small>
-                      </td>
-                      <td><span className={getUrgencyBadgeClass(ticket.urgency)}>{ticket.urgency.toUpperCase()}</span></td>
-                      <td><span className={getStatusBadgeClass(ticket.status)}>{ticket.status.replace('_', ' ').toUpperCase()}</span></td>
-                      <td>{formatToAccountTime(ticket.created_at, user?.timezone)}</td>
-                      <td>
-                        {ticket.attachment_paths?.length > 0 ? (
-                          <span className="badge bg-light text-dark border">
-                            <i className="bi bi-paperclip"></i> {ticket.attachment_paths.length}
-                          </span>
-                        ) : <span className="text-muted small">-</span>}
-                      </td>
-                    </tr>
+<tr key={ticket.id}>
+  <td data-label="Ticket ID">
+    <Link to={`/support/tickets/${ticket.id}`} className="text-decoration-none fw-bold font-monospace">
+      {ticket.ticket_number}
+    </Link>
+  </td>
+  <td data-label="Subject">
+    <Link to={`/support/tickets/${ticket.id}`} className="text-decoration-none text-dark fw-bold d-block">
+      {ticket.subject}
+    </Link>
+    <small className="text-muted text-truncate d-block" style={{maxWidth: '250px'}}>
+      {ticket.description}
+    </small>
+  </td>
+  <td data-label="Urgency"><span className={getUrgencyBadgeClass(ticket.urgency)}>{ticket.urgency.toUpperCase()}</span></td>
+  <td data-label="Status"><span className={getStatusBadgeClass(ticket.status)}>{ticket.status.replace('_', ' ').toUpperCase()}</span></td>
+  <td data-label="Date">{formatToAccountTime(ticket.created_at, user?.timezone)}</td>
+  <td data-label="Files">
+    {ticket.attachment_paths?.length > 0 ? (
+      <span className="badge bg-light text-dark border">
+        <i className="bi bi-paperclip"></i> {ticket.attachment_paths.length}
+      </span>
+    ) : <span className="text-muted small">-</span>}
+  </td>
+</tr>
                   ))}
                 </tbody>
               </table>

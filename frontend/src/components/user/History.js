@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import api from '../utils/apiConfig';
-import { useAuth } from '../contexts/AuthContext';
-import { formatToAccountTime } from '../utils/dateUtils';
-import '../styles/History.css';
+import api from '../../utils/apiConfig';
+import { useAuth } from '../../contexts/AuthContext';
+import { formatToAccountTime } from '../../utils/dateUtils';
+import '../../styles/History.css';
 
 const History = () => {
   const [historyData, setHistoryData] = useState([]);
@@ -188,61 +188,61 @@ const History = () => {
                   <th>Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredHistory.map((search) => (
-                  <tr key={search.id}>
-                    <td>
-                      <span className={`badge ${search.search_type === 'bulk' ? 'badge-warning' : 'badge-info'}`}>
-                        {search.search_type === 'bulk' ? 'Bulk Upload' : 'Manual'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="fw-bold">{search.brand || 'N/A'}</div>
-                    </td>
-                    <td>
-                      <div className="text-truncate" style={{ maxWidth: '200px' }} title={search.product}>
-                        {search.product || 'N/A'}
-                      </div>
-                    </td>
-                    <td>
-                      <div>
-                        {search.oem_number && (
-                          <div className="small">
-                            <span className="text-muted">OEM: </span>
-                            {search.oem_number}
-                          </div>
-                        )}
-                        {search.asin_number && (
-                          <div className="small">
-                            <span className="text-muted">ASIN: </span>
-                            {search.asin_number}
-                          </div>
-                        )}
-                        {!search.oem_number && !search.asin_number && '-'}
-                      </div>
-                    </td>
-                    <td>
-                      <span className="website-badge">
-                        {search.website || 'All Websites'}
-                      </span>
-                    </td>
-                    <td>
-                      {formatToAccountTime(search.created_at, user?.timezone)}
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => deleteSearch(search.id)}
-                          title="Delete"
-                        >
-                          <i className="bi bi-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+<tbody>
+  {filteredHistory.map((search) => (
+    <tr key={search.id}>
+      <td data-label="Type">
+        <span className={`badge ${search.search_type === 'bulk' ? 'badge-warning' : 'badge-info'}`}>
+          {search.search_type === 'bulk' ? 'Bulk Upload' : 'Manual'}
+        </span>
+      </td>
+      <td data-label="Brand/Store">
+        <div className="fw-bold">{search.brand || 'N/A'}</div>
+      </td>
+      <td data-label="Product">
+        <div className="text-truncate" style={{ maxWidth: '200px' }} title={search.product}>
+          {search.product || 'N/A'}
+        </div>
+      </td>
+      <td data-label="OEM/ASIN">
+        <div>
+          {search.oem_number && (
+            <div className="small">
+              <span className="text-muted">OEM: </span>
+              {search.oem_number}
+            </div>
+          )}
+          {search.asin_number && (
+            <div className="small">
+              <span className="text-muted">ASIN: </span>
+              {search.asin_number}
+            </div>
+          )}
+          {!search.oem_number && !search.asin_number && '-'}
+        </div>
+      </td>
+      <td data-label="Website">
+        <span className="website-badge">
+          {search.website || 'All Websites'}
+        </span>
+      </td>
+      <td data-label={`Date (${user?.timezone || 'UTC'})`}>
+        {formatToAccountTime(search.created_at, user?.timezone)}
+      </td>
+      <td data-label="Actions">
+        <div className="action-buttons">
+          <button
+            className="btn btn-sm btn-outline-danger"
+            onClick={() => deleteSearch(search.id)}
+            title="Delete"
+          >
+            <i className="bi bi-trash"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
             </table>
           </div>
         ) : (
