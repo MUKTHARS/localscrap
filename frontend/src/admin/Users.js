@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Table, Badge, Card, Spinner, Alert } from 'react-bootstrap';
 // 1. IMPORT UTILITY
 import { formatToAccountTime } from '../utils/dateUtils';
-
+import { API_BASE_URL } from '../utils/config';
 // 2. ACCEPT USER PROP
 const Users = ({ user }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // const API_BASE_URL = 'https://api.tutomart.com';
-const API_BASE_URL = 'http://api.localhost:3001';
-  useEffect(() => {
+ useEffect(() => {
     fetchUsers();
   }, []);
 

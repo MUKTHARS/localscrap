@@ -141,7 +141,6 @@ const BulkUploadCard = ({
         {/* Amazon Region for Bulk Upload */}
         <div className="form-group">
           <label className="form-label">
-            <i className="bi bi-globe-americas"></i>
             Amazon Region
           </label>
           <div className="form-input-wrapper">
@@ -172,7 +171,7 @@ const BulkUploadCard = ({
             </select>
           </div>
           <div className="form-help">
-            {/* <i className="bi bi-info-circle"></i> */}
+           
             Select which Amazon country you want to scrape for bulk upload.
           </div>
         </div>

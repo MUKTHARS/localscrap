@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Badge, Button, Form, Modal, Alert, Spinner, Row, Col } from 'react-bootstrap';
-
+import { API_BASE_URL } from '../utils/config';
 const AssignTickets = () => {
   const [unassignedTickets, setUnassignedTickets] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -14,10 +14,7 @@ const AssignTickets = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Define Base URL
-  // const API_BASE_URL = 'https://api.tutomart.com';
-const API_BASE_URL = 'http://api.localhost:3001';
-  useEffect(() => {
+ useEffect(() => {
     fetchData();
   }, []);
 

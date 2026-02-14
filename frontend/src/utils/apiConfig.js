@@ -1,16 +1,14 @@
 import axios from 'axios';
+import { API_BASE_URL } from './config';
 
 const api = axios.create({
-  // baseURL: 'https://tutomart.com/api', 
-  // baseURL: 'https://api.tutomart.com/api',
-  baseURL: 'http://localhost:3001/api',
+  baseURL: `${API_BASE_URL}/api`, 
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Add the interceptor to handle errors gracefully
 api.interceptors.response.use(
   (response) => response,
   (error) => {

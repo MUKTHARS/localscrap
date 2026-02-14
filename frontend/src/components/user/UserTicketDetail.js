@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/apiConfig';
 import { formatToAccountTime } from '../../utils/dateUtils';
+import { API_BASE_URL } from '../../utils/config';
 
 const UserTicketDetail = ({ user }) => {
   const { id } = useParams();
@@ -10,10 +11,7 @@ const UserTicketDetail = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // FIX: Ensure this is empty to use the current domain
-  // const API_BASE_URL = 'https://api.tutomart.com';
-const API_BASE_URL = 'http://api.localhost:3001';
-  useEffect(() => {
+useEffect(() => {
     const fetchTicketDetails = async () => {
       try {
         const response = await api.get(`/support/ticket/${id}`);

@@ -21,8 +21,7 @@ const HeroSection = ({ onSearchClick }) => {
       <div className="hero-content">
         <div className="hero-text">
           <h1 className="hero-title">
-            Find the Best Deals
-            <span>Across All Stores</span>
+            Find the Best Deals Across All Stores
           </h1>
           <p className="hero-subtitle">
             Compare prices in real-time from Amazon, eBay, Shopify, and more

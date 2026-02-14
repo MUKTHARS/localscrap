@@ -2,7 +2,6 @@ export const getFormattedCurrency = (currencyCode) => {
   if (!currencyCode || currencyCode === 'NA') return '';
 
   const currencyMap = {
-    // --- Major Currencies ---
     'USD': '$',    // US Dollar
     'EUR': '€',    // Euro
     'GBP': '£',    // British Pound
@@ -56,5 +55,5 @@ export const getFormattedCurrency = (currencyCode) => {
     'AZN': '₼',    // Azerbaijani Manat
   };
 
-  return currencyMap[currencyCode] || currencyCode; // Fallback to code (e.g., "KWD") if symbol not found
+  return currencyMap[currencyCode] || currencyCode;
 };

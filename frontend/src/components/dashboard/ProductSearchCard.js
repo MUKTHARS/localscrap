@@ -45,7 +45,7 @@ const ProductSearchCard = ({
           {/* Website Selection */}
           <div className="form-group">
             <label className="form-label">
-              <i className="bi bi-globe"></i>
+            
               Website
             </label>
             <div className="form-input-wrapper">
@@ -94,7 +94,7 @@ const ProductSearchCard = ({
                 />
               </div>
               <div className="form-help">
-                <i className="bi bi-info-circle"></i>
+              
                 Enter the home page URL of the Shopify store to scan all products.
               </div>
             </div>
@@ -103,7 +103,7 @@ const ProductSearchCard = ({
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">
-                    <i className="bi bi-tag"></i>
+                    
                     <span>Brand</span>
                     <span className="required">*</span>
                   </label>
@@ -122,7 +122,7 @@ const ProductSearchCard = ({
 
                 <div className="form-group">
                   <label className="form-label">
-                    <i className="bi bi-box"></i>
+                    
                     <span>Product</span>
                     <span className="required">*</span>
                   </label>
@@ -143,7 +143,7 @@ const ProductSearchCard = ({
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">
-                    <i className="bi bi-upc-scan"></i>
+                    
                     OEM Number
                   </label>
                   <div className="form-input-wrapper">
@@ -160,7 +160,7 @@ const ProductSearchCard = ({
 
                 <div className="form-group">
                   <label className="form-label">
-                    <i className="bi bi-upc"></i>
+                    
                     ASIN Number
                   </label>
                   <div className="form-input-wrapper">
@@ -182,7 +182,7 @@ const ProductSearchCard = ({
           {showAmazonRegion && (
             <div className="form-group">
               <label className="form-label">
-                <i className="bi bi-globe-americas"></i>
+                
                 Amazon Region
               </label>
               <div className="form-input-wrapper">
@@ -213,7 +213,7 @@ const ProductSearchCard = ({
                 </select>
               </div>
               <div className="form-help">
-                <i className="bi bi-info-circle"></i>
+               
                 Select which Amazon country you want to scrape. Used when scraping Amazon or All Websites.
               </div>
             </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../utils/apiConfig'; // Import your configured axios instance
+import api from '../utils/apiConfig';
 
 const Login = () => {
   const [email, setEmail] = useState('');

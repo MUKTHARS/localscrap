@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Alert, Spinner } from 'react-bootstrap';
-
+import { API_BASE_URL } from '../utils/config';
 const AssignTicketModal = ({ show, onHide, ticketId, ticketNumber, onAssign }) => {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Define Base URL for Flask Backend
-  // const API_BASE_URL = 'https://api.tutomart.com';
-const API_BASE_URL = 'http://api.localhost:3001';
   useEffect(() => {
     if (show) {
       // Reset state when modal opens

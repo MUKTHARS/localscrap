@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/Login.css';
 import logoImg from '../../assets/tutomart-logo.jpeg';
 import backgroundImg from '../../assets/login_covers.png';
+import { API_BASE_URL } from '../../utils/config';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -67,7 +68,7 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:3001/api/auth/login/google';
+    window.location.href = `${API_BASE_URL}/api/auth/login/google`;
   };  
   
   if (authLoading) {
@@ -91,7 +92,7 @@ const Login = () => {
   }
 
   return (
-    <div className="razorpay-style-login">
+    <div className="minimalist-style-login">
       {/* Left Side - Brand Section with Background Image */}
     <div 
   className="login-left-side"

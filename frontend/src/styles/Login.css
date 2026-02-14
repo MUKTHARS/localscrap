@@ -1,5 +1,5 @@
-/* Razorpay Style Login Layout */
-.razorpay-style-login {
+
+.minimalist-style-login {
   min-height: 100vh;
   display: flex;
   background-color: #f8f9fa;
@@ -475,7 +475,7 @@
 
 /* Responsive Design */
 @media (max-width: 992px) {
-  .razorpay-style-login {
+  .minimalist-style-login {
     flex-direction: column;
   }
   

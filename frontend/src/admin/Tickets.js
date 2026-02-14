@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Badge, Button, Form, Modal, InputGroup, Alert, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { formatToAccountTime } from '../utils/dateUtils';
+import { API_BASE_URL } from '../utils/config';
 
 const Tickets = ({ user }) => {
   const [tickets, setTickets] = useState([]);
@@ -20,10 +21,7 @@ const Tickets = ({ user }) => {
 
   const isAdmin = user?.role === 'admin';
 
-  // Define Base URL
-  // const API_BASE_URL = 'https://api.tutomart.com';
-const API_BASE_URL = 'http://api.localhost:3001';
-  useEffect(() => {
+useEffect(() => {
     fetchTickets();
     if (isAdmin) {
       fetchEmployees();

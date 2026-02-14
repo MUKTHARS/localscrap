@@ -15,7 +15,7 @@ import { Bar, Pie } from 'react-chartjs-2';
 import { Card, Row, Col, Table, Badge, Button, Spinner, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { formatToAccountTime } from '../utils/dateUtils';
-
+import { API_BASE_URL } from '../utils/config';
 // Register ChartJS components
 ChartJS.register(
   CategoryScale, 
@@ -35,12 +35,8 @@ const Dashboard = ({ user }) => {
   const [unassignedTicketsCount, setUnassignedTicketsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // NEW: State for detailed ticket breakdown by urgency and status
   const [urgencyStatusBreakdown, setUrgencyStatusBreakdown] = useState({});
-  
-  // const API_BASE_URL = 'https://api.tutomart.com';
-  const API_BASE_URL = 'http://api.localhost:3001';
+
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {

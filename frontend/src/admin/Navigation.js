@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, Dropdown } from 'react-bootstrap';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/config';
 
 const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(user);
 
-  // --- 1. ROBUST USER LOADING ---
-  // If 'user' prop is missing or incomplete, try to load from localStorage as fallback
   useEffect(() => {
     if (user && user.role) {
       setCurrentUser(user);
@@ -37,14 +36,9 @@ const Navigation = ({ user, onLogout }) => {
   const isEmployee = role === 'employee';
   const isStaff = isAdmin || isEmployee;
 
-  // --- 3. DYNAMIC LINKS ---
-  // Staff -> Admin Dashboard (/admin/dashboard)
-  // Customers -> User Dashboard (/dashboard)
   const dashboardLink = isStaff ? '/admin/dashboard' : '/dashboard';
   
-  // const API_BASE_URL = 'https://api.tutomart.com';
-const API_BASE_URL = 'http://api.localhost:3001';
-  const handleLogout = async () => {
+ const handleLogout = async () => {
     try {
       const endpoint = isStaff ? '/api/admin/logout' : '/api/auth/logout';
       await fetch(`${API_BASE_URL}${endpoint}`, {

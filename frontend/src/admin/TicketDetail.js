@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button, Form, Alert, ListGroup, Spinner } from 'react-bootstrap';
 // 1. IMPORT UTILITY
 import { formatToAccountTime } from '../utils/dateUtils';
+import { API_BASE_URL } from '../utils/config';
 
 // 2. ACCEPT USER PROP
 const TicketDetail = ({ user }) => {
@@ -14,9 +15,7 @@ const TicketDetail = ({ user }) => {
   const [replyText, setReplyText] = useState('');
   const [updating, setUpdating] = useState(false);
 
-  // const API_BASE_URL = 'https://api.tutomart.com';
-const API_BASE_URL = 'http://api.localhost:3001';
-  useEffect(() => {
+useEffect(() => {
     fetchTicket();
   }, [id]);
 
